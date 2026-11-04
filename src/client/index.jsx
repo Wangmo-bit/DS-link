@@ -236,8 +236,8 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
   return <section className="sl-detail" aria-label="消息详情">
     <div className="sl-section-head"><h3>消息 #{short(message.id)}</h3><span className={`sl-status sl-${status}`}>{messageState(message)}</span></div>
     <dl className="sl-meta">
-      <dt>来源</dt><dd><button type="button" className="sl-text-button" onClick={() => open(message.from)}>{sessionLabel(message.from, sessions, message.fromTitle)}</button></dd>
-      <dt>目标</dt><dd><button type="button" className="sl-text-button" onClick={() => open(message.to)}>{sessionLabel(message.to, sessions, message.toTitle)}</button></dd>
+      <dt>来源</dt><dd><button type="button" className="sl-text-button" data-i18n-skip="" onClick={() => open(message.from)}>{sessionLabel(message.from, sessions, message.fromTitle)}</button></dd>
+      <dt>目标</dt><dd><button type="button" className="sl-text-button" data-i18n-skip="" onClick={() => open(message.to)}>{sessionLabel(message.to, sessions, message.toTitle)}</button></dd>
       <dt>创建</dt><dd>{date(message.createdAt)}</dd>
       <dt>宿主接收</dt><dd>{date(message.acceptedAt)}</dd>
       {receipt && receipt.receivedAt != null && <><dt>接收时间</dt><dd>{date(receipt.receivedAt)}{Number.isSafeInteger(receipt.receivedSeq) && <> · seq {receipt.receivedSeq}</>}</dd></>}
@@ -246,9 +246,9 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
       {deadlineVisible && <><dt>等待期限</dt><dd>{date(message.deadlineAt)}</dd></>}
       <dt>类型</dt><dd>{KIND[message.kind] ?? message.kind}</dd>
       <dt>关联消息</dt><dd><button type="button" className="sl-text-button" onClick={() => selectChain(message.chainId)}>查看关联消息</button> · {chainStateText(chainState)} · {chain?.messageCount ?? '—'} 条</dd>
-      <dt>持久身份</dt><dd><code>{message.durableMessageId ?? '尚未创建宿主消息'}</code></dd>
+      <dt>持久身份</dt><dd><code data-i18n-skip="">{message.durableMessageId ?? '尚未创建宿主消息'}</code></dd>
     </dl>
-    {message.error && <p className="sl-alert" role="status">{typeof message.error === 'string' ? message.error : `${message.error.code}：${message.error.message}`}</p>}
+    {message.error && <p className="sl-alert" role="status" data-i18n-skip="">{typeof message.error === 'string' ? message.error : `${message.error.code}：${message.error.message}`}</p>}
     {status === 'unknown' && <p className="sl-note">消息可能已执行，但尚无可靠确认。不要直接重发；先核对目标会话。人工结案不等于证明未投递。</p>}
     {hint && <p className="sl-note">{hint}</p>}
     {receipt?.state === 'received' && <p className="sl-note">“已进入上下文”只表示目标会话已接收这条消息，不代表已读或已处理，也不代表请求已发给模型。</p>}
@@ -260,9 +260,9 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
     {chainState === 'paused' && <p className="sl-note">这组通信已暂停；恢复后继续投递尚未开始的消息，已开始的工作不受影响。</p>}
     {chainState === 'closed' && <p className="sl-note">这组通信已结束；未投递的消息已取消，已开始的工作不受影响。</p>}
     {!writable && <p className="sl-alert" role="status">存储异常：记录只读，控制操作已禁用。</p>}
-    <pre className="sl-message-body">{textOf(message) || '正文已按保留期限清理，或此记录无正文。'}</pre>
-    {!!message.paths?.length && <div><h3>引用的本机路径</h3><ul>{message.paths.map((path, index) => <li key={index}><code>{path}</code></li>)}</ul><p className="sl-muted">只传路径，不搬运文件；工作目录和权限仍各自独立。</p></div>}
-    {!!message.references?.length && <div><h3>历史引用</h3>{message.references.map((ref, index) => <blockquote key={index}><button type="button" className="sl-text-button" onClick={() => open(ref.sessionId)}>{ref.sessionId} · seq {ref.seq}</button><pre>{ref.text}</pre></blockquote>)}</div>}
+    <pre className="sl-message-body" data-i18n-skip="">{textOf(message) || '正文已按保留期限清理，或此记录无正文。'}</pre>
+    {!!message.paths?.length && <div><h3>引用的本机路径</h3><ul>{message.paths.map((path, index) => <li key={index} data-i18n-skip=""><code>{path}</code></li>)}</ul><p className="sl-muted">只传路径，不搬运文件；工作目录和权限仍各自独立。</p></div>}
+    {!!message.references?.length && <div><h3>历史引用</h3>{message.references.map((ref, index) => <blockquote key={index} data-i18n-skip=""><button type="button" className="sl-text-button" onClick={() => open(ref.sessionId)}>{ref.sessionId} · seq {ref.seq}</button><pre>{ref.text}</pre></blockquote>)}</div>}
     <div className="sl-actions">
       {['pending', 'held'].includes(status) && <Action busy={blocked} onClick={() => act('cancel', message.id)}>取消尚未投递的消息</Action>}
       {status === 'held' && message.releasable === true && <Action busy={blocked} onClick={() => { if (confirm('只在你确认这条旧版暂存记录可以投递时才释放；它仍会按当前通道与暂停设置排队，不会绕过全局暂停。')) act('release', message.id); }}>明确释放这条暂存消息</Action>}

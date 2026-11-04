@@ -178,7 +178,7 @@ function skip(node) {
 }
 
 function translateAttributes(el) {
-  if (!el.getAttribute) return
+  if (!el.getAttribute || !insideRoot(el) || el.closest?.('[data-i18n-skip]')) return
   for (const attr of ['aria-label', 'title', 'placeholder', 'alt']) {
     const value = el.getAttribute(attr)
     if (value === null) continue
@@ -195,7 +195,6 @@ function translateNode(node) {
     const parent = node.parentElement
     if (!parent) return
     const current = node.nodeValue
-    if (appliedText.get(node) === current) return
     if (!originalText.has(node)) originalText.set(node, current)
     const next = translateText(originalText.get(node))
     if (current !== next) { node.nodeValue = next; appliedText.set(node, next) }
@@ -207,7 +206,7 @@ function translateNode(node) {
   // contain a plugin root, but never translate outside plugin-owned roots.
   if (!insideRoot(node) && !containsRoot(node)) return
   if (insideRoot(node) && skip(node)) return
-  translateAttributes(node)
+  if (insideRoot(node)) translateAttributes(node)
   for (const child of node.childNodes) translateNode(child)
 }
 

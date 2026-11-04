@@ -291,7 +291,7 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
     bodyContent = <div className="sl-card__placeholder">正文加载中…</div>;
   } else if (body.phase === 'available') {
     bodyContent = (
-      <div className="sl-card__body" data-session-link-card-text="">
+      <div className="sl-card__body" data-session-link-card-text="" data-i18n-skip="">
         {body.body}
       </div>
     );
