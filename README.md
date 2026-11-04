@@ -1,5 +1,7 @@
 # Session Link for DeepSeek Harness
 
+[English](README_EN.md) | 简体中文
+
 ![DSH 0.2.1-rc.5](https://img.shields.io/badge/dsh-0.2.1--rc.5-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License pending](https://img.shields.io/badge/license-pending-f0a441?style=flat-square)
 
 让**已有 DSH 普通会话**之间直接互发消息、请求协作、收取明确回复——不需要新建 Bot 团队，也不用在聊天框里手工转发。
@@ -8,7 +10,7 @@
 
 *合成演示：会话名与内容均为虚构，来自隔离测试环境，不含真实用户数据或凭据。*
 
-> **状态：本地候选，尚未公开发布。** 许可证、最终名称/scope 与发布渠道待项目所有者决定。截图来自隔离合成会话（`产品周报 · 讨论` / `设计评审 · 笔记`），不含真实对话或凭据。
+> **状态：私有预发布（private pre-release），尚未公开。** 仓库当前为私有；许可证、最终名称/scope 与公开发布时间待项目所有者决定。截图来自隔离合成会话（`产品周报 · 讨论` / `设计评审 · 笔记`），不含真实对话或凭据。
 
 ## 为什么用它
 
