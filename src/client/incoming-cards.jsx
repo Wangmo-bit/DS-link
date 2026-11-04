@@ -331,7 +331,7 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
   return (
     <div
       className={cardClass('received')}
-      data-session-link-card=""
+      data-session-link-card="" data-session-link-i18n-root=""
       data-session-link-card-status={status}
       {...directionAttribute('received')}
     >

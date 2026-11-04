@@ -126,6 +126,9 @@ const EN = {
   '已开始的工作不会被撤销。': 'Started work is not undone.',
   '清理插件保存的已完成正文，不删除原会话聊天记录。': 'Cleans up completed bodies stored by this plugin; it does not delete the original chat.',
   '等待投递 · 未暂停': 'Awaiting delivery · not paused',
+  '失败': 'Failed', '会话消息': 'Session message',
+  '正文获取失败': 'Failed to load body', '正文获取失败。': 'Failed to load body.',
+  '获取正文失败': 'Failed to load body', '请求失败': 'Request failed',
 }
 
 const TERMS = [
@@ -141,6 +144,7 @@ export const I18N_NS = 'session-link'
 let active = 'zh'
 const originalText = new WeakMap()
 const originalAttrs = new WeakMap()
+const appliedText = new WeakMap()
 
 export function translateText(text) {
   if (active !== 'en' || typeof text !== 'string' || text.trim() === '') return text
@@ -155,7 +159,9 @@ export function translateText(text) {
 
 function skip(node) {
   const el = node.nodeType === 1 ? node : node.parentElement
-  return el?.closest?.('[data-i18n-skip], [contenteditable="true"], script, style, textarea, input') ?? null
+  if (!el) return true
+  if (!el.closest?.('[data-session-link-i18n-root]')) return true
+  return el.closest?.('[data-i18n-skip], [contenteditable="true"], script, style, textarea, input') ?? null
 }
 
 function translateAttributes(el) {
@@ -175,9 +181,11 @@ function translateNode(node) {
     if (skip(node)) return
     const parent = node.parentElement
     if (!parent) return
-    if (!originalText.has(node)) originalText.set(node, node.nodeValue)
+    const current = node.nodeValue
+    if (appliedText.get(node) === current) return
+    if (!originalText.has(node)) originalText.set(node, current)
     const next = translateText(originalText.get(node))
-    if (node.nodeValue !== next) node.nodeValue = next
+    if (current !== next) { node.nodeValue = next; appliedText.set(node, next) }
     return
   }
   if (node.nodeType !== 1 || skip(node)) return
@@ -187,8 +195,8 @@ function translateNode(node) {
 
 export function retranslateDocument(doc = globalThis.document) {
   if (!doc?.body) return
-  translateNode(doc.body)
-  for (const el of doc.querySelectorAll('[aria-label], [title], [placeholder], [alt]')) translateAttributes(el)
+  for (const root of doc.querySelectorAll('[data-session-link-i18n-root]')) translateNode(root)
+  for (const el of doc.querySelectorAll('[data-session-link-i18n-root] [aria-label], [data-session-link-i18n-root] [title], [data-session-link-i18n-root] [placeholder], [data-session-link-i18n-root] [alt]')) translateAttributes(el)
 }
 
 export function setI18nLocale(id) { active = id === 'en' ? 'en' : 'zh'; }
@@ -206,8 +214,14 @@ export function installI18n(ctx) {
   if (globalThis.document?.body && typeof MutationObserver === 'function') {
     observer = new MutationObserver((records) => {
       for (const record of records) {
-        if (record.type === 'characterData') translateNode(record.target)
-        else for (const node of record.addedNodes) translateNode(node)
+        if (record.type === 'characterData') {
+          // A node we translated ourselves is already reflected in appliedText;
+          // anything else is a fresh React write, so re-read the source text.
+          if (appliedText.get(record.target) !== record.target.nodeValue) {
+            originalText.set(record.target, record.target.nodeValue)
+            translateNode(record.target)
+          }
+        } else for (const node of record.addedNodes) translateNode(node)
       }
     })
     observer.observe(globalThis.document.body, { childList: true, subtree: true, characterData: true })

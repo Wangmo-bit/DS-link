@@ -400,7 +400,7 @@ export function GlobalSettingsPage({ close, openSession }) {
     try { openSession?.(id); } catch (err) { setActionError(err.message); }
   };
 
-  return <section className="sl-section" aria-label="会话互通页面" data-sl-root="">
+  return <section className="sl-section" aria-label="会话互通页面" data-sl-root="" data-session-link-i18n-root="">
     <h2>会话互通</h2>
     {!snapshot && !error && <p className="sl-empty" role="status">正在读取通信记录…</p>}
     {error && <div className="sl-alert" role="alert">{error}<span> · 可刷新重试；失败操作不会显示为成功。</span></div>}
