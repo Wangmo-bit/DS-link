@@ -14,6 +14,8 @@ jobs:
     container: node:24-bookworm
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - run: npm ci
       # The container runs as root by default. Several storage tests inject
       # write failures with chmod(read-only), which root bypasses; that made
