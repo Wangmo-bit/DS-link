@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - run: npm pack --dry-run
+      # The container runs as root by default. Several storage tests inject
+      # write failures with chmod(read-only), which root bypasses; that made
+      # "expected rejection" missing in CI. Run tests/build/pack as the image's
+      # unprivileged `node` user so the fault injection is real, not skipped.
+      - run: chown -R node:node .
+      - run: su node -s /bin/bash -c 'npm test && npm run build && npm pack --dry-run'

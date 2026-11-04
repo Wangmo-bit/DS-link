@@ -25,6 +25,10 @@ npm pack --dry-run
 
 环境适配：`scripts/ui-incoming.test.mjs` 移除了针对特定本机安装路径的硬编码回退，只保留 `DSH_CLIENT_CONVERSATION` 环境变量入口；这属于环境调整，不是未修改测试。
 
+## CI 运行身份（重要）
+
+CI 在一次性容器中运行，但容器默认是 **root**。部分存储测试用 `chmod` 只读来注入写入失败，root 会绕过权限导致“期望拒绝未发生”。因此 CI 在 `npm ci` 后执行 `chown -R node:node .`，并以镜像内非 root 用户 `node` 运行 `npm test`/`build`/`pack`。不要为了让测试变绿而删除或跳过这些断言；若在本地以 root 运行测试，同样会失效，应先切到非 root。
+
 ## 测试副作用与资源边界（重要）
 
 测试**不是**无进程、无删除、无固定路径副作用的：
