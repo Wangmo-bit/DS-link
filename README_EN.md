@@ -4,7 +4,7 @@
 
 Let **existing ordinary DSH sessions** message each other directly: send a request, receive an explicit reply, without creating a bot team or copy-pasting between chats.
 
-> **Status: private pre-release.** The repository is private and not public yet. License, final name/scope and public release date are pending the owner's decision. The screenshot below is a synthetic demo from an isolated environment; it contains no real conversations or credentials.
+> **Status: private pre-release.** The repository is private and not public yet. License (MIT) and package name/scope (`@wangmo/dsh-session-link`) are settled; whether and when to publish are still pending the owner's decision. The screenshot below is a synthetic demo from an isolated environment; it contains no real conversations or credentials.
 
 ![Synthetic demo: a request from a product-weekly session to a design-review session, with an explicit reply](assets/screenshots/demo-cards.png)
 
