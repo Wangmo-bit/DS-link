@@ -1,12 +1,14 @@
 # Session Link for DeepSeek Harness
 
+![DSH 0.2.1-rc.5](https://img.shields.io/badge/dsh-0.2.1--rc.5-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License pending](https://img.shields.io/badge/license-pending-f0a441?style=flat-square)
+
 让**已有 DSH 普通会话**之间直接互发消息、请求协作、收取明确回复——不需要新建 Bot 团队，也不用在聊天框里手工转发。
 
 ![Session Link 演示：产品周报 · 讨论 向 设计评审 · 笔记 发出周报评审请求，并收到明确回复；卡片显示发件人/收件人/主题与投递状态](assets/screenshots/demo-cards.png)
 
 *合成演示：会话名与内容均为虚构，来自隔离测试环境，不含真实用户数据或凭据。*
 
-> **状态：本地候选，尚未公开发布。** 许可证、最终名称/scope 与发布渠道待项目所有者决定。截图来自隔离合成会话（`主会话 A` / `CARDV2-B`），不含真实对话或凭据。
+> **状态：本地候选，尚未公开发布。** 许可证、最终名称/scope 与发布渠道待项目所有者决定。截图来自隔离合成会话（`产品周报 · 讨论` / `设计评审 · 笔记`），不含真实对话或凭据。
 
 ## 为什么用它
 
@@ -17,7 +19,14 @@
 
 ## 快速开始
 
-1. **获取源码**：当前为所有者提供的私有仓库（尚未公开）；公开后同一仓库地址可直接 `git clone`，详见 [MAINTAINING.md](MAINTAINING.md)。
+1. **获取源码**：仓库当前为私有，地址 `https://github.com/Wangmo-bit/dsh-session-link`（需要所有者授权访问，尚未公开）：
+
+   ```bash
+   git clone https://github.com/Wangmo-bit/dsh-session-link.git
+   cd dsh-session-link
+   ```
+
+   公开后同一地址可匿名 clone；公开前请勿把私有访问凭据写进命令或提交。
 2. **构建并安装**：见下方“安装”节。
 3. **先找可用会话**：在设置/记录页查看可通信的普通会话；不要向不可信会话发送敏感内容。
 4. **发送第一条消息**：
@@ -31,7 +40,7 @@
 
 兼容：**DSH 0.2.1-rc.5 / Node 24（实测 v24.21.0）/ Linux Web**。其他版本未验证。
 
-从源码构建并本地安装（当前未发布到 registry；需要 Node 24 + DSH 0.2.1-rc.5）：
+从源码构建并本地安装（当前未发布到 registry、未提供 Release tarball；需要 Node 24 + DSH 0.2.1-rc.5）：
 
 ```bash
 npm ci
