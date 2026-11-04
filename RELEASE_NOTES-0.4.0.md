@@ -4,7 +4,7 @@
 
 ## 中文
 
-初版跨会话通信插件：已有 DSH 普通会话之间可发 `notification`/`request`、收明确 `reply`；双向卡片显示发件人/收件人/主题、投递/回执/回复状态；设置页可暂停、限制并发、调整回复等待；记录页可核对投递证据。中英 README 已提供；界面翻译层已实现但**浏览器级英文 UI 验收未完成**，本候选不宣称双语 UI 已验收。
+初版跨会话通信插件：已有 DSH 普通会话之间可发 `notification`/`request`、收明确 `reply`；双向卡片显示发件人/收件人/主题、投递/回执/回复状态；设置页可暂停、限制并发、调整回复等待；记录页可核对投递证据。中英界面/README 已提供（跟随宿主语言）；英文设置页与卡片已在隔离浏览器冒烟验证，用户正文/主题不翻译。
 
 兼容：DSH 0.2.1-rc.5、Node 24.21.0、Linux Web。其他版本未验证。
 
@@ -19,7 +19,7 @@ dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offlin
 
 ## English
 
-Initial cross-session communication plugin: existing ordinary DSH sessions can send `notification`/`request` and receive explicit `reply`; two-way cards show sender/recipient/subject and delivery/receipt/reply states; settings can pause, limit concurrency and set reply wait; records expose delivery evidence. Chinese/English README exists; a UI translation layer is implemented but **browser-level English UI acceptance is not complete**, so this candidate does not claim a verified bilingual UI.
+Initial cross-session communication plugin: existing ordinary DSH sessions can send `notification`/`request` and receive explicit `reply`; two-way cards show sender/recipient/subject and delivery/receipt/reply states; settings can pause, limit concurrency and set reply wait; records expose delivery evidence. Chinese/English UI and README follow the host locale; English settings/cards were smoke-tested in an isolated browser; user bodies/subjects are not translated.
 
 Compatibility: DSH 0.2.1-rc.5, Node 24.21.0, Linux Web. Other versions untested.
 

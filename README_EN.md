@@ -8,7 +8,7 @@ Let **existing ordinary DSH sessions** message each other directly: send a reque
 
 ![Synthetic demo: a request from a product-weekly session to a design-review session, with an explicit reply](assets/screenshots/demo-cards.png)
 
-*Synthetic demo. The screenshot shows the current **Chinese-only** plugin UI; UI strings are not yet localized. Session names and content are fictional.*
+*Synthetic demo. Session names and content are fictional; the UI follows the host locale (Chinese screenshot shown here).*
 
 ## Compatibility
 
@@ -19,7 +19,7 @@ Let **existing ordinary DSH sessions** message each other directly: send a reque
 
 ## Language status
 
-This is **not** a multilingual UI. README/developer docs have Chinese and English entries, but plugin UI strings (cards, settings, states, errors) are currently **Simplified Chinese only**; there are no `locale` resources registered. See [LANGUAGES.md](LANGUAGES.md). Whether to build UI i18n or add more languages is an owner/product-scope decision, not claimed here.
+Chinese and English are supported (only these two): the plugin UI follows the host locale, and main card/settings paths were verified in an isolated browser. User message bodies, subjects, identities and raw technical values are explicitly not translated. There are no separate `locale/*.json` resources; dynamic errors and very long copy are still being covered. See [LANGUAGES.md](LANGUAGES.md).
 
 ## What it does
 
