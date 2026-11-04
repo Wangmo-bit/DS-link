@@ -143,16 +143,16 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
       >
         <span className="sl-card__party" data-session-link-card-sender-row="">
           <span className="sl-card__party-label">{CARD_PARTY.sender}</span>
-          <span className="sl-card__party-name" data-session-link-card-sender="" title={sender}>{sender}</span>
+          <span className="sl-card__party-name" data-session-link-card-sender="" data-i18n-skip="" title={sender}>{sender}</span>
           <span className="sl-card__toggle-text" data-session-link-card-toggle-text="">{toggleText(open === true)}</span>
         </span>
         <span className="sl-card__party" data-session-link-card-recipient-row="">
           <span className="sl-card__party-label">{CARD_PARTY.recipient}</span>
-          <span className="sl-card__party-name" data-session-link-card-recipient="" title={recipients}>{recipients}</span>
+          <span className="sl-card__party-name" data-session-link-card-recipient="" data-i18n-skip="" title={recipients}>{recipients}</span>
         </span>
         <span className="sl-card__party" data-session-link-card-subject="">
           <span className="sl-card__party-label">{CARD_PARTY.subject}</span>
-          <span className="sl-card__subject" data-session-link-card-subject-text="">
+          <span className="sl-card__subject" data-session-link-card-subject-text="" data-i18n-skip="">
             {data.subject ?? ''}
           </span>
           <span className="sl-card__status" data-session-link-card-status="">
@@ -163,11 +163,11 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
       {open === true ? (
         <div className="sl-card__expanded" data-session-link-card-expanded="">
           {typeof data.body === 'string' && data.body !== '' ? (
-            <pre className="sl-card__body sl-card__body--pre" data-session-link-card-body="">{data.body}</pre>
+            <pre className="sl-card__body sl-card__body--pre" data-session-link-card-body="" data-i18n-skip="">{data.body}</pre>
           ) : null}
           <details className="sl-card__tech" data-session-link-card-tech="">
             <summary>技术详情</summary>
-            <pre className="sl-card__techpre">{techLines.join('\n')}</pre>
+            <pre className="sl-card__techpre" data-i18n-skip="">{techLines.join('\n')}</pre>
           </details>
           {typeof inspectCall === 'function' ? (
             <button type="button" className="sl-card__inspect" data-session-link-card-inspect="" onClick={() => inspectCall(data.callId)}>

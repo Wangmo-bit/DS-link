@@ -348,16 +348,16 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
       >
         <span className="sl-card__party" data-session-link-card-sender-row="">
           <span className="sl-card__party-label">{CARD_PARTY.sender}</span>
-          <span className="sl-card__party-name" data-session-link-card-sender="" title={from}>{from}</span>
+          <span className="sl-card__party-name" data-session-link-card-sender="" data-i18n-skip="" title={from}>{from}</span>
           <span className="sl-card__toggle-text" data-session-link-card-toggle-text="">{toggleText(open === true)}</span>
         </span>
         <span className="sl-card__party" data-session-link-card-recipient-row="">
           <span className="sl-card__party-label">{CARD_PARTY.recipient}</span>
-          <span className="sl-card__party-name" data-session-link-card-recipient="" title={to}>{to}</span>
+          <span className="sl-card__party-name" data-session-link-card-recipient="" data-i18n-skip="" title={to}>{to}</span>
         </span>
         <span className="sl-card__party" data-session-link-card-subject="">
           <span className="sl-card__party-label">{CARD_PARTY.subject}</span>
-          <span className="sl-card__subject" data-session-link-card-subject-text="">
+          <span className="sl-card__subject" data-session-link-card-subject-text="" data-i18n-skip="">
             {subject}
           </span>
           <span className="sl-card__status" data-session-link-card-statuslabel="" title={statusTitle}>
@@ -384,7 +384,7 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
                 {replyStatus ? ` · reply: ${replyStatus}` : ''}
               </div>
             </div>
-            {rawText.length > 0 ? <pre className="sl-card__rawtext">{rawText}</pre> : null}
+            {rawText.length > 0 ? <pre className="sl-card__rawtext" data-i18n-skip="">{rawText}</pre> : null}
           </details>
         </div>
       ) : null}

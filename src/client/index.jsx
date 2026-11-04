@@ -36,9 +36,10 @@ import css from './style.css';
 import { CARD_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
+import { installI18n } from './i18n.js';
 
 export const name = '@wangmo/dsh-session-link';
-export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation'];
+export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale'];
 const PANEL = 'session-link';
 const TAB_ORDER = ['settings', 'records'];
 const FILTERS = [['all', '全部'], ['pending_reply', '待回复'], ['received', '收件'], ['sent', '发件'], ['abnormal', '异常 / 未确认']];
@@ -422,6 +423,12 @@ export function GlobalSettingsPage({ close, openSession }) {
 }
 
 export function apply(ctx) {
+  try {
+    const disposeI18n = installI18n(ctx);
+    if (typeof disposeI18n === 'function') ctx.effect(() => disposeI18n, 'session-link i18n');
+  } catch {
+    console.warn('[session-link] Locale translation unavailable; UI stays Chinese.');
+  }
   ctx.effect(() => {
     const style = document.createElement('style');
     style.dataset.plugin = name;
