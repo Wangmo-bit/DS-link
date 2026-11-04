@@ -24,3 +24,12 @@ npm pack --dry-run
 公开候选不携带绝大多数内部运维/试验脚本；保留了一个**测试专用 helper** `scripts/deactivate-managed-entry.mjs`，仅由 `scripts/deactivate-managed-entry.test.mjs` 通过临时 fixture 目录调用，用于验证 managed 行移除/崩溃安全；它带有 `/tmp` 与 `--allow-production` 守卫，**不提供默认运行入口，不要对真实 profile 运行**。opt-in 真实模型 fixture（`fixtures/live.js`）已移除，候选不含真实模型测试。相对于上游 `npm test`，删除了 4 个内部 runner/设计文档相关测试文件，另有 8 个本来就不在上游 `npm test` 通配内的 spike/harness 测试未纳入。因此公开候选**未验证**这些 runner/默认权限/模型 fail-closed 等内部范围，不能视为与上游等价。内部逐项映射与减少范围记录在本地准备材料中，不随包分发。
 
 环境适配：`scripts/ui-incoming.test.mjs` 移除了针对特定本机安装路径的硬编码回退，只保留 `DSH_CLIENT_CONVERSATION` 环境变量入口；这属于环境调整，不是未修改测试。
+
+## 测试副作用与资源边界（重要）
+
+测试**不是**无进程、无删除、无固定路径副作用的：
+
+- `test/core-lock-multiprocess.test.js` 会 `spawn` Node 子进程（持锁/竞争），测试内在 `waitExit`/`finally` 中发 SIGTERM/SIGKILL 并等 `exit`；但这是测试代码自身的等待，不等同于外部可审计的进程树终态。
+- `test/core-create.test.js`、`scripts/v04/fixture-guard.test.mjs`、`scripts/deactivate-managed-entry.test.mjs` 等使用真实文件系统并递归 `rm` 临时目录；多数用 `mkdtemp` 唯一根，但并非所有用例都如此。
+- `scripts/v02/fixture-guard.test.mjs`、`scripts/v03/fixture-guard.test.mjs`、`scripts/v03/fixture-model.test.mjs`、`scripts/stress/fixture-guard.test.mjs` 使用**固定** `/tmp/dsh-session-link-*` 目录；重复运行可能覆盖/清理同路径旧物，运行前无法证明归属。
+- 因此“测试通过”不能证明没有子进程、没有删除、没有覆盖旧临时文件。请在一次性容器/专用用户/独占 TMPDIR 中运行，并在运行前后用受控记录核对；不要在本机共享 `/tmp` 上盲跑，也不要把本候选测试当作无副作用验证。
