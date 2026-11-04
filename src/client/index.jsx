@@ -277,7 +277,7 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
       {chain && chain.state !== 'closed' && <Action busy={blocked} danger onClick={() => { if (confirm('结束这组通信会取消尚未投递的消息；不会撤销已开始的工作。')) act('close', chain.id); }}>结束这组通信</Action>}
     </div>
     <h3>关联回复（当前加载页）</h3>
-    {related.length ? related.map(item => <article className="sl-related" key={item.id}><div>#{short(item.id)} · {messageState(item)}</div><pre>{textOf(item)}</pre></article>) : <p className="sl-muted">当前页暂无关联记录。可通过关联消息筛选继续查询。</p>}
+    {related.length ? related.map(item => <article className="sl-related" key={item.id}><div>#{short(item.id)} · {messageState(item)}</div><pre data-i18n-skip="">{textOf(item)}</pre></article>) : <p className="sl-muted">当前页暂无关联记录。可通过关联消息筛选继续查询。</p>}
     <p className="sl-note">“已送达 · 待接收”“已进入上下文”都不是“已读”。超时不撤销任务；停止/归档目标可能影响其待处理输入。</p>
   </section>;
 }
@@ -291,12 +291,12 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
     {chainId && <div className="sl-note sl-actions"><span>当前关联消息：<code>{chainId}</code></span><Action busy={busy} onClick={() => { setFilter('all'); setChainId(''); setOffset(0); setSelected(null); }}>退出关联筛选</Action></div>}
     <div className="sl-filters" aria-label="记录筛选">
       {FILTERS.map(([key, label]) => <button key={key} type="button" disabled={['received', 'sent'].includes(key) && !sessionId} title={['received', 'sent'].includes(key) && !sessionId ? '先选择一个会话再查看收件或发件' : undefined} aria-pressed={filter === key} onClick={() => { setFilter(key); setChainId(''); setOffset(0); setSelected(null); }}>{label}</button>)}
-      <label className="sl-session-filter">会话<select value={sessionId} onChange={event => { setSessionId(event.target.value); if (!event.target.value && ['received', 'sent'].includes(filter)) setFilter('all'); setOffset(0); setSelected(null); }}><option value="">全部会话</option>{sessions.map(item => { const id = item.sessionId ?? item.id; return <option key={id} value={id}>{sessionLabel(id, sessions)}</option>; })}</select></label>
+      <label className="sl-session-filter">会话<select value={sessionId} onChange={event => { setSessionId(event.target.value); if (!event.target.value && ['received', 'sent'].includes(filter)) setFilter('all'); setOffset(0); setSelected(null); }}><option value="">全部会话</option>{sessions.map(item => { const id = item.sessionId ?? item.id; return <option key={id} value={id} data-i18n-skip="">{sessionLabel(id, sessions)}</option>; })}</select></label>
     </div>
     <section className="sl-list" aria-label="通信记录列表">
       {!messages.length ? <div className="sl-empty">{filter === 'all' ? '还没有通信记录。让主会话联系另一个会话后，记录会出现在这里。' : '此筛选下没有记录。'}<p className="sl-muted">本插件没有手动发送表单。</p></div> : messages.map(item => <button key={item.id} type="button" className={`sl-record ${selected === item.id ? 'sl-selected' : ''}`} onClick={() => setSelected(item.id)}>
-        <div className="sl-route"><span data-i18n-skip="">{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span>{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
-        <div className="sl-preview">{textOf(item) || '正文已清理，或此记录无正文。'}</div>
+        <div className="sl-route"><span data-i18n-skip="">{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span data-i18n-skip="">{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
+        <div className="sl-preview"><span data-i18n-skip="">{textOf(item) || ''}</span>{!textOf(item) && '正文已清理，或此记录无正文。'}</div>
         <div className="sl-record-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time><code>#{short(item.id)}</code></div>
       </button>)}
       <div className="sl-pagination"><Action busy={busy || offset === 0} onClick={() => { setOffset(Math.max(0, offset - LIMIT)); setSelected(null); }}>上一页</Action><span>{total} 条 · 第 {Math.floor(offset / LIMIT) + 1} 页</span><Action busy={busy || offset + LIMIT >= total} onClick={() => { setOffset(offset + LIMIT); setSelected(null); }}>下一页</Action></div>
