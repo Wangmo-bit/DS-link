@@ -1,18 +1,19 @@
-# Draft CI for the public-friendly repository. Not enabled anywhere yet.
 name: ci
 on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
 jobs:
   test:
+    # Disposable container: fixed /tmp paths in tests are isolated from any host.
     runs-on: ubuntu-latest
+    container: node:24-bookworm
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
       - run: npm ci
       - run: npm test
       - run: npm run build
