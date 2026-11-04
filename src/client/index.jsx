@@ -36,7 +36,7 @@ import css from './style.css';
 import { CARD_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
-import { installI18n } from './i18n.js';
+import { installI18n, translateText } from './i18n.js';
 
 export const name = '@wangmo/dsh-session-link';
 export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale'];
@@ -316,7 +316,7 @@ function saveNotice(value) {
   if (value?.queued) parts.push(`已排队 ${value.queued} 条消息。`);
   if (value?.resumed) parts.push(`已恢复投递 ${value.resumed} 条消息。`);
   parts.push('已开始的工作不会被撤销。');
-  return parts.join(' ');
+  return parts.map((part) => translateText(part)).join(' ');
 }
 
 export function GlobalSettingsPage({ close, openSession }) {
