@@ -340,7 +340,7 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
         className="sl-card__toggle"
         data-session-link-card-toggle=""
         aria-expanded={open === true}
-        aria-label={`${CARD_PARTY.sender} ${from}，${CARD_PARTY.recipient} ${to}，${CARD_PARTY.subject} ${subject}，${toggleText(open === true)}`}
+        aria-label={`${translateText(CARD_PARTY.sender)} ${from}, ${translateText(CARD_PARTY.recipient)} ${to}, ${translateText(CARD_PARTY.subject)} ${subject}, ${translateText(toggleText(open === true))}`}
         title="会话协作，非本人指令"
         onClick={() => {
           if (typeof onToggle === 'function') onToggle();

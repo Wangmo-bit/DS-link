@@ -22,5 +22,7 @@ test('en translates dynamic status terms without inventing read state', () => {
   assert.match(out, /received into context/i)
   assert.match(out, /as of 13:00/)
   assert.doesNotMatch(out, /已进入上下文/)
+  assert.equal(translateText('已排队 3 条消息。'), 'Queued 3 messages.')
+  assert.equal(translateText('已恢复投递 2 条消息。'), 'Resumed delivery of 2 messages.')
   setI18nLocale('zh')
 })

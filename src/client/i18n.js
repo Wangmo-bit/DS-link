@@ -166,6 +166,10 @@ export function translateText(text) {
   const body = text.slice(lead.length, text.length - trail.length)
   if (EN[body] !== undefined) return lead + EN[body] + trail
   let out = body
+  const queued = out.match(/^已排队 (\d+) 条消息。$/)
+  if (queued) return lead + `Queued ${queued[1]} messages.` + trail
+  const resumed = out.match(/^已恢复投递 (\d+) 条消息。$/)
+  if (resumed) return lead + `Resumed delivery of ${resumed[1]} messages.` + trail
   for (const [zh, en] of TERMS) out = out.split(zh).join(en)
   return lead + out + trail
 }

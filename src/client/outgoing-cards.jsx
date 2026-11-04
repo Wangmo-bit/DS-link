@@ -134,7 +134,7 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
         className="sl-card__toggle"
         data-session-link-card-toggle=""
         aria-expanded={open === true}
-        aria-label={`${CARD_PARTY.sender} ${sender}，${CARD_PARTY.recipient} ${recipients}，${CARD_PARTY.subject} ${data.subject ?? ''}，${toggleText(open === true)}`}
+        aria-label={`${translateText(CARD_PARTY.sender)} ${sender}, ${translateText(CARD_PARTY.recipient)} ${recipients}, ${translateText(CARD_PARTY.subject)} ${data.subject ?? ''}, ${translateText(toggleText(open === true))}`}
         onClick={() => {
           if (open !== true && typeof onRefresh === 'function') {
             onRefresh({ sessionId: data.from, ids: messageIds });
