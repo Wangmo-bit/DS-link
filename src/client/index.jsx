@@ -246,7 +246,7 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
       {deadlineVisible && <><dt>等待期限</dt><dd>{date(message.deadlineAt)}</dd></>}
       <dt>类型</dt><dd>{KIND[message.kind] ?? message.kind}</dd>
       <dt>关联消息</dt><dd><button type="button" className="sl-text-button" onClick={() => selectChain(message.chainId)}>查看关联消息</button> · {chainStateText(chainState)} · {chain?.messageCount ?? '—'} 条</dd>
-      <dt>持久身份</dt><dd><code data-i18n-skip="">{message.durableMessageId ?? '尚未创建宿主消息'}</code></dd>
+      <dt>持久身份</dt><dd><code data-i18n-skip="">{message.durableMessageId ?? ''}</code>{!message.durableMessageId && <span className="sl-muted">尚未创建宿主消息</span>}</dd>
     </dl>
     {message.error && <p className="sl-alert" role="status" data-i18n-skip="">{typeof message.error === 'string' ? message.error : `${message.error.code}：${message.error.message}`}</p>}
     {status === 'unknown' && <p className="sl-note">消息可能已执行，但尚无可靠确认。不要直接重发；先核对目标会话。人工结案不等于证明未投递。</p>}
@@ -260,7 +260,8 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
     {chainState === 'paused' && <p className="sl-note">这组通信已暂停；恢复后继续投递尚未开始的消息，已开始的工作不受影响。</p>}
     {chainState === 'closed' && <p className="sl-note">这组通信已结束；未投递的消息已取消，已开始的工作不受影响。</p>}
     {!writable && <p className="sl-alert" role="status">存储异常：记录只读，控制操作已禁用。</p>}
-    <pre className="sl-message-body" data-i18n-skip="">{textOf(message) || '正文已按保留期限清理，或此记录无正文。'}</pre>
+    <pre className="sl-message-body" data-i18n-skip="">{textOf(message) || ''}</pre>
+    {!textOf(message) && <p className="sl-muted">正文已按保留期限清理，或此记录无正文。</p>}
     {!!message.paths?.length && <div><h3>引用的本机路径</h3><ul>{message.paths.map((path, index) => <li key={index} data-i18n-skip=""><code>{path}</code></li>)}</ul><p className="sl-muted">只传路径，不搬运文件；工作目录和权限仍各自独立。</p></div>}
     {!!message.references?.length && <div><h3>历史引用</h3>{message.references.map((ref, index) => <blockquote key={index} data-i18n-skip=""><button type="button" className="sl-text-button" onClick={() => open(ref.sessionId)}>{ref.sessionId} · seq {ref.seq}</button><pre>{ref.text}</pre></blockquote>)}</div>}
     <div className="sl-actions">
@@ -294,7 +295,7 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
     </div>
     <section className="sl-list" aria-label="通信记录列表">
       {!messages.length ? <div className="sl-empty">{filter === 'all' ? '还没有通信记录。让主会话联系另一个会话后，记录会出现在这里。' : '此筛选下没有记录。'}<p className="sl-muted">本插件没有手动发送表单。</p></div> : messages.map(item => <button key={item.id} type="button" className={`sl-record ${selected === item.id ? 'sl-selected' : ''}`} onClick={() => setSelected(item.id)}>
-        <div className="sl-route"><span>{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span>{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
+        <div className="sl-route"><span data-i18n-skip="">{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span>{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
         <div className="sl-preview">{textOf(item) || '正文已清理，或此记录无正文。'}</div>
         <div className="sl-record-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time><code>#{short(item.id)}</code></div>
       </button>)}

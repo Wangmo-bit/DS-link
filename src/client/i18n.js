@@ -151,6 +151,14 @@ const originalText = new WeakMap()
 const originalAttrs = new WeakMap()
 const appliedText = new WeakMap()
 
+export function translateAttributeText(text) {
+  if (active !== 'en' || typeof text !== 'string') return text
+  const lead = text.match(/^\s*/)[0]
+  const trail = text.match(/\s*$/)[0]
+  const body = text.slice(lead.length, text.length - trail.length)
+  return lead + (EN[body] !== undefined ? EN[body] : body) + trail
+}
+
 export function translateText(text) {
   if (active !== 'en' || typeof text !== 'string' || text.trim() === '') return text
   const lead = text.match(/^\s*/)[0]
@@ -185,7 +193,9 @@ function translateAttributes(el) {
     let saved = originalAttrs.get(el)
     if (!saved) { saved = {}; originalAttrs.set(el, saved) }
     if (!(attr in saved)) saved[attr] = value
-    el.setAttribute(attr, translateText(saved[attr]))
+    // Attributes often embed user-controlled session titles/subjects. Only
+    // exact chrome strings are translated; never partial term replacement.
+    el.setAttribute(attr, translateAttributeText(saved[attr]))
   }
 }
 
