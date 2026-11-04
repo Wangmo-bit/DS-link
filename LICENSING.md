@@ -1,13 +1,14 @@
 # 许可证建议与待确认草案（尚未生效）
 
-当前 `package.json` 为 `UNLICENSED`，**没有**授予任何开源许可。以下仅为候选建议，需项目所有者确认后才可生效；在确认前不得对外宣称本项目已开源/已获授权。
+状态：**已选定 MIT License**（项目所有者确认）。正式文本见根目录 [LICENSE](LICENSE)，`package.json` 与 lock 的 `license` 字段已为 `MIT`。本文保留决策记录与边界说明。
 
-## 建议
+## 决定
 
-- **MIT**：最简、与 DSH 生态多数高星插件一致，适合个人维护的小型插件。
-- **Apache-2.0**：含明确专利授权与贡献条款，适合希望更正式治理时；文件更长。
+- 采用 **MIT**：最简、与 DSH 生态多数高星插件一致。
+- 版权人署名：`Wangmo-bit`（仓库所有者公开标识，不含个人邮箱）。
+- Apache-2.0 未采用。
 
-## MIT 草案（待所有者填写版权人后启用）
+## MIT 正式文本（已启用）
 
 ```text
 MIT License
@@ -33,4 +34,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-启用时需同时：新增 `LICENSE` 文件、更新 `package.json` 的 `license` 字段、在 README 许可节替换为正式说明。版权人/年份由所有者填写，不由本候选代填。
+范围：MIT 仅覆盖本项目有权许可的代码与文档。第三方代码/素材/依赖/字体/图标分别保留其许可与 NOTICE；不借 MIT 覆盖。当前仓库未 vendored 第三方源码；`THIRD_PARTY_NOTICES.md` 记录 DS-bot Apache-2.0 仅作设计参考、未复制代码。

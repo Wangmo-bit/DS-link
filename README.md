@@ -2,7 +2,7 @@
 
 [English](README_EN.md) | 简体中文
 
-![DSH 0.2.1-rc.5](https://img.shields.io/badge/dsh-0.2.1--rc.5-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License pending](https://img.shields.io/badge/license-pending-f0a441?style=flat-square)
+![DSH 0.2.1-rc.5](https://img.shields.io/badge/dsh-0.2.1--rc.5-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License MIT](https://img.shields.io/badge/license-MIT-2f6f4f?style=flat-square)
 
 让**已有 DSH 普通会话**之间直接互发消息、请求协作、收取明确回复——不需要新建 Bot 团队，也不用在聊天框里手工转发。
 
@@ -102,4 +102,4 @@ dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offlin
 
 ## 许可
 
-当前 **UNLICENSED**，尚未选择开源许可证。候选建议见 [LICENSING.md](LICENSING.md)，最终由项目所有者决定。
+本项目自有代码采用 **MIT License**（见 [LICENSE](LICENSE)，版权人 `Wangmo-bit`）。第三方代码/素材/依赖的许可独立保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与各自许可中，**不因本项目 MIT 而改变**。决策记录见 [LICENSING.md](LICENSING.md)。

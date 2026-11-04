@@ -67,4 +67,4 @@ See [TESTING.md](TESTING.md) for scope, skipped cases and the isolation requirem
 
 ## License
 
-Currently **UNLICENSED**; no open-source license has been selected. A proposal is in [LICENSING.md](LICENSING.md); the owner decides.
+Project-owned code is released under the **MIT License** (see [LICENSE](LICENSE), copyright holder `Wangmo-bit`). Third-party code/assets/dependencies keep their own licenses in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and are **not** relicensed by this project's MIT license.

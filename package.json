@@ -4,10 +4,25 @@
   "private": true,
   "description": "让已有 DSH 会话在工作中可靠协作",
   "type": "module",
-  "license": "UNLICENSED",
-  "engines": { "node": ">=24", "dsh": "0.2.1-rc.5" },
-  "exports": { ".": "./src/host/entry-0.4.0.js", "./runtime-0.4.0": "./src/host/entry-0.4.0.js", "./package.json": "./package.json", "./client": "./dist/client.js" },
-  "files": ["src/core", "src/host", "dist", "cordis.patch.yml", "THIRD_PARTY_NOTICES.md", "TESTING.md"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=24",
+    "dsh": "0.2.1-rc.5"
+  },
+  "exports": {
+    ".": "./src/host/entry-0.4.0.js",
+    "./runtime-0.4.0": "./src/host/entry-0.4.0.js",
+    "./package.json": "./package.json",
+    "./client": "./dist/client.js"
+  },
+  "files": [
+    "src/core",
+    "src/host",
+    "dist",
+    "cordis.patch.yml",
+    "THIRD_PARTY_NOTICES.md",
+    "TESTING.md"
+  ],
   "scripts": {
     "test": "node --test test/*.test.js scripts/ui-model.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",
     "build": "node scripts/build.mjs",
@@ -15,8 +30,22 @@
     "prepack": "node scripts/build.mjs"
   },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
-    "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-ui-layout", "@deepseek-ai/dsh-client-ui-settings", "@deepseek-ai/dsh-client-connection", "@deepseek-ai/dsh-client-ui-workspace", "@deepseek-ai/dsh-api-session-controller", "@deepseek-ai/dsh-client-ui-conversation", "@deepseek-ai/dsh-client-ui-chat", "@deepseek-ai/dsh-client-ui-tool"] }
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-tool"
+      ]
+    }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.0.5",
@@ -26,11 +55,24 @@
     "react": "^18.2.0"
   },
   "peerDependenciesMeta": {
-    "@deepseek-ai/cordis": { "optional": true },
-    "@deepseek-ai/dsh-llm": { "optional": true },
-    "@deepseek-ai/dsh-tools": { "optional": true },
-    "@deepseek-ai/schemastery": { "optional": true },
-    "react": { "optional": true }
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   },
-  "devDependencies": { "esbuild": "^0.25.0", "react": "^18.2.0" }
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "react": "^18.2.0"
+  }
 }
