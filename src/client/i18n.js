@@ -126,6 +126,8 @@ const EN = {
   '已开始的工作不会被撤销。': 'Started work is not undone.',
   '清理插件保存的已完成正文，不删除原会话聊天记录。': 'Cleans up completed bodies stored by this plugin; it does not delete the original chat.',
   '等待投递 · 未暂停': 'Awaiting delivery · not paused',
+  '设置': 'Settings', '记录': 'Records', '账本': 'Ledger', '正在投递': 'Delivering',
+  '通道': 'channels', '未投递': 'undelivered', '关联组': 'chains', '条': 'items', '组': 'groups',
   '失败': 'Failed', '会话消息': 'Session message',
   '正文获取失败': 'Failed to load body', '正文获取失败。': 'Failed to load body.',
   '获取正文失败': 'Failed to load body', '请求失败': 'Request failed',
@@ -138,6 +140,9 @@ const TERMS = [
   ['分钟', 'min'], ['小时', 'h'], ['天', 'd'], ['毫秒', 'ms'], ['字符', 'chars'], ['条/页', 'items/page'], ['个', ''],
   ['已回复', 'replied'], ['等待回复', 'awaiting reply'], ['等待投递', 'awaiting delivery'],
   ['投递中', 'delivering'], ['投递失败', 'delivery failed'], ['已取消', 'cancelled'],
+  ['正在投递', 'delivering'], ['通道', 'channels'], ['账本', 'ledger'], ['未投递', 'undelivered'],
+  ['条', 'items'], ['组', 'groups'], ['，', ', '],
+  ['关联组', 'chains'], ['记录', 'records'], ['设置', 'settings'],
 ]
 
 export const I18N_NS = 'session-link'
@@ -157,10 +162,18 @@ export function translateText(text) {
   return lead + out + trail
 }
 
+function insideRoot(el) {
+  return !!el?.closest?.('[data-session-link-i18n-root]')
+}
+
+function containsRoot(el) {
+  return !!el?.querySelector?.('[data-session-link-i18n-root]')
+}
+
 function skip(node) {
   const el = node.nodeType === 1 ? node : node.parentElement
   if (!el) return true
-  if (!el.closest?.('[data-session-link-i18n-root]')) return true
+  if (!insideRoot(el)) return true
   return el.closest?.('[data-i18n-skip], [contenteditable="true"], script, style, textarea, input') ?? null
 }
 
@@ -188,7 +201,12 @@ function translateNode(node) {
     if (current !== next) { node.nodeValue = next; appliedText.set(node, next) }
     return
   }
-  if (node.nodeType !== 1 || skip(node)) return
+  if (node.nodeType !== 1) return
+  // Added DOM is often a wrapper around the plugin root (React mounts the
+  // card inside a transcript fragment). Traverse containers that merely
+  // contain a plugin root, but never translate outside plugin-owned roots.
+  if (!insideRoot(node) && !containsRoot(node)) return
+  if (insideRoot(node) && skip(node)) return
   translateAttributes(node)
   for (const child of node.childNodes) translateNode(child)
 }

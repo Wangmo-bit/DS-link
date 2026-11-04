@@ -126,6 +126,7 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
     <div
       className={cardClass('sent')}
       data-session-link-card={data.callId}
+      data-session-link-i18n-root=""
       {...directionAttribute('sent')}
     >
       <button
