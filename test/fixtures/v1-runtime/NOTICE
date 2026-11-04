@@ -1,0 +1,22 @@
+# Frozen v0.1 runtime notice
+
+The eight files under `src/core/` in this directory are a byte-for-byte frozen
+copy of the accepted v0.1.0 runtime from this repository's original, reviewed
+release artifact:
+
+- source archive: `artifacts/dsh-session-link-0.1.0.tgz`
+- source archive SHA256: `f47b97649682dd21abd3626ee65a9775e191de5f1ffd46a29a11238539098b49`
+- unpacked reference: `artifacts/v01-runtime/package/`
+- package version: `0.1.0`
+
+They exist only so the v0.2 migration tests can generate synthetic v0.1 ledger
+fixtures with the original v1 `Ledger` and `Engine.send`, and validate them with
+the original v1 loader even in a clean `git archive` checkout where the ignored
+`artifacts/` directory is absent. They are test-only and are not included in the published
+plugin package (`package.json#files` does not include `test/`).
+
+Do not edit, reformat, or regenerate these files. `test/v1-fixtures.js` verifies
+their SHA256 digests before use; any drift must be treated as a broken fixture,
+not as a reason to update the digests in place. The authoritative reference
+remains the original `artifacts/v01-runtime/package/`, which is never modified
+by the test suite.

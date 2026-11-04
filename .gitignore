@@ -1,0 +1,14 @@
+node_modules/
+dist/
+artifacts/
+.test-home/
+output/
+.playwright-cli/
+.playwright/
+.env
+*.log
+*.tgz
+
+.candidate-marker
+
+INTERNAL-TESTING-NOTES.md

@@ -1,0 +1,11 @@
+# SHA256 digests of the frozen v0.1.0 runtime used only by v0.2 migration tests.
+# Source: artifacts/dsh-session-link-0.1.0.tgz (sha256 f47b97649682dd21abd3626ee65a9775e191de5f1ffd46a29a11238539098b49)
+# Do not edit these files or this manifest in place.
+03897c89cbcd25832fdf4d5fcf16ebda6be6c8d873af4d1a97d1791801e490fa  src/core/ledger.js
+dbe1f18605ad1351fe306448b343bda70b08734c0bd5da2a56c769b5b3da18ad  src/core/constants.js
+8a23ae6e31697b076440802f5c6367d6abe4f4f7953269d06dc9835a3d44c284  src/core/settings.js
+d0e3de1130064dc3c27f55a4ac05528b2aa7b0e32b73f1f200abb5010114e2c3  src/core/validation.js
+8e9fd45e0444c47876dde69b9634ac0fd7bb4f3706d38462b8232bfb565a51cf  src/core/errors.js
+8aecbb131888daf0da706c52cb0c74e8db0fb27d6a58058be2a27ce59771e9a2  src/core/budget.js
+ee68f046c88fb33ab7b229b77f9d5a38bd58a7ab9d4f567865358ddc9e0bbe21  src/core/engine.js
+2b33501fae2e2c724b8a0fc1cfdb059b8de7a972e8f3cea02a4d039a432de263  src/core/render.js

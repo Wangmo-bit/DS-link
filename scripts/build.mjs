@@ -1,0 +1,11 @@
+import { build } from 'esbuild';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const result = await build({ absWorkingDir: root, entryPoints: ['src/client/index.jsx'], bundle: true, write: false, format: 'cjs', platform: 'browser', target: 'es2022', external: ['react', 'react-dom', '@deepseek-ai/*'], loader: { '.css': 'text' }, logLevel: 'info' });
+const code = result.outputFiles[0].text;
+const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+await mkdir(path.join(root, 'dist'), { recursive: true });
+await writeFile(path.join(root, 'dist/client.js'), `window.__ModuleLoader__.load({id:${JSON.stringify(manifest.name)},factory:(require)=>{const module={exports:{}}; const exports=module.exports;\n${code}\nreturn module.exports;}});\n`);
+console.log('Built DSH client factory (host React singleton external).');

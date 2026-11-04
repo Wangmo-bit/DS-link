@@ -1,0 +1,121 @@
+/* Session-link 0.2 settings section + retired-main hint.
+   Host tokens only: canvas/surface/label/border/brand, semantic status colors,
+   4px spacing grid. No nested scroll container: the settings shell's content
+   area is the only scroller. */
+:where(.sl-section,.sl-migrate){
+  --sl-paper:var(--dsw-alias-bg-layer-1,Canvas);
+  --sl-ink:var(--dsw-alias-label-primary,CanvasText);
+  --sl-dim:var(--dsw-alias-label-secondary,GrayText);
+  --sl-line:var(--dsw-alias-border-l1,color-mix(in srgb,currentColor 14%,transparent));
+  --sl-link:var(--dsw-alias-brand-primary,#779bdc);
+  color:var(--sl-ink);
+  font:inherit;
+  line-height:1.5;
+}
+.sl-section *,.sl-migrate *{box-sizing:border-box}
+.sl-section{box-sizing:border-box;height:auto;overflow:visible;padding:0;isolation:isolate}
+.sl-section [hidden]{display:none!important}
+.sl-section h2{font-size:17px;font-weight:600;margin:0 0 8px}
+.sl-section h3{font-size:14px;font-weight:600;margin:16px 0 8px}
+.sl-section p{margin:8px 0}
+
+/* Nav label: bubbles icon + text, rendered by the host inside its nav span.
+   The marker scopes the gear-hide rule to this row only; !important resists
+   third-party skins that force display on svg elements. */
+.sl-navlabel{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+.sl-navlabel svg{flex:none}
+.sl-navtext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button:has([data-session-link-nav]) > svg:first-child{display:none!important}
+
+.sl-statusline,.sl-section-head,.sl-actions,.sl-record-meta,.sl-filters,.sl-pagination{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sl-statusline{color:var(--sl-dim);font-size:12px;margin:8px 0}
+.sl-health{font-size:11px;border:1px solid var(--sl-line);border-radius:999px;padding:1px 8px}
+.sl-health-ok{color:color-mix(in srgb,#528b6b 55%,var(--sl-ink));border-color:color-mix(in srgb,#528b6b 35%,transparent)}
+.sl-health-near_capacity{color:color-mix(in srgb,#9b782e 60%,var(--sl-ink));border-color:color-mix(in srgb,#9b782e 40%,transparent)}
+.sl-health-full,.sl-health-storage_error{color:color-mix(in srgb,#b44332 70%,var(--sl-ink));border-color:color-mix(in srgb,#b44332 45%,transparent)}
+
+.sl-tabs{display:flex;flex-wrap:wrap;gap:20px;border-bottom:1px solid var(--sl-line);margin:16px 0 12px}
+.sl-tab{background:none;border:0;border-bottom:2px solid transparent;padding:8px 0;color:var(--sl-dim);font:inherit;cursor:pointer}
+.sl-tab[aria-selected=true]{color:var(--sl-ink);border-color:var(--sl-link)}
+
+.sl-button,.sl-filters button,.sl-section select{font:inherit;color:inherit;background:var(--sl-paper);border:1px solid var(--sl-line);border-radius:6px;min-height:32px;padding:4px 12px;cursor:pointer}
+.sl-button:hover,.sl-filters button:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+.sl-button:disabled,.sl-filters button:disabled{opacity:.45;cursor:not-allowed}
+.sl-section button:focus-visible,.sl-section input:focus-visible,.sl-section select:focus-visible,.sl-section summary:focus-visible,.sl-section [role=tab]:focus-visible{outline:2px solid var(--sl-link);outline-offset:3px}
+.sl-record:focus-visible{outline-offset:-3px}
+.sl-primary{border-color:var(--sl-link);color:var(--sl-link)}
+.sl-danger{color:color-mix(in srgb,#b44332 65%,var(--sl-ink))}
+.sl-section select{max-width:100%;min-width:0;font-size:12px}
+
+.sl-muted{color:var(--sl-dim);font-size:12px}
+.sl-empty{padding:32px 12px;text-align:center;color:var(--sl-dim);font-size:13px}
+.sl-note,.sl-alert,.sl-notice{padding:10px 14px;border:1px solid var(--sl-line);border-radius:6px;font-size:13px;margin:10px 0;overflow-wrap:anywhere}
+.sl-note{color:var(--sl-dim)}
+.sl-alert{border-color:color-mix(in srgb,#d89c92 40%,transparent);color:color-mix(in srgb,#b44332 65%,var(--sl-ink))}
+.sl-notice{color:color-mix(in srgb,#528b6b 45%,var(--sl-ink))}
+.sl-alert .sl-button{margin-left:8px;color:inherit;border-color:currentColor}
+.sl-text-button{padding:0;border:0;background:none;text-align:left;color:var(--sl-link);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.sl-section code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;overflow-wrap:anywhere}
+
+/* Settings form */
+.sl-settings{max-width:100%;padding:4px 0 8px}
+.sl-setting{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--sl-line);font-size:14px}
+.sl-setting small{display:block;color:var(--sl-dim);font-size:12px;margin-top:4px;overflow-wrap:anywhere}
+.sl-setting input[type=checkbox]{width:18px;height:18px;accent-color:var(--sl-link);flex-shrink:0}
+.sl-setting input[type=number]{background:var(--sl-paper);color:inherit;border:1px solid var(--sl-line);border-radius:4px;font:inherit;width:min(140px,100%);padding:6px 8px;flex-shrink:0}
+.sl-more{margin:16px 0}
+.sl-more summary{cursor:pointer;padding:8px 0;font-size:14px}
+.sl-settings .sl-actions{margin-top:16px}
+
+/* Read-only technical block */
+.sl-tech{margin:12px 0 8px}
+.sl-tech summary{cursor:pointer;padding:8px 0;font-size:14px}
+.sl-tech-list{display:grid;grid-template-columns:minmax(120px,auto) minmax(0,1fr);gap:6px 12px;font-size:12px;margin:8px 0}
+.sl-tech-list dt{color:var(--sl-dim)}
+.sl-tech-list dd{margin:0;overflow-wrap:anywhere}
+
+/* Records: one column so the section still works in the host's narrow shell. */
+.sl-records{min-width:0}
+.sl-filters{margin:8px 0 12px}
+.sl-filters button[aria-pressed=true]{border-color:var(--sl-link);color:var(--sl-link)}
+.sl-session-filter{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--sl-dim);min-width:0;max-width:100%}
+.sl-list{border:1px solid var(--sl-line);border-radius:8px;overflow:hidden;min-width:0}
+.sl-record{display:block;text-align:left;width:100%;border:0;border-bottom:1px solid var(--sl-line);background:none;color:inherit;padding:14px;font:inherit;cursor:pointer}
+.sl-record:hover{background:color-mix(in srgb,currentColor 4%,transparent)}
+.sl-selected{background:color-mix(in srgb,var(--sl-link) 9%,transparent);box-shadow:inset 3px 0 var(--sl-link)}
+.sl-route{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:13px;min-width:0}
+.sl-route span{overflow-wrap:anywhere;min-width:0}
+.sl-route span:nth-child(2){color:var(--sl-dim)}
+.sl-preview{font-size:13px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin:8px 0;overflow-wrap:anywhere}
+.sl-record-meta{gap:8px;font-size:11px;color:var(--sl-dim)}
+.sl-record-meta time{margin-left:auto}
+.sl-status{font-size:12px;color:var(--sl-dim)}
+.sl-unknown,.sl-failed{color:color-mix(in srgb,#b44332 65%,var(--sl-ink))}
+.sl-held,.sl-pending{color:color-mix(in srgb,#9b782e 55%,var(--sl-ink))}
+.sl-accepted{color:color-mix(in srgb,#528b6b 45%,var(--sl-ink))}
+.sl-dispatching{color:var(--sl-link)}
+.sl-pagination{padding:10px;justify-content:space-between}
+
+.sl-detail{padding:16px 0 4px;min-width:0;border-top:1px solid var(--sl-line);margin-top:12px}
+.sl-meta{display:grid;grid-template-columns:minmax(64px,auto) minmax(0,1fr);gap:6px 10px;font-size:12px;margin:8px 0}
+.sl-meta dt{color:var(--sl-dim)}
+.sl-meta dd{margin:0;overflow-wrap:anywhere;min-width:0}
+.sl-message-body,.sl-related pre,.sl-section blockquote pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px;padding:10px;background:var(--sl-paper);border:1px solid var(--sl-line);border-radius:6px;max-height:320px;overflow:auto}
+.sl-section blockquote{margin:10px 0;padding-left:10px;border-left:2px solid var(--sl-line)}
+.sl-related{font-size:12px;margin-top:10px}
+.sl-section ul{margin:8px 0;padding-left:18px;font-size:12px;overflow-wrap:anywhere}
+.sl-migrate{box-sizing:border-box;padding:24px clamp(16px,3vw,40px);color:var(--sl-ink);font:inherit;line-height:1.5}
+.sl-migrate p{margin:0}
+
+@media (max-width:700px){
+  .sl-setting{flex-direction:column;align-items:stretch;gap:8px}
+  .sl-setting input[type=number]{width:100%}
+  .sl-meta{grid-template-columns:1fr}
+  .sl-meta dt{margin-top:6px}
+  .sl-tech-list{grid-template-columns:1fr}
+  .sl-record-meta time{margin-left:0}
+  .sl-section{padding:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .sl-section *,.sl-migrate *{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+}
