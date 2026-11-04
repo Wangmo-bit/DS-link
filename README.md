@@ -19,6 +19,17 @@
 - **双向卡片**：发件/收件方向着色；展开同一张卡看正文、技术详情和原生轨迹入口，不额外堆一行。
 - **可控制**：设置页可暂停投递、限制并发、调整回复等待；记录页可查看状态、取消未投递、暂停/结束关联组。
 
+## 语言状态（不要把它当成多语言 UI）
+
+| 层 | 当前状态 |
+| --- | --- |
+| README / 开发文档 | 中文 + [English](README_EN.md) 两份入口 |
+| 插件 UI（卡片、设置、状态、错误） | **仅简体中文**；未实现英文/其他语言，未声明多语言 UI |
+| `locale` 元数据 | 当前无 locale 资源；未注册插件名称/描述的多语言元数据 |
+| 维护/安全/测试文档 | SECURITY 为英文，TESTING/MAINTAINING/PACKAGING/CHANGELOG 以中文为主 |
+
+首期推荐：文档中英先行；UI 是否做 i18n、是否加日文等需本人定产品范围，不在本次擅自改造。详见 [LANGUAGES.md](LANGUAGES.md)。
+
 ## 快速开始
 
 1. **获取源码**：仓库当前为私有，地址 `https://github.com/Wangmo-bit/dsh-session-link`（需要所有者授权访问，尚未公开）：
@@ -80,6 +91,7 @@ dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offlin
 | [MAINTAINING.md](MAINTAINING.md) | 分支/版本/发布/回滚维护约定 |
 | [PACKAGING.md](PACKAGING.md) | 打包白名单、产物验证、发布前检查 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
+| [LANGUAGES.md](LANGUAGES.md) | 四层语言覆盖现状与缺口（非多语言 UI 声明） |
 | [LICENSING.md](LICENSING.md) | 许可证建议与待确认草案（尚未生效） |
 
 ## 已知限制

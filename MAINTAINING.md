@@ -16,4 +16,4 @@
 
 ## 回滚
 
-保留上一版 tgz；回滚安装即重新 `dsh plugin add` 旧 tgz，并刷新/按需重启。profile 备份见 README 安装节。
+保留上一版 tgz 作为**代码回滚候选**；但“重装旧 tgz”**尚未证明**能兼容新版本已写入的 ledger、待投递队列与迁移状态。正式承诺数据可回退前，必须先做备份/恢复演练和跨版本 downgrade 测试，并在 release notes 标注已验证范围；当前只能视为未验证的应急路径。profile 备份见 README 安装节。

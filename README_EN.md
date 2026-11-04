@@ -6,12 +6,20 @@ Let **existing ordinary DSH sessions** message each other directly: send a reque
 
 > **Status: private pre-release.** The repository is private and not public yet. License, final name/scope and public release date are pending the owner's decision. The screenshot below is a synthetic demo from an isolated environment; it contains no real conversations or credentials.
 
+![Synthetic demo: a request from a product-weekly session to a design-review session, with an explicit reply](assets/screenshots/demo-cards.png)
+
+*Synthetic demo. The screenshot shows the current **Chinese-only** plugin UI; UI strings are not yet localized. Session names and content are fictional.*
+
 ## Compatibility
 
 - DeepSeek Harness **0.2.1-rc.5**
 - **Node.js 24** (tested v24.21.0; `engines >=24` is a floor declaration, not a claim that every newer version was tested)
 - **Linux Web**
 - Windows/macOS, other DSH/Node versions and other deployment forms are not promised or verified.
+
+## Language status
+
+This is **not** a multilingual UI. README/developer docs have Chinese and English entries, but plugin UI strings (cards, settings, states, errors) are currently **Simplified Chinese only**; there are no `locale` resources registered. See [LANGUAGES.md](LANGUAGES.md). Whether to build UI i18n or add more languages is an owner/product-scope decision, not claimed here.
 
 ## What it does
 
