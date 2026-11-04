@@ -141,8 +141,8 @@ const TERMS = [
   ['已回复', 'replied'], ['等待回复', 'awaiting reply'], ['等待投递', 'awaiting delivery'],
   ['投递中', 'delivering'], ['投递失败', 'delivery failed'], ['已取消', 'cancelled'],
   ['正在投递', 'delivering'], ['通道', 'channels'], ['账本', 'ledger'], ['未投递', 'undelivered'],
-  ['条', 'items'], ['组', 'groups'], ['，', ', '],
-  ['关联组', 'chains'], ['记录', 'records'], ['设置', 'settings'],
+  ['关联组', 'chains'], ['条', 'items'], ['组', 'groups'], ['，', ', '],
+  ['记录', 'records'], ['设置', 'settings'],
 ]
 
 export const I18N_NS = 'session-link'
