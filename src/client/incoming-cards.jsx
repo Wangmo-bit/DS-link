@@ -72,6 +72,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { translateText } from './i18n.js';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 
 const KIND = 'session-link-card';

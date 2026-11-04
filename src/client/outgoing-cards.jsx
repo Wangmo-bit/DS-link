@@ -35,6 +35,7 @@
  */
 
 import React from 'react';
+import { translateText } from './i18n.js';
 import { CARD_KIND, createSenderCardDefinition } from './outgoing-card.mjs';
 import { createWindowScope } from './outgoing-window-scope.mjs';
 import { createCardVerifier } from './outgoing-card-verify.mjs';
