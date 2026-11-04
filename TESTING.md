@@ -29,7 +29,7 @@ npm pack --dry-run
 
 测试**不是**无进程、无删除、无固定路径副作用的：
 
-- `test/core-lock-multiprocess.test.js` 会 `spawn` Node 子进程（持锁/竞争），测试内在 `waitExit`/`finally` 中发 SIGTERM/SIGKILL 并等 `exit`；但这是测试代码自身的等待，不等同于外部可审计的进程树终态。
+- `test/core-lock-multiprocess.test.js` 会 `spawn` Node 子进程（持锁/竞争）。**正常路径**：`SIGTERM` 后 `await waitExit`；**异常兜底**：`finally` 里的 `SIGKILL` **没有 await 退出**，因此不保证异常分支子进程已收回。代码等待也不等同于外部可审计的进程树终态。
 - `test/core-create.test.js`、`scripts/v04/fixture-guard.test.mjs`、`scripts/deactivate-managed-entry.test.mjs` 等使用真实文件系统并递归 `rm` 临时目录；多数用 `mkdtemp` 唯一根，但并非所有用例都如此。
 - `scripts/v02/fixture-guard.test.mjs`、`scripts/v03/fixture-guard.test.mjs`、`scripts/v03/fixture-model.test.mjs`、`scripts/stress/fixture-guard.test.mjs` 使用**固定** `/tmp/dsh-session-link-*` 目录；重复运行可能覆盖/清理同路径旧物，运行前无法证明归属。
 - 因此“测试通过”不能证明没有子进程、没有删除、没有覆盖旧临时文件。**固定字面量 `/tmp/...` 不受 `TMPDIR` 重定向影响；新用户也不自动隔离 `/tmp`**，二者都不足以保护这些用例。
