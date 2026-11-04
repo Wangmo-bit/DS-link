@@ -32,4 +32,7 @@ npm pack --dry-run
 - `test/core-lock-multiprocess.test.js` 会 `spawn` Node 子进程（持锁/竞争），测试内在 `waitExit`/`finally` 中发 SIGTERM/SIGKILL 并等 `exit`；但这是测试代码自身的等待，不等同于外部可审计的进程树终态。
 - `test/core-create.test.js`、`scripts/v04/fixture-guard.test.mjs`、`scripts/deactivate-managed-entry.test.mjs` 等使用真实文件系统并递归 `rm` 临时目录；多数用 `mkdtemp` 唯一根，但并非所有用例都如此。
 - `scripts/v02/fixture-guard.test.mjs`、`scripts/v03/fixture-guard.test.mjs`、`scripts/v03/fixture-model.test.mjs`、`scripts/stress/fixture-guard.test.mjs` 使用**固定** `/tmp/dsh-session-link-*` 目录；重复运行可能覆盖/清理同路径旧物，运行前无法证明归属。
-- 因此“测试通过”不能证明没有子进程、没有删除、没有覆盖旧临时文件。请在一次性容器/专用用户/独占 TMPDIR 中运行，并在运行前后用受控记录核对；不要在本机共享 `/tmp` 上盲跑，也不要把本候选测试当作无副作用验证。
+- 因此“测试通过”不能证明没有子进程、没有删除、没有覆盖旧临时文件。**固定字面量 `/tmp/...` 不受 `TMPDIR` 重定向影响；新用户也不自动隔离 `/tmp`**，二者都不足以保护这些用例。
+- 运行固定路径用例的前提：在**独立挂载命名空间或容器内独立 `/tmp`** 中，并先证明该 `/tmp` 未映射宿主真实路径；否则这些用例先不跑。
+- 本候选此前那次 `npm test` 运行日志 `/tmp/final-test.log` 的写前状态同其他固定路径一样未知，不能仅凭“当前没有文件”推断无影响；不要删除/探测未知内容，记录为未知事实。
+- 不要在本机共享 `/tmp` 上盲跑，也不要把本候选测试当作无副作用验证。
