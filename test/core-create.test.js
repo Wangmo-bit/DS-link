@@ -1853,3 +1853,19 @@ test('existingProject retry with a changed path/title is rejected as a conflicti
     (error) => error.code === 'conflict_operation',
   )
 })
+
+test('a legacy create journal without workspacePath still loads after the additive field', async (t) => {
+  const { engine, ledger, root } = await setup(t)
+  await ledger.mutate((state) => {
+    const journal = journalFixture('A', 'legacy-op')
+    delete journal[`A|legacy-op`].location.workspacePath
+    state.creates = { ...(state.creates ?? {}), ...journal }
+    return true
+  })
+  await engine.dispose()
+  await ledger.close()
+  const reopened = new Ledger({ root, clock: () => 1_800_000_000_000 })
+  await reopened.open()
+  assert.ok(reopened.read().creates['A|legacy-op'])
+  await reopened.close()
+})

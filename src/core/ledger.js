@@ -485,6 +485,9 @@ function validateCreates(creates) {
       throw corrupt(`ledger create ${key} location.kind is invalid`)
     }
     for (const field of ['workspaceId', 'parentDir', 'directoryName', 'workspacePath', 'workspaceTitle']) {
+      // workspacePath is additive; an older journal missing it entirely is
+      // valid, while a present value must be a string or null.
+      if (field === 'workspacePath' && !(field in location)) continue
       if (location[field] !== null && typeof location[field] !== 'string') {
         throw corrupt(`ledger create ${key} location.${field} is invalid`)
       }
