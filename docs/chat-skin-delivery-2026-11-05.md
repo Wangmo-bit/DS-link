@@ -62,6 +62,14 @@
 - 审批按钮、真实失败发送、真实上传/发消息未在生产主动制造；保留原生实现，并由代码/既有回归覆盖。没有用用户真实权限做破坏性状态注入。
 - 人工最终验收人：王墨；候选自验不冒充用户验收。
 
-## 安装状态
+## 安装与复验结果
 
-候选已完成测试，等待统一安装步骤。安装/重启的结果在实际执行后补记；不提前声称生效。
+- 仅 Web；没有改手机端、桌面端或其它端。
+- 实现提交：`68060bf`；统一安装一次，使用官方 `dsh plugin --profile web add`，没有先卸载。
+- 包：[Web 完整包](../release/chat-ui-68060bf/wangmo-dsh-session-link-0.4.0.tgz)；SHA256 `1af9273d47ac3422586db613055bcfada197f04000dc4c43a3a573691b67005a`。
+- 安装版 client SHA256 `63fe5eb062dd1b3fabaeb82095c0ca15d17fa6b7c8a6d813f68505ffdacfef95`，与自验构建逐字节一致。
+- [安装前备份](</home/<user>/.dsh/backups/session-link-web-complete-68060bf-20261105-165941/>) 包含 profile 清单、锁文件、patch 和旧插件。
+- 没有重启，没有安排自动重启。安装前后 Web PID 一致，health 200；profile 的 dsh 选用组合及其他依赖完全不变。
+- 撤销测试浏览器 bundle 拦截后刷新实际 URL：服务返回新气泡与往返代码，未包含测试导航钩子；实际消息正确显示外置作者名。
+- 安装后的通信记录复验：完整线程 5 条、选中高亮 1 条、无页面 alert；双方往返阅读器首批载入 100 条，可关闭并归还焦点。
+- [安装后往返截图](../output/playwright/installed-exchange.png)；[安装后记录截图](../output/playwright/installed-mailbox.png)。

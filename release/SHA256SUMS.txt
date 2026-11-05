@@ -1,1 +1,1 @@
-09c999870cc342630f43e7ad25e49ee102632d3f83c9a1585f40d577fe0424d2  release/wangmo-dsh-session-link-0.4.0.tgz
+1af9273d47ac3422586db613055bcfada197f04000dc4c43a3a573691b67005a  release/chat-ui-68060bf/wangmo-dsh-session-link-0.4.0.tgz
