@@ -72,7 +72,7 @@ dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offlin
 
 - `session_link_send`：向一个或多个普通会话发送 notification/request。
 - `session_link_reply`：对收到的 request 给出明确回复。
-- `session_link_create`：创建会话并立即派首条任务（不提供空会话入口）；位置三选一：已有 `workspaceId`、新建 `newProject`、或登记已有目录 `existingProject:{path,title?}`（后者只调用 Host workspace registry 登记，不创建/读取/修改该目录内容）。
+- `session_link_create`：创建会话并立即派首条任务（不提供空会话入口）；位置三选一：已有 `workspaceId`、新建 `newProject`、或登记已有目录 `existingProject:{path,title?}`（后者只调用 Host workspace registry 登记，不创建/读取/修改该目录内容；省略 `title` 时 workspace 标题采用 Host registry 的目录默认名）。
 
 收到消息的会话会在下一个 step 边界看到它；忙碌时不会打断正在执行的工具批。所有投递/回执/回复状态以账本事实为准。
 
