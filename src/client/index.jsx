@@ -2,9 +2,8 @@
 // evidence and lets the owner stop runaway work; this plugin still has no
 // manual send form.
 // Palette/surfaces/type: inherit DSH tokens; subtle borders, semantic status,
-// 4px spacing grid. The settings shell owns the dialog; this module only owns
-// the embedded section, a hidden compatibility hint for the retired main route,
-// and the single nav label (bubbles icon + marker).
+// 4px spacing grid. The global panel shell owns the page frame; this module
+// renders the page and its left-sidebar entry (link glyph).
 import React, { useEffect, useRef, useState } from 'react';
 import {
   LIMIT,
@@ -48,20 +47,11 @@ const date = value => value ? new Date(value).toLocaleString() : '—';
 const short = value => String(value ?? '').slice(0, 8);
 const statusOf = message => message.dispatchStatus ?? message.status;
 
-function BubblesIcon({ size = 16 }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-    <path d="M4.8 4.6h8.6a2 2 0 0 1 2 2v4.6a2 2 0 0 1-2 2H9.6L6.5 15.9v-2.7H4.8a2 2 0 0 1-2-2V6.6a2 2 0 0 1 2-2Z"/>
-    <path d="M12.4 9.9h6.8a2 2 0 0 1 2 2v4.2a2 2 0 0 1-2 2h-1.1v2.4l-2.9-2.4h-4.8a2 2 0 0 1-2-2v-4.2a2 2 0 0 1 2-2Z"/>
+function LinkIcon({ size = 16, active } = {}) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-session-link-nav-icon={active ? 'active' : 'idle'}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
   </svg>;
-}
-
-// Static label node: the shell renders the returned element inside its nav span.
-// It must stay a pure function with no hooks or side effects.
-function NavLabel() {
-  return <span className="sl-navlabel" data-session-link-nav="">
-    <BubblesIcon />
-    <span className="sl-navtext">会话互通</span>
-  </span>;
 }
 
 function Action({ children, onClick, busy, danger, title, disabled }) {
@@ -305,12 +295,6 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
   </div>;
 }
 
-// Retired main route: a fixed hint only. It must not render a second page of
-// records or settings, and it is not a visible entry (no sidebar registration).
-export function MigrationNotice() {
-  return <div className="sl-migrate"><p>会话互通入口已移至：设置 → 会话互通。</p></div>;
-}
-
 function saveNotice(value) {
   const parts = ['设置已保存。'];
   if (value?.queued) parts.push(`已排队 ${value.queued} 条消息。`);
@@ -437,17 +421,19 @@ export function apply(ctx) {
     document.head.append(style);
     return () => style.remove();
   });
-  // The retired main route only explains where the entry went; it is not a
-  // second visible entry and it never renders records or settings.
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANEL }, MigrationNotice));
-  ctx.slots.inject('settings.section', () => ctx.slots.register({
-    name: 'settings.section',
-    id: 'session-link-settings',
-    // Static ReactNode label: the settings shell renders it inside the nav row.
-    label: () => <NavLabel />,
-    order: 337,
+  // The page lives in the global panel row, not inside Settings. The main slot
+  // renders it; sidebar.panellist owns the always-visible left-side entry.
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: PANEL,
     inject: () => ({ openSession: target => ctx.uiWorkspace.openSession(target) }),
   }, GlobalSettingsPage));
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist',
+    id: PANEL,
+    order: 30,
+    label: () => translateText('会话互通'),
+  }, LinkIcon));
   try {
     installIncomingCards(ctx);
   } catch {

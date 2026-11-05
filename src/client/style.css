@@ -19,7 +19,7 @@ body[data-ds-dark-theme] .sl-tool-record__status--error{color:#ef9b9b}
    Host tokens only: canvas/surface/label/border/brand, semantic status colors,
    4px spacing grid. No nested scroll container: the settings shell's content
    area is the only scroller. */
-:where(.sl-section,.sl-migrate){
+:where(.sl-section){
   --sl-paper:var(--dsw-alias-bg-layer-1,Canvas);
   --sl-ink:var(--dsw-alias-label-primary,CanvasText);
   --sl-dim:var(--dsw-alias-label-secondary,GrayText);
@@ -29,20 +29,12 @@ body[data-ds-dark-theme] .sl-tool-record__status--error{color:#ef9b9b}
   font:inherit;
   line-height:1.5;
 }
-.sl-section *,.sl-migrate *{box-sizing:border-box}
+.sl-section *{box-sizing:border-box}
 .sl-section{box-sizing:border-box;height:auto;overflow:visible;padding:0;isolation:isolate}
 .sl-section [hidden]{display:none!important}
 .sl-section h2{font-size:17px;font-weight:600;margin:0 0 8px}
 .sl-section h3{font-size:14px;font-weight:600;margin:16px 0 8px}
 .sl-section p{margin:8px 0}
-
-/* Nav label: bubbles icon + text, rendered by the host inside its nav span.
-   The marker scopes the gear-hide rule to this row only; !important resists
-   third-party skins that force display on svg elements. */
-.sl-navlabel{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%}
-.sl-navlabel svg{flex:none}
-.sl-navtext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-button:has([data-session-link-nav]) > svg:first-child{display:none!important}
 
 .sl-statusline,.sl-section-head,.sl-actions,.sl-record-meta,.sl-filters,.sl-pagination{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sl-statusline{color:var(--sl-dim);font-size:12px;margin:8px 0}
@@ -121,8 +113,6 @@ button:has([data-session-link-nav]) > svg:first-child{display:none!important}
 .sl-section blockquote{margin:10px 0;padding-left:10px;border-left:2px solid var(--sl-line)}
 .sl-related{font-size:12px;margin-top:10px}
 .sl-section ul{margin:8px 0;padding-left:18px;font-size:12px;overflow-wrap:anywhere}
-.sl-migrate{box-sizing:border-box;padding:24px clamp(16px,3vw,40px);color:var(--sl-ink);font:inherit;line-height:1.5}
-.sl-migrate p{margin:0}
 
 @media (max-width:700px){
   .sl-setting{flex-direction:column;align-items:stretch;gap:8px}
@@ -134,5 +124,5 @@ button:has([data-session-link-nav]) > svg:first-child{display:none!important}
   .sl-section{padding:0}
 }
 @media (prefers-reduced-motion:reduce){
-  .sl-section *,.sl-migrate *{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+  .sl-section *{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }

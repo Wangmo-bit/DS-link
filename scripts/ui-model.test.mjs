@@ -301,19 +301,19 @@ test('error wording distinguishes CAS, policy removal and storage failure', () =
   assert.match(describeControlError({ code: 'storage_error', message: 'readonly' }), /存储异常/);
 });
 
-test('settings section is the only visible entry and keeps the retired main hint', async () => {
+test('global panel page is the only entry and registers the left sidebar row', async () => {
   const source = await readFile(new URL('../src/client/index.jsx', import.meta.url), 'utf8');
   assert.match(source, /export const name = '@wangmo\/dsh-session-link'/);
   assert.match(source, /style\.dataset\.plugin = name/);
   assert.doesNotMatch(source, /export const name = 'dsh-session-link'/);
-  assert.doesNotMatch(source, /sidebar\.panellist/);
+  assert.doesNotMatch(source, /settings\.section/);
   assert.doesNotMatch(source, /sidebarHidden/);
-  assert.match(source, /name: 'settings\.section'/);
-  assert.match(source, /id: 'session-link-settings'/);
-  assert.match(source, /label: \(\) => <NavLabel \/>/);
-  assert.match(source, /data-session-link-nav/);
-  assert.match(source, /name: 'main', key: PANEL/);
-  assert.match(source, /会话互通入口已移至：设置 → 会话互通。/);
+  assert.doesNotMatch(source, /sl-migrate/);
+  assert.match(source, /name: 'sidebar\.panellist'/);
+  assert.match(source, /id: PANEL/);
+  assert.match(source, /label: \(\) => translateText\('会话互通'\)/);
+  assert.match(source, /name: 'main',/);
+  assert.match(source, /key: PANEL/);
   assert.match(source, /<h2>会话互通<\/h2>/);
   assert.match(source, /aria-label="会话互通页面"/);
   assert.match(source, /role="tablist"/);
@@ -377,10 +377,9 @@ test('records detail keeps truthful receipt wording and bounded polling', async 
   assert.match(source, /LIMIT/);
 });
 
-test('stylesheet hides only this nav row gear and stays single-column at narrow widths', async () => {
+test('stylesheet has no retired nav/migration hooks and stays single-column at narrow widths', async () => {
   const css = await readFile(new URL('../src/client/style.css', import.meta.url), 'utf8');
-  assert.match(css, /button:has\(\[data-session-link-nav\]\) > svg:first-child\{display:none!important\}/);
-  assert.equal(css.match(/:has\(/g).length, 1);
+  assert.doesNotMatch(css, /data-session-link-nav|sl-migrate|sl-navlabel|:has\(/);
   assert.match(css, /@media \(max-width:700px\)/);
   assert.match(css, /flex-direction:column/);
   assert.doesNotMatch(css, /grid-template-columns:minmax\(280px/);
