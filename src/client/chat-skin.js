@@ -8,33 +8,52 @@ const USER_NAME = '王墨';
 
 export const CHAT_SKIN_CSS = `
 .wm-chat-row {
+  --wm-bubble-bg: color-mix(in srgb, currentColor 6%, transparent);
   position: relative;
+  z-index: 0;
   box-sizing: border-box;
   width: fit-content;
   max-width: min(82%, 900px);
-  margin: 8px 0;
-  padding: 10px 14px 11px;
+  margin: 8px 0 10px;
+  padding: 23px 14px 12px;
   border: 0;
   border-radius: 16px;
-  background: color-mix(in srgb, currentColor 6%, transparent);
+  background: transparent;
+  isolation: isolate;
+}
+.wm-chat-row::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 22px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 16px;
+  background: var(--wm-bubble-bg);
+  pointer-events: none;
 }
 .wm-chat-row::before {
   content: attr(data-wm-author);
   display: block;
-  margin: 0 0 4px;
-  color: color-mix(in srgb, currentColor 55%, transparent);
-  font-size: 11px;
-  line-height: 1.4;
-  font-weight: 500;
+  margin: 0 1px 5px;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: .01em;
 }
 .wm-chat-row[data-chat-flow-kind="user"],
 .wm-chat-row[data-chat-flow-kind="steering"] {
+  --wm-bubble-bg: color-mix(in srgb, #4d6bfe 17%, transparent);
   margin-left: auto;
   margin-right: 0;
   border-radius: 16px 16px 5px 16px;
-  background: color-mix(in srgb, #4d6bfe 14%, transparent);
 }
+.wm-chat-row[data-chat-flow-kind="user"]::before,
+.wm-chat-row[data-chat-flow-kind="steering"]::before { text-align: right; }
 .wm-chat-row[data-chat-flow-kind="assistant-step"] {
+  --wm-bubble-bg: color-mix(in srgb, currentColor 7%, transparent);
   margin-left: 0;
   margin-right: auto;
   border-radius: 16px 16px 16px 5px;
@@ -46,16 +65,13 @@ export const CHAT_SKIN_CSS = `
   height: auto;
   border-radius: 10px;
 }
-.wm-chat-row pre {
-  max-width: 100%;
-  overflow-x: auto;
-}
-body[data-ds-dark-theme] .wm-chat-row {
-  background: color-mix(in srgb, #fff 6%, transparent);
-}
+.wm-chat-row pre { max-width: 100%; overflow-x: auto; }
 body[data-ds-dark-theme] .wm-chat-row[data-chat-flow-kind="user"],
 body[data-ds-dark-theme] .wm-chat-row[data-chat-flow-kind="steering"] {
-  background: color-mix(in srgb, #5b7bff 20%, transparent);
+  --wm-bubble-bg: color-mix(in srgb, #5b7bff 23%, transparent);
+}
+body[data-ds-dark-theme] .wm-chat-row[data-chat-flow-kind="assistant-step"] {
+  --wm-bubble-bg: color-mix(in srgb, #fff 7%, transparent);
 }
 @media (max-width: 720px) {
   .wm-chat-row { max-width: 94%; }
