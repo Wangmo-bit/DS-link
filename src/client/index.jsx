@@ -35,6 +35,7 @@ import css from './style.css';
 import { CARD_CSS, BUBBLE_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
+import { installChatSkin } from './chat-skin.js';
 import { installI18n, translateText } from './i18n.js';
 
 export const name = '@wangmo/dsh-session-link';
@@ -544,6 +545,12 @@ export function apply(ctx) {
     order: 30,
     label: () => translateText('会话互通'),
   }, LinkIcon));
+  try {
+    installChatSkin(ctx);
+  } catch {
+    // A visual skin failure must not take messaging down.
+    console.warn('[session-link] Chat skin unavailable; native chat remains.');
+  }
   try {
     installIncomingCards(ctx);
   } catch {
