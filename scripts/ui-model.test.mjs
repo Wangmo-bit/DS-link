@@ -384,6 +384,7 @@ test('records detail keeps truthful receipt wording and bounded polling', async 
 test('stylesheet has no retired nav/migration hooks and stays single-column at narrow widths', async () => {
   const css = await readFile(new URL('../src/client/style.css', import.meta.url), 'utf8');
   assert.doesNotMatch(css, /data-session-link-nav|sl-migrate|sl-navlabel|:has\(/);
+  assert.match(css, /body\[data-ds-dark-theme\] \.sl-section\.sl-page\{[^}]*--sl-paper:#1a1e24/);
   assert.match(css, /@media \(max-width:700px\)/);
   assert.match(css, /flex-direction:column/);
   assert.doesNotMatch(css, /grid-template-columns:minmax\(280px/);

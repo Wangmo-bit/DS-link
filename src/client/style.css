@@ -141,6 +141,9 @@ body[data-ds-dark-theme] .sl-tool-record__status--error{color:#ef9b9b}
 }
 body[data-ds-dark-theme] .sl-section.sl-page{
   --sl-brand:#8aa4ff; --sl-brand-fg:#101318; --sl-brand-soft:rgba(138,164,255,.14);
+  --sl-paper:#1a1e24; --sl-card:#1a1e24;
+  --sl-ink:#f1f3f5; --sl-dim:#aeb5bf;
+  --sl-line:rgba(255,255,255,.12); --sl-link:#8aa4ff;
 }
 .sl-page-head{max-width:720px;margin:0 0 26px}
 .sl-eyebrow{margin:0;color:var(--sl-dim);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
