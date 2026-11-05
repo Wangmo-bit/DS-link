@@ -276,6 +276,36 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, thr
   </section>;
 }
 
+function SessionPicker({ label, value, onChange, sessions }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = event => { if (!box.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open]);
+  const current = value ? sessionLabel(value, sessions) : '全部';
+  const options = [{ value: '', label: '全部' }, ...sessions.map(item => {
+    const id = item.sessionId ?? item.id;
+    return { value: id, label: sessionLabel(id, sessions) };
+  })];
+  const choose = next => { onChange(next); setOpen(false); };
+  const keyDown = event => {
+    if (event.key === 'Escape') { setOpen(false); return; }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen(true); }
+  };
+  return <div className="sl-slicer" ref={box}>
+    <span>{label}</span>
+    <button type="button" className="sl-slicer__button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(current => !current)} onKeyDown={keyDown}>
+      <span className="sl-slicer__value">{current}</span><span className="sl-slicer__chevron" aria-hidden="true">⌄</span>
+    </button>
+    {open && <div className="sl-slicer__menu" role="listbox" aria-label={label}>
+      {options.map(option => <button key={option.value || 'all'} type="button" role="option" aria-selected={option.value === value} className={option.value === value ? 'sl-slicer__option is-selected' : 'sl-slicer__option'} onClick={() => choose(option.value)}>{option.label}</button>)}
+    </div>}
+  </div>;
+}
+
 class RecordBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
