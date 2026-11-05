@@ -7,56 +7,25 @@ const SELECTOR = '[data-chat-flow-kind]';
 const USER_NAME = '王墨';
 
 export const CHAT_SKIN_CSS = `
-.wm-chat-row {
-  --wm-bubble-bg: color-mix(in srgb, currentColor 6%, transparent);
-  position: relative;
-  z-index: 0;
-  box-sizing: border-box;
+/* The speaker is a sibling of the Host's message row, never a pseudo-element
+   inside it: the Host's own bubble can then keep its native surface. */
+.wm-chat-author {
+  display: block;
   width: fit-content;
   max-width: min(82%, 900px);
-  margin: 8px 0 10px;
-  padding: 45px 14px 12px;
-  border: 0;
-  border-radius: 16px;
-  background: transparent;
-  isolation: isolate;
-}
-.wm-chat-row::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: 44px;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: 16px;
-  background: var(--wm-bubble-bg);
-  pointer-events: none;
-}
-.wm-chat-row::before {
-  content: attr(data-wm-author);
-  display: block;
-  margin: 0 1px 7px;
+  margin: 9px 2px 4px;
   color: color-mix(in srgb, currentColor 68%, transparent);
   font-size: 13px;
   line-height: 1.35;
   font-weight: 600;
   letter-spacing: .01em;
+  text-align: left;
 }
-.wm-chat-row[data-chat-flow-kind="user"],
-.wm-chat-row[data-chat-flow-kind="steering"] {
-  --wm-bubble-bg: color-mix(in srgb, #4d6bfe 17%, transparent);
+.wm-chat-author[data-wm-kind="user"],
+.wm-chat-author[data-wm-kind="steering"] {
   margin-left: auto;
-  margin-right: 0;
-  border-radius: 16px 16px 5px 16px;
-}
-.wm-chat-row[data-chat-flow-kind="user"]::before,
-.wm-chat-row[data-chat-flow-kind="steering"]::before { text-align: right; }
-.wm-chat-row[data-chat-flow-kind="assistant-step"] {
-  --wm-bubble-bg: color-mix(in srgb, currentColor 7%, transparent);
-  margin-left: 0;
-  margin-right: auto;
-  border-radius: 16px 16px 16px 5px;
+  margin-right: 2px;
+  text-align: right;
 }
 .wm-chat-row img,
 .wm-chat-row video,
@@ -66,15 +35,8 @@ export const CHAT_SKIN_CSS = `
   border-radius: 10px;
 }
 .wm-chat-row pre { max-width: 100%; overflow-x: auto; }
-body[data-ds-dark-theme] .wm-chat-row[data-chat-flow-kind="user"],
-body[data-ds-dark-theme] .wm-chat-row[data-chat-flow-kind="steering"] {
-  --wm-bubble-bg: color-mix(in srgb, #5b7bff 23%, transparent);
-}
-body[data-ds-dark-theme] .wm-chat-row[data-chat-flow-kind="assistant-step"] {
-  --wm-bubble-bg: color-mix(in srgb, #fff 7%, transparent);
-}
 @media (max-width: 720px) {
-  .wm-chat-row { max-width: 94%; }
+  .wm-chat-author { max-width: 94%; }
 }
 `;
 
@@ -91,8 +53,15 @@ function decorate(root = document) {
     const kind = row.getAttribute('data-chat-flow-kind');
     if (!BUBBLE_KINDS.has(kind)) continue;
     const author = kind === 'user' || kind === 'steering' ? USER_NAME : assistantName();
-    if (row.getAttribute('data-wm-author') !== author) row.setAttribute('data-wm-author', author);
     if (!row.classList.contains('wm-chat-row')) row.classList.add('wm-chat-row');
+    let label = row.previousElementSibling;
+    if (!label?.classList?.contains('wm-chat-author')) {
+      label = document.createElement('div');
+      label.className = 'wm-chat-author';
+      row.parentNode?.insertBefore(label, row);
+    }
+    label.dataset.wmKind = kind;
+    if (label.textContent !== author) label.textContent = author;
   }
 }
 
@@ -118,10 +87,8 @@ export function installChatSkin(ctx) {
     return () => {
       observer.disconnect();
       style.remove();
-      for (const row of document.querySelectorAll('.wm-chat-row')) {
-        row.classList.remove('wm-chat-row');
-        row.removeAttribute('data-wm-author');
-      }
+      for (const row of document.querySelectorAll('.wm-chat-row')) row.classList.remove('wm-chat-row');
+      for (const label of document.querySelectorAll('.wm-chat-author')) label.remove();
     };
   }, 'session-link chat skin');
 }
