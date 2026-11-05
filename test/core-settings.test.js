@@ -238,3 +238,19 @@ test('settings-view snapshot skips session discovery and the message page', asyn
   assert.ok(Array.isArray(full.messages))
   assert.equal(listCalls, 1)
 })
+
+
+test('records view skips session discovery while sessions view loads only the roster', async (t) => {
+  const { adapter, engine } = await setup(t)
+  let listCalls = 0
+  const original = adapter.listSessions.bind(adapter)
+  adapter.listSessions = async (...args) => { listCalls += 1; return original(...args) }
+  const records = await engine.snapshot({ view: 'records', limit: 20 })
+  assert.ok(Array.isArray(records.messages))
+  assert.equal(records.sessions.length, 0)
+  assert.equal(listCalls, 0, 'records first page must not wait for session discovery')
+  const sessions = await engine.snapshot({ view: 'sessions' })
+  assert.ok(sessions.sessions.length > 0)
+  assert.equal(sessions.messages, undefined)
+  assert.equal(listCalls, 1)
+})

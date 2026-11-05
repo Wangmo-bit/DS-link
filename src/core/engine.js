@@ -4034,15 +4034,17 @@ export class SessionLinkEngine {
   /** @param {Record<string, unknown>} [request] */
   async snapshot(request = {}) {
     const object = assertPlainObject(request, 'snapshot request')
-    assertAllowedKeys(object, ['limit', 'offset', 'filter', 'sessionId', 'chainId', 'view'], 'snapshot request')
+    assertAllowedKeys(object, ['limit', 'offset', 'filter', 'sessionId', 'chainId', 'view', 'senderSessionId', 'receiverSessionId'], 'snapshot request')
     const view = object.view === undefined ? 'full' : requiredString(object.view, 'view', { max: 16 })
-    if (!['full', 'settings'].includes(view)) throw fail('invalid_argument', `unknown snapshot view ${view}`)
+    if (!['full', 'settings', 'records', 'sessions'].includes(view)) throw fail('invalid_argument', `unknown snapshot view ${view}`)
     const limit = boundedInteger(object.limit ?? LIMITS.MAX_PAGE, 'limit', { min: 1, max: LIMITS.MAX_SNAPSHOT_PAGE })
     const offset = boundedInteger(object.offset ?? 0, 'offset', { min: 0 })
     const filter = object.filter === undefined ? 'all' : requiredString(object.filter, 'filter', { max: 32 })
     if (!SNAPSHOT_FILTERS.includes(filter)) throw fail('invalid_argument', `unknown snapshot filter ${filter}`)
     const sessionId = optionalString(object.sessionId, 'sessionId', { max: 256 })
     const chainId = optionalString(object.chainId, 'chainId', { max: 256 })
+    const senderSessionId = optionalString(object.senderSessionId, 'senderSessionId', { max: 256 })
+    const receiverSessionId = optionalString(object.receiverSessionId, 'receiverSessionId', { max: 256 })
     if ((filter === 'received' || filter === 'sent') && sessionId === undefined) {
       throw fail('invalid_argument', `${filter} filter requires sessionId`)
     }
@@ -4076,11 +4078,36 @@ export class SessionLinkEngine {
         ...(state.migration === undefined ? {} : { migration: publicMigration(state.migration) }),
       }
     }
+    if (view === 'sessions') {
+      const sessions = await this.adapter.listSessions({})
+      const stats = this.ledger.stats()
+      const queuedBytes = queuedBytesOf(state)
+      return {
+        apiVersion: API_VERSION,
+        version: PLUGIN_VERSION,
+        revision: state.revision,
+        settingsRevision: state.settingsRevision,
+        settings: structuredClone(state.settings),
+        messages: undefined,
+        chains: [],
+        budgetLatches: [],
+        sessions: sessions.map((session) => publicSession(session)),
+        total: state.messages.length,
+        hasMore: false,
+        nextOffset: null,
+        inFlight: this.#attempts.size,
+        storage: this.#storageView(stats, queuedBytes),
+        technicalLimits: this.#technicalLimits(stats),
+        ...(state.migration === undefined ? {} : { migration: publicMigration(state.migration) }),
+      }
+    }
     let messages = state.messages
     if (sessionId !== undefined) {
       messages = messages.filter((message) => message.from === sessionId || message.to === sessionId)
     }
     if (chainId !== undefined) messages = messages.filter((message) => message.chainId === chainId)
+    if (senderSessionId !== undefined) messages = messages.filter((message) => message.from === senderSessionId)
+    if (receiverSessionId !== undefined) messages = messages.filter((message) => message.to === receiverSessionId)
     messages = messages.filter((message) => {
       if (filter === 'all' || filter === 'chain') return true
       if (filter === 'received') return message.to === sessionId
@@ -4106,7 +4133,10 @@ export class SessionLinkEngine {
     const chainIds = new Set(page.map((message) => message.chainId))
     if (chainId !== undefined) chainIds.add(chainId)
     const chains = this.#chainViewsFor(state, chainIds)
-    const sessions = await this.adapter.listSessions({})
+    // The records view is a fast mailbox page: it intentionally omits session
+    // discovery (the client fetches the session list separately once) so a
+    // large Host session store cannot block the first page of records.
+    const sessions = view === 'records' ? [] : await this.adapter.listSessions({})
     const stats = this.ledger.stats()
     const queuedBytes = queuedBytesOf(state)
     const storage = this.#storageView(stats, queuedBytes)

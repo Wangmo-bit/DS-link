@@ -209,3 +209,35 @@ body[data-ds-dark-theme] .sl-page-card{box-shadow:0 1px 2px rgba(0,0,0,.22),0 12
 @media (max-width:700px){
   .sl-diagnostics .sl-tech-list{grid-template-columns:1fr}
 }
+
+/* Handbook follow-up: the page owns its vertical scroll; the host panel can
+   be shorter than the full form. */
+.sl-section.sl-page{height:100%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.sl-page .sl-settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 4px}
+.sl-page .sl-settings-grid .sl-setting{flex-direction:column;align-items:stretch;gap:8px;margin:0;min-width:0}
+.sl-page .sl-settings-grid .sl-setting input{width:100%}
+.sl-page .sl-actions .sl-button{min-width:112px}
+.sl-mail-layout{display:grid;grid-template-columns:minmax(280px,38%) minmax(0,1fr);align-items:start;border:1px solid var(--sl-line);border-radius:12px;overflow:hidden;background:color-mix(in srgb,var(--sl-paper) 55%,transparent)}
+.sl-mail-list{min-width:0;padding:12px;border-right:1px solid var(--sl-line)}
+.sl-mail-toolbar{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.sl-mail-toolbar .sl-filters{margin:0}
+.sl-slicers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sl-slicer{display:flex;flex-direction:column;gap:4px;min-width:0;color:var(--sl-dim);font-size:11px}
+.sl-slicer select{width:100%;min-height:32px;padding:5px 8px;border:1px solid var(--sl-line);border-radius:7px;background:var(--sl-paper);color:var(--sl-ink);font:inherit;font-size:12px}
+.sl-mail-list .sl-list{border:0;border-radius:8px;overflow:hidden;max-height:min(58vh,640px);overflow-y:auto}
+.sl-mail-detail{min-width:0;min-height:220px;max-height:calc(100vh - 210px);overflow-y:auto;padding:16px 18px}
+.sl-mail-empty{margin:24px 0;text-align:center;color:var(--sl-dim);font-size:13px}
+.sl-diagnostics .sl-tech-body{max-width:760px;margin:0 auto;color:var(--sl-dim);font-size:12px;line-height:1.65;text-align:left}
+.sl-diagnostics .sl-tech-line{margin:0 0 6px}
+.sl-diagnostics .sl-tech-list{margin:10px auto}
+@media (max-width:1000px){
+  .sl-page .sl-settings-grid{grid-template-columns:1fr}
+  .sl-mail-layout{grid-template-columns:1fr}
+  .sl-mail-list{border-right:0;border-bottom:1px solid var(--sl-line)}
+  .sl-mail-detail{max-height:none}
+}
+@media (max-width:700px){
+  .sl-slicers{grid-template-columns:1fr}
+  .sl-page .sl-actions{justify-content:stretch}
+  .sl-page .sl-actions .sl-button{width:100%}
+}

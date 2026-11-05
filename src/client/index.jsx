@@ -26,7 +26,7 @@ import {
   receiptTransferText,
   requestDeadlineVisible,
   sessionLabel,
-  storageSummary,
+  formatBytes,
   storageWritable,
   technicalLimitRows,
   textOf,
@@ -41,7 +41,7 @@ export const name = '@wangmo/dsh-session-link';
 export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale'];
 const PANEL = 'session-link';
 const TAB_ORDER = ['settings', 'records'];
-const FILTERS = [['all', '全部'], ['pending_reply', '待回复'], ['received', '收件'], ['sent', '发件'], ['abnormal', '异常 / 未确认']];
+const FILTERS = [['all', '全部'], ['pending_reply', '待回复'], ['abnormal', '异常 / 未确认']];
 const KIND = { request: '协作请求', notification: '通知', reply: '明确回复' };
 const date = value => value ? new Date(value).toLocaleString() : '—';
 const short = value => String(value ?? '').slice(0, 8);
@@ -129,13 +129,6 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
   }, [revision, dirty]);
 
   const change = (key, value) => { setDraft(current => ({ ...current, [key]: value })); setDirty(true); setLocalError(''); };
-  const reset = () => {
-    setDraft(fieldsOf(snapshot.settings));
-    base.current = { settingsRevision: revision, settings: snapshot.settings };
-    setDirty(false);
-    setExternal(false);
-    setLocalError('');
-  };
   const submit = async event => {
     event.preventDefault();
     setLocalError('');
@@ -176,8 +169,7 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
       <span><strong>暂停新消息投递</strong><small>暂停时新消息排队，不打断已开始的工作；恢复后继续投递。</small></span>
       <input type="checkbox" checked={Boolean(draft.paused)} onChange={event => change('paused', event.target.checked)} disabled={busy || !writable}/>
     </label>
-    <details className="sl-more">
-      <summary>更多设置</summary>
+    <div className="sl-settings-grid">
       <label className="sl-setting sl-field">
         <span><strong>同时投递通道数</strong><small>{concurrent.ok ? '1～10；只限制同时入队的消息，不限制会话同时工作。' : concurrent.error}</small></span>
         <input type="number" min="1" max="10" step="1" value={draft.maxConcurrent} onChange={event => change('maxConcurrent', event.target.value)} disabled={busy || !writable}/>
@@ -190,11 +182,10 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
         <span><strong>已完成消息正文保留天数</strong><small>{retention.ok ? '清理插件保存的已完成正文，不删除原会话聊天记录。' : retention.error}</small></span>
         <input type="number" min="1" step="1" value={draft.retentionDays} onChange={event => change('retentionDays', event.target.value)} disabled={busy || !writable}/>
       </label>
-    </details>
+    </div>
     {localError && <p className="sl-alert" role="alert">{localError}</p>}
     <div className="sl-actions">
       <button type="submit" className="sl-button sl-primary" disabled={busy || !writable || !dirty}>{saving ? '保存中…' : '保存并应用'}</button>
-      <Action onClick={reset} busy={busy} disabled={!dirty}>放弃草稿</Action>
     </div>
   </form>;
 }
@@ -202,12 +193,20 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
 function TechnicalDetails({ snapshot }) {
   const rows = technicalLimitRows(snapshot.technicalLimits);
   const migration = snapshot.migration;
+  const storage = snapshot.storage;
+  const usage = storage
+    ? `已用空间 ${formatBytes(storage.bytes)} / 上限 ${formatBytes(storage.maxBytes)} · 待投递 ${formatBytes(storage.queuedBytes)} / ${formatBytes(storage.maxQueuedBytes)}`
+    : '';
+  const counts = storage ? `共 ${storage.messageCount ?? 0} 条通信记录，${storage.chainCount ?? 0} 组关联通信。` : '';
   return <details className="sl-tech">
-    <summary>技术说明（只读）</summary>
-    <p className="sl-muted">{storageSummary(snapshot.storage)}</p>
-    {rows.length > 0 && <dl className="sl-tech-list">{rows.map(row => <React.Fragment key={row.key}><dt>{row.label}</dt><dd>{row.value}</dd></React.Fragment>)}</dl>}
-    {migration && <p className="sl-muted">已从 v1 迁移（{date(migration.migratedAt)}）· 原始备份{migration.backupAvailable ? '可用' : '不可用'} · 旧版配额暂停记录 {migration.retiredQuotaPauses ?? 0} 条（已停用）· 旧版锁 {migration.retiredLatches ?? 0} 个（已停用）。</p>}
-    <p className="sl-muted">以上是本机当前生效的技术容量与分页/幂等窗口，不是按条数的业务配额；超限会明确报错，不静默截断或丢弃。</p>
+    <summary>技术说明</summary>
+    <div className="sl-tech-body">
+      {usage && <p className="sl-tech-line">{usage}</p>}
+      {counts && <p className="sl-tech-line">{counts}</p>}
+      {rows.length > 0 && <dl className="sl-tech-list">{rows.map(row => <React.Fragment key={row.key}><dt>{row.label}</dt><dd>{row.value}</dd></React.Fragment>)}</dl>}
+      {migration && <p className="sl-tech-line">已从旧版迁移（{date(migration.migratedAt)}）· 原始备份{migration.backupAvailable ? '可用' : '不可用'} · 旧版配额暂停记录 {migration.retiredQuotaPauses ?? 0} 条（已停用）· 旧版锁 {migration.retiredLatches ?? 0} 个（已停用）。</p>}
+      <p className="sl-tech-line">以上是本机当前生效的容量与分页/幂等窗口，不是按条数的业务配额；超限会明确报错，不静默截断或丢弃。</p>
+    </div>
   </details>;
 }
 
@@ -273,26 +272,42 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
   </section>;
 }
 
-export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setFilter, sessionId, setSessionId, offset, setOffset, selected, setSelected, chainId, setChainId }) {
+export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setFilter, senderSessionId, setSenderSessionId, receiverSessionId, setReceiverSessionId, offset, setOffset, selected, setSelected, chainId, setChainId }) {
   const messages = snapshot.messages ?? [];
   const sessions = snapshot.sessions ?? [];
   const message = messages.find(item => item.id === selected);
   const total = snapshot.total ?? messages.length;
+  const reset = () => { setOffset(0); setSelected(null); };
+  const chooseFilter = key => { setFilter(key); setChainId(''); reset(); };
+  const chooseSender = event => { setSenderSessionId(event.target.value); setChainId(''); reset(); };
+  const chooseReceiver = event => { setReceiverSessionId(event.target.value); setChainId(''); reset(); };
+  const sessionOptions = sessions.map(item => { const id = item.sessionId ?? item.id; return <option key={id} value={id} data-i18n-skip="">{sessionLabel(id, sessions)}</option>; });
   return <div className="sl-records">
     {chainId && <div className="sl-note sl-actions"><span>当前关联消息：<code>{chainId}</code></span><Action busy={busy} onClick={() => { setFilter('all'); setChainId(''); setOffset(0); setSelected(null); }}>退出关联筛选</Action></div>}
-    <div className="sl-filters" aria-label="记录筛选">
-      {FILTERS.map(([key, label]) => <button key={key} type="button" disabled={['received', 'sent'].includes(key) && !sessionId} title={['received', 'sent'].includes(key) && !sessionId ? '先选择一个会话再查看收件或发件' : undefined} aria-pressed={filter === key} onClick={() => { setFilter(key); setChainId(''); setOffset(0); setSelected(null); }}>{label}</button>)}
-      <label className="sl-session-filter">会话<select value={sessionId} onChange={event => { setSessionId(event.target.value); if (!event.target.value && ['received', 'sent'].includes(filter)) setFilter('all'); setOffset(0); setSelected(null); }}><option value="">全部会话</option>{sessions.map(item => { const id = item.sessionId ?? item.id; return <option key={id} value={id} data-i18n-skip="">{sessionLabel(id, sessions)}</option>; })}</select></label>
+    <div className="sl-mail-layout">
+      <aside className="sl-mail-list" aria-label="通信记录列表">
+        <div className="sl-mail-toolbar">
+          <div className="sl-filters" aria-label="记录筛选">
+            {FILTERS.map(([key, label]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => chooseFilter(key)}>{label}</button>)}
+          </div>
+          <div className="sl-slicers">
+            <label className="sl-slicer">发件会话<select value={senderSessionId} onChange={chooseSender}><option value="">全部</option>{sessionOptions}</select></label>
+            <label className="sl-slicer">收件会话<select value={receiverSessionId} onChange={chooseReceiver}><option value="">全部</option>{sessionOptions}</select></label>
+          </div>
+        </div>
+        <section className="sl-list" aria-label="通信记录列表">
+          {!messages.length ? <div className="sl-empty">{filter === 'all' && !senderSessionId && !receiverSessionId ? '还没有通信记录。' : '没有符合条件的记录。'}</div> : messages.map(item => <button key={item.id} type="button" className={`sl-record ${selected === item.id ? 'sl-selected' : ''}`} onClick={() => setSelected(item.id)}>
+            <div className="sl-route"><span data-i18n-skip="">{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span data-i18n-skip="">{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
+            <div className="sl-preview"><span data-i18n-skip="">{textOf(item) || ''}</span>{!textOf(item) && '正文已清理，或此记录无正文。'}</div>
+            <div className="sl-record-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time><code>#{short(item.id)}</code></div>
+          </button>)}
+        </section>
+        <div className="sl-pagination"><Action busy={busy || offset === 0} onClick={() => { setOffset(Math.max(0, offset - LIMIT)); setSelected(null); }}>上一页</Action><span>{total} 条 · 第 {Math.floor(offset / LIMIT) + 1} 页</span><Action busy={busy || offset + LIMIT >= total} onClick={() => { setOffset(offset + LIMIT); setSelected(null); }}>下一页</Action></div>
+      </aside>
+      <section className="sl-mail-detail" aria-label="通信记录详情">
+        {message ? <RecordDetail message={message} snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} selectChain={id => { setFilter('chain'); setChainId(id); setSenderSessionId(''); setReceiverSessionId(''); setOffset(0); setSelected(null); }}/> : <p className="sl-mail-empty">从左侧选择一条记录，查看正文和投递证据。</p>}
+      </section>
     </div>
-    <section className="sl-list" aria-label="通信记录列表">
-      {!messages.length ? <div className="sl-empty">{filter === 'all' ? '还没有通信记录。让主会话联系另一个会话后，记录会出现在这里。' : '此筛选下没有记录。'}<p className="sl-muted">本插件没有手动发送表单。</p></div> : messages.map(item => <button key={item.id} type="button" className={`sl-record ${selected === item.id ? 'sl-selected' : ''}`} onClick={() => setSelected(item.id)}>
-        <div className="sl-route"><span data-i18n-skip="">{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span data-i18n-skip="">{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
-        <div className="sl-preview"><span data-i18n-skip="">{textOf(item) || ''}</span>{!textOf(item) && '正文已清理，或此记录无正文。'}</div>
-        <div className="sl-record-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time><code>#{short(item.id)}</code></div>
-      </button>)}
-      <div className="sl-pagination"><Action busy={busy || offset === 0} onClick={() => { setOffset(Math.max(0, offset - LIMIT)); setSelected(null); }}>上一页</Action><span>{total} 条 · 第 {Math.floor(offset / LIMIT) + 1} 页</span><Action busy={busy || offset + LIMIT >= total} onClick={() => { setOffset(offset + LIMIT); setSelected(null); }}>下一页</Action></div>
-    </section>
-    {message ? <RecordDetail message={message} snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} selectChain={id => { setFilter('chain'); setChainId(id); setSessionId(''); setOffset(0); setSelected(null); }}/> : <p className="sl-muted">选择一条记录，查看投递证据和关联回复。</p>}
   </div>;
 }
 
@@ -312,23 +327,45 @@ export function GlobalSettingsPage({ close, openSession }) {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState('settings');
   const [filter, setFilter] = useState('all');
-  const [sessionId, setSessionId] = useState('');
+  const [senderSessionId, setSenderSessionId] = useState('');
+  const [receiverSessionId, setReceiverSessionId] = useState('');
+  const [sessions, setSessions] = useState([]);
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState(null);
   const [chainId, setChainId] = useState('');
-  const alive = useRef(true), refresh = useRef(async () => {}), request = useRef(null);
+  const alive = useRef(true), refresh = useRef(async () => {}), request = useRef(null), sessionsLoaded = useRef(false);
 
   useEffect(() => {
     alive.current = true;
     let timer, failures = 0, stopped = false;
+    const loadSessions = async () => {
+      if (sessionsLoaded.current) return;
+      try {
+        const result = await callApi('snapshot', { view: 'sessions' });
+        if (!stopped) { sessionsLoaded.current = true; setSessions(result.sessions ?? []); }
+      } catch (err) {
+        if (!stopped && err.name !== 'AbortError') setError(err.message);
+      }
+    };
     const load = async () => {
       request.current?.abort();
       const controller = new AbortController();
       request.current = controller;
       try {
-        const view = tab === 'records' ? 'full' : 'settings';
-        const result = await callApi('snapshot', { view, limit: LIMIT, offset, filter, ...(sessionId ? { sessionId } : {}), ...(chainId ? { chainId } : {}) }, { signal: controller.signal });
-        if (!stopped && !controller.signal.aborted) { setSnapshot(result); setError(''); failures = 0; }
+        const view = tab === 'records' ? 'records' : 'settings';
+        const result = await callApi('snapshot', {
+          view,
+          limit: LIMIT,
+          offset,
+          filter,
+          ...(senderSessionId ? { senderSessionId } : {}),
+          ...(receiverSessionId ? { receiverSessionId } : {}),
+          ...(chainId ? { chainId } : {}),
+        }, { signal: controller.signal });
+        if (!stopped && !controller.signal.aborted) {
+          setSnapshot(result); setError(''); failures = 0;
+          if (view === 'records') void loadSessions();
+        }
       } catch (err) {
         if (!stopped && err.name !== 'AbortError') { setError(err.message); failures++; }
       }
@@ -337,8 +374,9 @@ export function GlobalSettingsPage({ close, openSession }) {
     const tick = async () => { if (document.visibilityState !== 'hidden') await load(); if (!stopped) timer = setTimeout(tick, Math.min(30000, 3000 * 2 ** failures)); };
     void tick();
     return () => { stopped = true; alive.current = false; clearTimeout(timer); request.current?.abort(); };
-  }, [tab, filter, sessionId, offset, chainId]);
+  }, [tab, filter, senderSessionId, receiverSessionId, offset, chainId]);
 
+  const panelSnapshot = snapshot && sessions.length ? { ...snapshot, sessions } : snapshot;
   const writable = storageWritable(snapshot?.storage);
   const compatible = apiCompatible(snapshot);
 
@@ -413,7 +451,7 @@ export function GlobalSettingsPage({ close, openSession }) {
         <section className="sl-page-card">
           <div className="sl-page-card-head"><div><h2>通信记录</h2></div></div>
           <div className="sl-page-card-body">
-            {snapshot.messages ? <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/> : <p className="sl-empty" role="status">正在读取通信记录…</p>}
+            {snapshot.messages ? <RecordsPanel snapshot={panelSnapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} senderSessionId={senderSessionId} setSenderSessionId={setSenderSessionId} receiverSessionId={receiverSessionId} setReceiverSessionId={setReceiverSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/> : <p className="sl-empty" role="status">正在读取通信记录…</p>}
           </div>
         </section>
       </div>

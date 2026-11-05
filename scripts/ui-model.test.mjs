@@ -352,7 +352,14 @@ test('no budget UI, no manual send form and no hard-coded old capacities', async
   assert.doesNotMatch(source, /<textarea|callApi\('send|action: 'send'/);
   assert.doesNotMatch(source, /\b10000\b/);
   assert.doesNotMatch(source, /50 MiB|16 MiB|20 条|8 跳/);
-  assert.match(source, /技术说明（只读）/);
+  assert.match(source, /<summary>技术说明<\/summary>/);
+  assert.doesNotMatch(source, /技术说明（只读）/);
+  assert.match(source, /发件会话/);
+  assert.match(source, /收件会话/);
+  assert.match(source, /sl-mail-layout/);
+  assert.match(source, /const view = tab === 'records'/);
+  assert.match(source, /sl-settings-grid/);
+  assert.doesNotMatch(source, /放弃草稿/);
   assert.match(source, /migration\.backupAvailable/);
   assert.doesNotMatch(source, /backupPath/);
   assert.match(source, /const TAB_ORDER = \['settings', 'records'\]/);
@@ -392,5 +399,8 @@ test('stylesheet has no retired nav/migration hooks and stays single-column at n
   assert.match(css, /html\[data-ds-dark-theme\] \.sl-section\.sl-page,[\s\S]*?body\[data-ds-dark-theme\] \.sl-section\.sl-page\{[^}]*--sl-paper:#1a1e24/);
   assert.match(css, /@media \(max-width:700px\)/);
   assert.match(css, /flex-direction:column/);
-  assert.doesNotMatch(css, /grid-template-columns:minmax\(280px/);
+  assert.match(css, /grid-template-columns:minmax\(280px,38%\)/);
+  assert.match(css, /@media \(max-width:1000px\)/);
+  assert.match(css, /\.sl-mail-layout\{display:grid/);
+  assert.match(css, /\.sl-settings-grid\{display:grid/);
 });
