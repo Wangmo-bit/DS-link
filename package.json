@@ -3,6 +3,7 @@
   "version": "0.4.0",
   "private": true,
   "description": "让已有 DSH 会话在工作中可靠协作",
+  "icon": "assets/icon.svg",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -21,7 +22,8 @@
     "dist",
     "cordis.patch.yml",
     "THIRD_PARTY_NOTICES.md",
-    "TESTING.md"
+    "TESTING.md",
+    "assets/icon.svg"
   ],
   "scripts": {
     "test": "node --test test/*.test.js scripts/ui-model.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",

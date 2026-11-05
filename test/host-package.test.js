@@ -23,6 +23,7 @@ test('host bundle uses an exact-version entry to avoid rc.5 bare-specifier cache
   assert.ok(patch.includes(`name: '${specifier}'\n`))
   assert.ok(patch.includes(`id: session-link-runtime-${pkg.version.replaceAll('.', '-')}\n`))
   assert.equal((patch.match(/- id:/g) ?? []).length, 1)
+  assert.equal(pkg.icon, 'assets/icon.svg')
 })
 
 test('package excludes internal handoffs and the experimental hot-activation helper', async () => {
@@ -35,6 +36,7 @@ test('package excludes internal handoffs and the experimental hot-activation hel
   const names = packed.files.map(file => file.path)
   assert.ok(names.includes('README.md'))
   assert.ok(names.includes('src/host/entry-0.4.0.js'))
+  assert.ok(names.includes('assets/icon.svg'), 'plugin icon is shipped')
   assert.deepEqual(names.filter(name => /^docs\/[^/]*STATUS[^/]*\.md$/i.test(name)), [])
   assert.ok(!names.includes('scripts/activate-profile-entry.mjs'))
 })
