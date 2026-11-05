@@ -326,7 +326,8 @@ export function GlobalSettingsPage({ close, openSession }) {
       const controller = new AbortController();
       request.current = controller;
       try {
-        const result = await callApi('snapshot', { limit: LIMIT, offset, filter, ...(sessionId ? { sessionId } : {}), ...(chainId ? { chainId } : {}) }, { signal: controller.signal });
+        const view = tab === 'records' ? 'full' : 'settings';
+        const result = await callApi('snapshot', { view, limit: LIMIT, offset, filter, ...(sessionId ? { sessionId } : {}), ...(chainId ? { chainId } : {}) }, { signal: controller.signal });
         if (!stopped && !controller.signal.aborted) { setSnapshot(result); setError(''); failures = 0; }
       } catch (err) {
         if (!stopped && err.name !== 'AbortError') { setError(err.message); failures++; }
@@ -336,7 +337,7 @@ export function GlobalSettingsPage({ close, openSession }) {
     const tick = async () => { if (document.visibilityState !== 'hidden') await load(); if (!stopped) timer = setTimeout(tick, Math.min(30000, 3000 * 2 ** failures)); };
     void tick();
     return () => { stopped = true; alive.current = false; clearTimeout(timer); request.current?.abort(); };
-  }, [filter, sessionId, offset, chainId]);
+  }, [tab, filter, sessionId, offset, chainId]);
 
   const writable = storageWritable(snapshot?.storage);
   const compatible = apiCompatible(snapshot);
@@ -412,7 +413,7 @@ export function GlobalSettingsPage({ close, openSession }) {
         <section className="sl-page-card">
           <div className="sl-page-card-head"><div><h2>通信记录</h2></div></div>
           <div className="sl-page-card-body">
-            <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/>
+            {snapshot.messages ? <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/> : <p className="sl-empty" role="status">正在读取通信记录…</p>}
           </div>
         </section>
       </div>

@@ -222,3 +222,19 @@ test('a settings timeout change never rewrites an already accepted request deadl
     acceptedAt + 48 * 60 * 60 * 1000,
   )
 })
+
+
+test('settings-view snapshot skips session discovery and the message page', async (t) => {
+  const { adapter, engine } = await setup(t)
+  let listCalls = 0
+  const original = adapter.listSessions.bind(adapter)
+  adapter.listSessions = async (...args) => { listCalls += 1; return original(...args) }
+  const light = await engine.snapshot({ view: 'settings' })
+  assert.equal(light.messages, undefined)
+  assert.equal(light.sessions.length, 0)
+  assert.equal(light.total, 0)
+  assert.equal(listCalls, 0)
+  const full = await engine.snapshot({})
+  assert.ok(Array.isArray(full.messages))
+  assert.equal(listCalls, 1)
+})

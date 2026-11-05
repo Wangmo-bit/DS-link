@@ -4034,7 +4034,9 @@ export class SessionLinkEngine {
   /** @param {Record<string, unknown>} [request] */
   async snapshot(request = {}) {
     const object = assertPlainObject(request, 'snapshot request')
-    assertAllowedKeys(object, ['limit', 'offset', 'filter', 'sessionId', 'chainId'], 'snapshot request')
+    assertAllowedKeys(object, ['limit', 'offset', 'filter', 'sessionId', 'chainId', 'view'], 'snapshot request')
+    const view = object.view === undefined ? 'full' : requiredString(object.view, 'view', { max: 16 })
+    if (!['full', 'settings'].includes(view)) throw fail('invalid_argument', `unknown snapshot view ${view}`)
     const limit = boundedInteger(object.limit ?? LIMITS.MAX_PAGE, 'limit', { min: 1, max: LIMITS.MAX_SNAPSHOT_PAGE })
     const offset = boundedInteger(object.offset ?? 0, 'offset', { min: 0 })
     const filter = object.filter === undefined ? 'all' : requiredString(object.filter, 'filter', { max: 32 })
@@ -4049,6 +4051,31 @@ export class SessionLinkEngine {
     }
 
     const state = this.ledger.read()
+    if (view === 'settings') {
+      // Fast path for the settings surface: no session discovery, no message
+      // page, no chain views. This keeps opening the panel cheap even with a
+      // large communication history; the records tab requests the full view.
+      const stats = this.ledger.stats()
+      const queuedBytes = queuedBytesOf(state)
+      return {
+        apiVersion: API_VERSION,
+        version: PLUGIN_VERSION,
+        revision: state.revision,
+        settingsRevision: state.settingsRevision,
+        settings: structuredClone(state.settings),
+        messages: undefined,
+        chains: [],
+        budgetLatches: [],
+        sessions: [],
+        total: state.messages.length,
+        hasMore: false,
+        nextOffset: null,
+        inFlight: this.#attempts.size,
+        storage: this.#storageView(stats, queuedBytes),
+        technicalLimits: this.#technicalLimits(stats),
+        ...(state.migration === undefined ? {} : { migration: publicMigration(state.migration) }),
+      }
+    }
     let messages = state.messages
     if (sessionId !== undefined) {
       messages = messages.filter((message) => message.from === sessionId || message.to === sessionId)
