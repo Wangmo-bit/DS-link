@@ -314,7 +314,11 @@ test('global panel page is the only entry and registers the left sidebar row', a
   assert.match(source, /label: \(\) => translateText\('会话互通'\)/);
   assert.match(source, /name: 'main',/);
   assert.match(source, /key: PANEL/);
-  assert.match(source, /<h2>会话互通<\/h2>/);
+  assert.match(source, /<h1>会话互通<\/h1>/);
+  assert.match(source, /className="sl-section sl-page"/);
+  assert.match(source, /className="sl-card"/);
+  assert.match(source, /className="sl-card-head"/);
+  assert.match(source, /className="sl-card-body"/);
   assert.match(source, /aria-label="会话互通页面"/);
   assert.match(source, /role="tablist"/);
   assert.match(source, /role="tab"/);

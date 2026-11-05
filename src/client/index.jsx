@@ -385,8 +385,12 @@ export function GlobalSettingsPage({ close, openSession }) {
     try { openSession?.(id); } catch (err) { setActionError(err.message); }
   };
 
-  return <section className="sl-section" aria-label="会话互通页面" data-sl-root="" data-session-link-i18n-root="">
-    <h2>会话互通</h2>
+  return <section className="sl-section sl-page" aria-label="会话互通页面" data-sl-root="" data-session-link-i18n-root="">
+    <header className="sl-page-head">
+      <p className="sl-eyebrow">DSH 通信</p>
+      <h1>会话互通</h1>
+      <p className="sl-lead">让已有 DSH 会话在工作中可靠协作；发送、回复和投递证据都在这里。</p>
+    </header>
     {!snapshot && !error && <p className="sl-empty" role="status">正在读取通信记录…</p>}
     {error && <div className="sl-alert" role="alert">{error}<span> · 可刷新重试；失败操作不会显示为成功。</span></div>}
     {snapshot && !compatible && <div className="sl-alert" role="alert">此页面与插件版本不一致（apiVersion {String(snapshot.apiVersion ?? '缺失')}）。请刷新页面；若仍出现，请更新插件后再打开设置。<button type="button" className="sl-button" onClick={() => globalThis.location?.reload()}>刷新页面</button></div>}
@@ -397,11 +401,21 @@ export function GlobalSettingsPage({ close, openSession }) {
       <Banners snapshot={snapshot}/>
       <Tabs value={tab} onChange={setTab}/>
       <div id="sl-panel-settings" role="tabpanel" aria-labelledby="sl-tab-settings" hidden={tab !== 'settings'}>
-        <SettingsForm snapshot={snapshot} writable={writable} busy={busy} save={saveSettings}/>
-        <TechnicalDetails snapshot={snapshot}/>
+        <section className="sl-card">
+          <div className="sl-card-head"><div><h2>设置</h2><p className="sl-card-desc">保存后立即生效。</p></div><span className={`sl-pill ${snapshot.settings?.paused ? 'sl-pill--warn' : 'sl-pill--ok'}`}>{snapshot.settings?.paused ? '已暂停' : '运行中'}</span></div>
+          <div className="sl-card-body">
+            <SettingsForm snapshot={snapshot} writable={writable} busy={busy} save={saveSettings}/>
+            <TechnicalDetails snapshot={snapshot}/>
+          </div>
+        </section>
       </div>
       <div id="sl-panel-records" role="tabpanel" aria-labelledby="sl-tab-records" hidden={tab !== 'records'}>
-        <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/>
+        <section className="sl-card">
+          <div className="sl-card-head"><div><h2>通信记录</h2><p className="sl-card-desc">查看投递、回复和异常证据。</p></div></div>
+          <div className="sl-card-body">
+            <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/>
+          </div>
+        </section>
       </div>
     </>}
   </section>;
