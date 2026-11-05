@@ -134,14 +134,14 @@ test('transfer summaries expose every journal state, including uncertain', () =>
   assert.equal(receiptTransferText(null), '');
 });
 
-test('same-title sessions include workspace and IDs remain authoritative', () => {
+test('same-title sessions include IDs and remain authoritative', () => {
   const sessions = [{ id: 'a', title: '设计师', workspaceTitle: '项目A' }, { sessionId: 'b', title: '设计师', workspaceTitle: '项目B' }];
-  assert.equal(sessionLabel('a', sessions), '项目A / 设计师');
-  assert.equal(sessionLabel('b', sessions), '项目B / 设计师');
+  assert.equal(sessionLabel('a', sessions), '设计师 · #a');
+  assert.equal(sessionLabel('b', sessions), '设计师 · #b');
   assert.equal(sessionLabel('missing', sessions), 'missing');
   const duplicates = [{ id: 'session-11111111-aaaa', title: '设计师', workspaceTitle: '项目A' }, { id: 'session-22222222-bbbb', title: '设计师', workspaceTitle: '项目A' }];
-  assert.equal(sessionLabel(duplicates[0].id, duplicates), '项目A / 设计师 · #11111111');
-  assert.equal(sessionLabel(duplicates[1].id, duplicates), '项目A / 设计师 · #22222222');
+  assert.equal(sessionLabel(duplicates[0].id, duplicates), '设计师 · #11111111');
+  assert.equal(sessionLabel(duplicates[1].id, duplicates), '设计师 · #22222222');
 });
 
 test('message text fallback does not stringify arbitrary objects', () => {
@@ -317,12 +317,14 @@ test('global panel page is the only entry and registers the left sidebar row', a
   assert.match(source, /<h1>会话互通<\/h1>/);
   assert.match(source, /className="sl-section sl-page"/);
   assert.match(source, /className="sl-page-card"/);
-  assert.match(source, /className="sl-page-card-head"/);
+  assert.doesNotMatch(source, /className="sl-page-card-head"/);
   assert.match(source, /className="sl-page-card-body"/);
   assert.match(source, /保存并应用/);
   assert.doesNotMatch(source, /保存后立即生效/);
   assert.match(source, /className="sl-diagnostics"/);
   assert.doesNotMatch(source, /className="sl-page-card-desc"/);
+  assert.match(source, /SessionPicker/);
+  assert.doesNotMatch(source, /<select/);
   assert.match(source, /aria-label="会话互通页面"/);
   assert.match(source, /role="tablist"/);
   assert.match(source, /role="tab"/);
@@ -403,4 +405,5 @@ test('stylesheet has no retired nav/migration hooks and stays single-column at n
   assert.match(css, /@media \(max-width:1000px\)/);
   assert.match(css, /\.sl-mail-layout\{display:grid/);
   assert.match(css, /\.sl-settings-grid\{display:grid/);
+  assert.match(css, /\.sl-slicer__menu\{position:absolute/);
 });

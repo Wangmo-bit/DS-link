@@ -272,6 +272,36 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
   </section>;
 }
 
+function SessionPicker({ label, value, onChange, sessions }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = event => { if (!box.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open]);
+  const current = value ? sessionLabel(value, sessions) : '全部';
+  const options = [{ value: '', label: '全部' }, ...sessions.map(item => {
+    const id = item.sessionId ?? item.id;
+    return { value: id, label: sessionLabel(id, sessions) };
+  })];
+  const choose = next => { onChange(next); setOpen(false); };
+  const keyDown = event => {
+    if (event.key === 'Escape') { setOpen(false); return; }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen(true); }
+  };
+  return <div className="sl-slicer" ref={box}>
+    <span>{label}</span>
+    <button type="button" className="sl-slicer__button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(current => !current)} onKeyDown={keyDown}>
+      <span className="sl-slicer__value">{current}</span><span className="sl-slicer__chevron" aria-hidden="true">⌄</span>
+    </button>
+    {open && <div className="sl-slicer__menu" role="listbox" aria-label={label}>
+      {options.map(option => <button key={option.value || 'all'} type="button" role="option" aria-selected={option.value === value} className={option.value === value ? 'sl-slicer__option is-selected' : 'sl-slicer__option'} onClick={() => choose(option.value)}>{option.label}</button>)}
+    </div>}
+  </div>;
+}
+
 export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setFilter, senderSessionId, setSenderSessionId, receiverSessionId, setReceiverSessionId, offset, setOffset, selected, setSelected, chainId, setChainId }) {
   const messages = snapshot.messages ?? [];
   const sessions = snapshot.sessions ?? [];
@@ -279,9 +309,8 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
   const total = snapshot.total ?? messages.length;
   const reset = () => { setOffset(0); setSelected(null); };
   const chooseFilter = key => { setFilter(key); setChainId(''); reset(); };
-  const chooseSender = event => { setSenderSessionId(event.target.value); setChainId(''); reset(); };
-  const chooseReceiver = event => { setReceiverSessionId(event.target.value); setChainId(''); reset(); };
-  const sessionOptions = sessions.map(item => { const id = item.sessionId ?? item.id; return <option key={id} value={id} data-i18n-skip="">{sessionLabel(id, sessions)}</option>; });
+  const chooseSender = next => { setSenderSessionId(next); setChainId(''); reset(); };
+  const chooseReceiver = next => { setReceiverSessionId(next); setChainId(''); reset(); };
   return <div className="sl-records">
     {chainId && <div className="sl-note sl-actions"><span>当前关联消息：<code>{chainId}</code></span><Action busy={busy} onClick={() => { setFilter('all'); setChainId(''); setOffset(0); setSelected(null); }}>退出关联筛选</Action></div>}
     <div className="sl-mail-layout">
@@ -291,8 +320,8 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
             {FILTERS.map(([key, label]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => chooseFilter(key)}>{label}</button>)}
           </div>
           <div className="sl-slicers">
-            <label className="sl-slicer">发件会话<select value={senderSessionId} onChange={chooseSender}><option value="">全部</option>{sessionOptions}</select></label>
-            <label className="sl-slicer">收件会话<select value={receiverSessionId} onChange={chooseReceiver}><option value="">全部</option>{sessionOptions}</select></label>
+            <SessionPicker label="发件会话" value={senderSessionId} onChange={next => chooseSender(next)} sessions={sessions}/>
+            <SessionPicker label="收件会话" value={receiverSessionId} onChange={next => chooseReceiver(next)} sessions={sessions}/>
           </div>
         </div>
         <section className="sl-list" aria-label="通信记录列表">
@@ -441,7 +470,6 @@ export function GlobalSettingsPage({ close, openSession }) {
       <Tabs value={tab} onChange={setTab}/>
       <div id="sl-panel-settings" role="tabpanel" aria-labelledby="sl-tab-settings" hidden={tab !== 'settings'}>
         <section className="sl-page-card">
-          <div className="sl-page-card-head"><div><h2>设置</h2></div><span className={`sl-page-pill ${snapshot.settings?.paused ? 'sl-page-pill--warn' : 'sl-page-pill--ok'}`}>{snapshot.settings?.paused ? '已暂停' : '运行中'}</span></div>
           <div className="sl-page-card-body">
             <SettingsForm snapshot={snapshot} writable={writable} busy={busy} save={saveSettings}/>
           </div>
@@ -449,7 +477,6 @@ export function GlobalSettingsPage({ close, openSession }) {
       </div>
       <div id="sl-panel-records" role="tabpanel" aria-labelledby="sl-tab-records" hidden={tab !== 'records'}>
         <section className="sl-page-card">
-          <div className="sl-page-card-head"><div><h2>通信记录</h2></div></div>
           <div className="sl-page-card-body">
             {snapshot.messages ? <RecordsPanel snapshot={panelSnapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} senderSessionId={senderSessionId} setSenderSessionId={setSenderSessionId} receiverSessionId={receiverSessionId} setReceiverSessionId={setReceiverSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/> : <p className="sl-empty" role="status">正在读取通信记录…</p>}
           </div>

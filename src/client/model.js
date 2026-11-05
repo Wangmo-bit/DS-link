@@ -322,7 +322,7 @@ const sessionIndexes = new WeakMap();
 export function sessionLabel(id, sessions, fallback) {
   let labels = sessionIndexes.get(sessions);
   if (!labels) {
-    const base = item => `${item.workspaceTitle ?? item.workspace?.title ?? item.workspaceId ?? '工作区'} / ${item.title ?? item.sessionTitle ?? item.sessionId ?? item.id}`;
+    const base = item => item.title ?? item.sessionTitle ?? item.sessionId ?? item.id;
     const counts = new Map();
     for (const item of sessions) counts.set(base(item), (counts.get(base(item)) ?? 0) + 1);
     labels = new Map();
