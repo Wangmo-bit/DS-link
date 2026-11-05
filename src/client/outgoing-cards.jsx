@@ -40,6 +40,7 @@ import { createWindowScope } from './outgoing-window-scope.mjs';
 import { createCardVerifier } from './outgoing-card-verify.mjs';
 import { createOutgoingCoordinator } from './outgoing-coordinator.mjs';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
+import { ExchangeLink } from './chat-ui.jsx';
 
 /** Strict tool set — anything else (status/control/list/…) stays native. */
 export const TOOL_KEYS = Object.freeze(['session_link_send', 'session_link_reply', 'session_link_create', 'session_link_operation']);
@@ -187,18 +188,18 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
  * technical details, and triggers one batched status refresh for its ids.
  */
 export function createSenderCardView({ onRefresh } = {}) {
-  return function SenderCardView({ node, inspectCall } = {}) {
+  return function SenderCardView({ node } = {}) {
     const data = node?.data;
-    const [open, setOpen] = React.useState(false);
-    return (
-      <SenderCardLayout
-        data={data}
-        open={open}
-        onToggle={() => setOpen((previous) => previous !== true)}
-        onRefresh={onRefresh}
-        inspectCall={inspectCall}
-      />
-    );
+    if (!data) return null;
+    const targets = Array.isArray(data.to) ? data.to : [];
+    const names = Array.isArray(data.toDisplay) ? data.toDisplay : [];
+    return <div className="sl-chat-event" data-session-link-card={data.callId} data-session-link-i18n-root="" data-session-link-direction="sent">
+      {targets.map((target, index) => <ExchangeLink key={target} selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'}>
+        已发消息给 {names[index] || '目标会话'}
+      </ExchangeLink>)}
+      <span className="sl-chat-event-status" title={data.statusStale ? '最近刷新失败，显示上次核对结果' : undefined}>{data.statusStale ? '状态未更新' : data.status}</span>
+      <button type="button" className="sl-chat-copy" aria-label="刷新投递状态" onClick={() => onRefresh?.({ sessionId: data.from, ids: data.evidence?.messageIds ?? [] })}>↻</button>
+    </div>;
   };
 }
 

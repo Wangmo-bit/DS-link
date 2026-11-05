@@ -39,13 +39,14 @@ async function loadOutgoingCards() {
     format: 'cjs',
     platform: 'browser',
     target: 'es2022',
-    external: ['react', 'react-dom'],
+    external: ['react', 'react-dom', '@deepseek-ai/*'],
     logLevel: 'silent',
   });
   const code = result.outputFiles[0].text;
   const module = { exports: {} };
   const req = (name) => {
     if (name === 'react' || name === 'react-dom' || name === 'react/jsx-runtime') return repoReq(name);
+    if (name === '@deepseek-ai/dsh-client-ui-primitives') return { MarkdownText: () => null };
     throw new Error(`unexpected require: ${name}`);
   };
   new Function('require', 'module', 'exports', code)(req, module, module.exports);

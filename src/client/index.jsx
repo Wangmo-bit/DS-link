@@ -35,7 +35,8 @@ import css from './style.css';
 import { CARD_CSS, BUBBLE_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
-import { installChatSkin } from './chat-skin.js';
+import { installChatSkin } from './chat-skin.jsx';
+import { MessageBubble, CopyMessage, ExchangeLink } from './chat-ui.jsx';
 import { installI18n, translateText } from './i18n.js';
 
 export const name = '@wangmo/dsh-session-link';
@@ -229,15 +230,13 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, thr
   return <section className="sl-detail" aria-label="消息详情">
     <div className="sl-thread-head">
       <h3>{fromLabel} <span aria-hidden="true">→</span> {toLabel}</h3>
+      <ExchangeLink selfId={message.from} peerId={message.to} selfName={fromLabel} peerName={toLabel}>查看双方往返</ExchangeLink>
       <span className={`sl-status sl-${status}`}>{messageState(message)}</span>
     </div>
     <div className="sl-thread" aria-label="完整往返">
-      {messages.map(item => <article className={item.id === message.id ? 'sl-thread-msg is-current' : 'sl-thread-msg'} key={item.id}>
-        <div className="sl-thread-author">{sessionLabel(item.from, sessions, item.fromTitle)}</div>
-        <div className="sl-thread-bubble" data-i18n-skip="">{textOf(item) || '正文已清理，或此记录无正文。'}</div>
-        <div className="sl-thread-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time></div>
-        {item.error && <p className="sl-alert" role="status" data-i18n-skip="">{typeof item.error === 'string' ? item.error : `${item.error.code}：${item.error.message}`}</p>}
-      </article>)}
+      {messages.map(item => <MessageBubble key={item.id} selected={item.id === message.id} author={sessionLabel(item.from, sessions, item.fromTitle)} direction={item.from === message.from ? 'sent' : 'received'} text={textOf(item) || '正文已清理，或此记录无正文。'} time={item.createdAt} status={messageState(item)} actions={<CopyMessage text={textOf(item)}/>}>
+        {item.error && <p className="sl-chat-error" role="status" data-i18n-skip="">{typeof item.error === 'string' ? item.error : `${item.error.code}：${item.error.message}`}</p>}
+      </MessageBubble>)}
     </div>
     {status === 'unknown' && <p className="sl-note">消息可能已执行，但尚无可靠确认。不要直接重发；先核对目标会话。人工结案不等于证明未投递。</p>}
     {hint && <p className="sl-note">{hint}</p>}
@@ -547,9 +546,10 @@ export function apply(ctx) {
   }, LinkIcon));
   try {
     installChatSkin(ctx);
-  } catch {
-    // A visual skin failure must not take messaging down.
-    console.warn('[session-link] Chat skin unavailable; native chat remains.');
+  } catch (error) {
+    // A visual skin failure must not take messaging down; keep the cause in
+    // the developer console rather than silently hiding an assembly failure.
+    console.warn('[session-link] Chat skin unavailable; native chat remains.', error);
   }
   try {
     installIncomingCards(ctx);

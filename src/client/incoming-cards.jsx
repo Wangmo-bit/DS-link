@@ -71,9 +71,10 @@
  *     identity always falls back native. Never claims 已读/已处理/完成.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
+import { MessageBubble, ExchangeLink, CopyMessage } from './chat-ui.jsx';
 
 const KIND = 'session-link-card';
 const SCAN_DEBOUNCE_MS = 200;
@@ -398,11 +399,11 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
  * aborted on collapse/unmount; the pure layout above owns the shared shell.
  * @param {{ fetchCardBody: ReturnType<typeof createBodyFetcher>, onFreshRow?: (row: Record<string, any>) => void }} deps
  */
-function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
+export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
   /** @param {{ node?: { data?: Record<string, any> } }} props */
   function SessionLinkCardView({ node }) {
-    const [open, setOpen] = useState(false);
     const [body, setBody] = useState(null);
+    const [retry, setRetry] = useState(0);
     const data = node?.data ?? {};
     const durableId = typeof data.durableMessageId === 'string' ? data.durableMessageId : '';
     const sessionId = typeof data.row?.to === 'string' ? data.row.to : '';
@@ -412,13 +413,15 @@ function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     // ledger facts re-checked). A same host id in another session/fork has
     // its own closure — no shared key to collide or overwrite.
     const isWindowCurrent = typeof data.isWindowCurrent === 'function' ? data.isWindowCurrent : null;
+    const windowProof = useRef(isWindowCurrent);
+    windowProof.current = isWindowCurrent;
 
-    // Fetch only on expand; abort on collapse/unmount/id change. Validate
-    // before the request and again after the response arrives (window/fork
-    // state may have changed in flight).
+    // Fetch once per mounted identity/retry, not per rebuilt node closure.
+    // A live turn rebuilds nodes frequently. Always use the latest proof for
+    // scope checks without aborting/re-fetching on every durable event.
     useEffect(() => {
-      if (!open || body !== null || durableId === '' || sessionId === '') return undefined;
-      if (typeof isWindowCurrent !== 'function' || !isWindowCurrent()) {
+      if (durableId === '' || sessionId === '') return undefined;
+      if (typeof windowProof.current !== 'function' || !windowProof.current()) {
         setBody({ phase: 'unavailable', reason: '事件已不在当前会话窗口' });
         return undefined;
       }
@@ -427,13 +430,13 @@ function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
       fetchCardBody({ sessionId, durableId, senderSessionId, signal: controller.signal })
         .then((result) => {
           if (cancelled) return;
-          if (result.phase === 'available' && !isWindowCurrent()) {
+          if (result.phase === 'available' && !windowProof.current?.()) {
             setBody({ phase: 'unavailable', reason: '事件已不在当前会话窗口' });
             return;
           }
           // Identity-confirmed expand response doubles as a status refresh.
           if (result.row && typeof onFreshRow === 'function') onFreshRow(result.row);
-          setBody(result);
+          setBody({ ...result, identity: `${sessionId}\n${durableId}\n${senderSessionId}` });
         })
         .catch((error) => {
           if (cancelled || controller.signal.aborted) return;
@@ -443,20 +446,19 @@ function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
         cancelled = true;
         controller.abort();
       };
-    }, [open, body, durableId, sessionId, senderSessionId, isWindowCurrent]);
+    }, [durableId, sessionId, senderSessionId, retry]);
 
-    return (
-      <SessionLinkCardLayout
-        data={data}
-        open={open}
-        body={body}
-        onToggle={() => {
-          if (open) setBody(null); // drop in-flight/cached body; next expand refetches
-          setOpen(!open);
-        }}
-        onRetry={() => setBody(null)}
-      />
-    );
+    const from = data.fromDisplay || '发送会话';
+    const to = data.toDisplay || '当前会话';
+    const available = body?.phase === 'available' && body.identity === `${sessionId}\n${durableId}\n${senderSessionId}` && windowProof.current?.() === true;
+    return <div data-session-link-card="" data-session-link-i18n-root="" data-session-link-direction="received">
+      <div className="sl-chat-event"><ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from}>收到消息，来自 {from}</ExchangeLink></div>
+      <MessageBubble author={from} text={available ? body.body : undefined} time={data.row?.createdAt} status={statusDisplay(body?.row ?? data.row, data.statusAsOf, data.statusStale === true).label} actions={available ? <CopyMessage text={body.body}/> : undefined}>
+        {!body && <p className="sl-chat-notice" role="status">正在读取消息…</p>}
+        {body?.phase === 'error' && <p className="sl-chat-error" role="alert">消息读取失败。<button type="button" onClick={() => { setBody(null); setRetry(value => value + 1); }}>重试</button></p>}
+        {body && !available && body.phase !== 'error' && <p className="sl-chat-notice">{body.phase === 'redacted' ? '消息正文已清理。' : '消息暂不可用，请在往返记录中核对。'}</p>}
+      </MessageBubble>
+    </div>;
   }
   return SessionLinkCardView;
 }

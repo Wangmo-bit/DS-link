@@ -36,12 +36,13 @@ async function loadIncoming() {
     format: 'cjs',
     platform: 'browser',
     target: 'es2022',
-    external: ['react', 'react-dom'],
+    external: ['react', 'react-dom', '@deepseek-ai/*'],
     logLevel: 'silent',
   });
   const module = { exports: {} };
   const req = (name) => {
     if (name === 'react' || name === 'react-dom' || name === 'react/jsx-runtime') return repoReq(name);
+    if (name === '@deepseek-ai/dsh-client-ui-primitives') return { MarkdownText: () => null };
     throw new Error(`unexpected require: ${name}`);
   };
   new Function('require', 'module', 'exports', result.outputFiles[0].text)(req, module, module.exports);

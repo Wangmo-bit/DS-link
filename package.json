@@ -26,7 +26,7 @@
     "assets/icon.svg"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js scripts/ui-model.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",
+    "test": "node --test test/*.test.js scripts/ui-model.test.mjs scripts/ui-chat-skin-model.test.mjs scripts/ui-chat-skin.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-incoming-body.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",
     "build": "node scripts/build.mjs",
     "check": "npm run build && npm test",
     "prepack": "node scripts/build.mjs"
@@ -45,6 +45,7 @@
         "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-primitives",
         "@deepseek-ai/dsh-client-ui-tool",
         "@deepseek-ai/dsh-client-locale"
       ]

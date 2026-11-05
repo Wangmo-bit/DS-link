@@ -24,7 +24,7 @@ async function loadClient() {
     logLevel: 'silent',
   });
   const module = { exports: {} };
-  const localRequire = name => requireFromRepo(name);
+  const localRequire = name => name === '@deepseek-ai/dsh-client-ui-primitives' ? { MarkdownText: () => null } : requireFromRepo(name);
   new Function('require', 'module', 'exports', result.outputFiles[0].text)(localRequire, module, module.exports);
   return module.exports;
 }
