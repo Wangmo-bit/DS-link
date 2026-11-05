@@ -15,7 +15,7 @@ export const CHAT_SKIN_CSS = `
   width: fit-content;
   max-width: min(82%, 900px);
   margin: 8px 0 10px;
-  padding: 23px 14px 12px;
+  padding: 45px 14px 12px;
   border: 0;
   border-radius: 16px;
   background: transparent;
@@ -25,7 +25,7 @@ export const CHAT_SKIN_CSS = `
   content: "";
   position: absolute;
   z-index: -1;
-  top: 22px;
+  top: 44px;
   right: 0;
   bottom: 0;
   left: 0;
@@ -36,9 +36,9 @@ export const CHAT_SKIN_CSS = `
 .wm-chat-row::before {
   content: attr(data-wm-author);
   display: block;
-  margin: 0 1px 5px;
+  margin: 0 1px 7px;
   color: color-mix(in srgb, currentColor 68%, transparent);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.35;
   font-weight: 600;
   letter-spacing: .01em;
