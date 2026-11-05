@@ -401,17 +401,17 @@ export function GlobalSettingsPage({ close, openSession }) {
       <Banners snapshot={snapshot}/>
       <Tabs value={tab} onChange={setTab}/>
       <div id="sl-panel-settings" role="tabpanel" aria-labelledby="sl-tab-settings" hidden={tab !== 'settings'}>
-        <section className="sl-card">
-          <div className="sl-card-head"><div><h2>设置</h2></div><span className={`sl-pill ${snapshot.settings?.paused ? 'sl-pill--warn' : 'sl-pill--ok'}`}>{snapshot.settings?.paused ? '已暂停' : '运行中'}</span></div>
-          <div className="sl-card-body">
+        <section className="sl-page-card">
+          <div className="sl-page-card-head"><div><h2>设置</h2></div><span className={`sl-page-pill ${snapshot.settings?.paused ? 'sl-page-pill--warn' : 'sl-page-pill--ok'}`}>{snapshot.settings?.paused ? '已暂停' : '运行中'}</span></div>
+          <div className="sl-page-card-body">
             <SettingsForm snapshot={snapshot} writable={writable} busy={busy} save={saveSettings}/>
           </div>
         </section>
       </div>
       <div id="sl-panel-records" role="tabpanel" aria-labelledby="sl-tab-records" hidden={tab !== 'records'}>
-        <section className="sl-card">
-          <div className="sl-card-head"><div><h2>通信记录</h2></div></div>
-          <div className="sl-card-body">
+        <section className="sl-page-card">
+          <div className="sl-page-card-head"><div><h2>通信记录</h2></div></div>
+          <div className="sl-page-card-body">
             <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/>
           </div>
         </section>

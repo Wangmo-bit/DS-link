@@ -316,13 +316,13 @@ test('global panel page is the only entry and registers the left sidebar row', a
   assert.match(source, /key: PANEL/);
   assert.match(source, /<h1>会话互通<\/h1>/);
   assert.match(source, /className="sl-section sl-page"/);
-  assert.match(source, /className="sl-card"/);
-  assert.match(source, /className="sl-card-head"/);
-  assert.match(source, /className="sl-card-body"/);
+  assert.match(source, /className="sl-page-card"/);
+  assert.match(source, /className="sl-page-card-head"/);
+  assert.match(source, /className="sl-page-card-body"/);
   assert.match(source, /保存并应用/);
   assert.doesNotMatch(source, /保存后立即生效/);
   assert.match(source, /className="sl-diagnostics"/);
-  assert.doesNotMatch(source, /className="sl-card-desc"/);
+  assert.doesNotMatch(source, /className="sl-page-card-desc"/);
   assert.match(source, /aria-label="会话互通页面"/);
   assert.match(source, /role="tablist"/);
   assert.match(source, /role="tab"/);
