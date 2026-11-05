@@ -4036,7 +4036,7 @@ export class SessionLinkEngine {
     const object = assertPlainObject(request, 'snapshot request')
     assertAllowedKeys(object, ['limit', 'offset', 'filter', 'sessionId', 'chainId', 'view', 'senderSessionId', 'receiverSessionId'], 'snapshot request')
     const view = object.view === undefined ? 'full' : requiredString(object.view, 'view', { max: 16 })
-    if (!['full', 'settings', 'records', 'sessions'].includes(view)) throw fail('invalid_argument', `unknown snapshot view ${view}`)
+    if (!['full', 'settings', 'records', 'sessions', 'thread'].includes(view)) throw fail('invalid_argument', `unknown snapshot view ${view}`)
     const limit = boundedInteger(object.limit ?? LIMITS.MAX_PAGE, 'limit', { min: 1, max: LIMITS.MAX_SNAPSHOT_PAGE })
     const offset = boundedInteger(object.offset ?? 0, 'offset', { min: 0 })
     const filter = object.filter === undefined ? 'all' : requiredString(object.filter, 'filter', { max: 32 })
@@ -4070,6 +4070,34 @@ export class SessionLinkEngine {
         budgetLatches: [],
         sessions: [],
         total: state.messages.length,
+        hasMore: false,
+        nextOffset: null,
+        inFlight: this.#attempts.size,
+        storage: this.#storageView(stats, queuedBytes),
+        technicalLimits: this.#technicalLimits(stats),
+        ...(state.migration === undefined ? {} : { migration: publicMigration(state.migration) }),
+      }
+    }
+    if (view === 'thread') {
+      if (chainId === undefined) throw fail('invalid_argument', 'thread view requires chainId')
+      const thread = state.messages
+        .filter((message) => message.chainId === chainId)
+        .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+        .map((message) => this.#messageView(state, message, undefined))
+      const chainIds = new Set([chainId])
+      const stats = this.ledger.stats()
+      const queuedBytes = queuedBytesOf(state)
+      return {
+        apiVersion: API_VERSION,
+        version: PLUGIN_VERSION,
+        revision: state.revision,
+        settingsRevision: state.settingsRevision,
+        settings: structuredClone(state.settings),
+        messages: thread,
+        chains: this.#chainViewsFor(state, chainIds),
+        budgetLatches: [],
+        sessions: [],
+        total: thread.length,
         hasMore: false,
         nextOffset: null,
         inFlight: this.#attempts.size,

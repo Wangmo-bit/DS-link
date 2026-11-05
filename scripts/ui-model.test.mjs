@@ -371,10 +371,10 @@ test('no budget UI, no manual send form and no hard-coded old capacities', async
 
 test('records detail keeps truthful receipt wording and bounded polling', async () => {
   const source = await readFile(new URL('../src/client/index.jsx', import.meta.url), 'utf8');
-  assert.match(source, /查看关联消息/);
-  assert.match(source, /暂停这组通信/);
-  assert.match(source, /恢复这组通信/);
-  assert.match(source, /结束这组通信/);
+  assert.doesNotMatch(source, /暂停这组通信|恢复这组通信|结束这组通信/);
+  assert.match(source, /sl-thread/);
+  assert.match(source, /<summary>投递详情<\/summary>/);
+  assert.match(source, /view: 'thread'/);
   assert.match(source, /不代表已读或已处理/);
   assert.match(source, /receiptStateText\(message\)/);
   assert.match(source, /requestDeadlineVisible\(message\)/);

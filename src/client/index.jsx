@@ -32,7 +32,7 @@ import {
   textOf,
 } from './model.js';
 import css from './style.css';
-import { CARD_CSS } from './card-shell.mjs';
+import { CARD_CSS, BUBBLE_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
 import { installI18n, translateText } from './i18n.js';
@@ -210,12 +210,12 @@ function TechnicalDetails({ snapshot }) {
   </details>;
 }
 
-export function RecordDetail({ message, snapshot, busy, writable, act, open, selectChain }) {
+export function RecordDetail({ message, snapshot, busy, writable, act, open, thread }) {
   const status = statusOf(message);
   const sessions = snapshot.sessions ?? [];
   const chain = (snapshot.chains ?? []).find(item => item.id === message.chainId);
   const chainState = chain?.state ?? message.chainState;
-  const related = (snapshot.messages ?? []).filter(item => item.id !== message.id && (item.replyTo === message.id || item.id === message.replyTo));
+  const messages = thread?.length ? thread : [message];
   const blocked = busy || !writable;
   const hint = heldHint(message, chainState);
   const receipt = receiptOf(message);
@@ -223,35 +223,45 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
   const transferText = receiptTransferText(receipt?.transfer);
   const deadlineVisible = requestDeadlineVisible(message);
   const legacyTiming = receiptLegacyHint(message);
+  const fromLabel = sessionLabel(message.from, sessions, message.fromTitle);
+  const toLabel = sessionLabel(message.to, sessions, message.toTitle);
   return <section className="sl-detail" aria-label="消息详情">
-    <div className="sl-section-head"><h3>消息 #{short(message.id)}</h3><span className={`sl-status sl-${status}`}>{messageState(message)}</span></div>
-    <dl className="sl-meta">
-      <dt>来源</dt><dd><button type="button" className="sl-text-button" data-i18n-skip="" onClick={() => open(message.from)}>{sessionLabel(message.from, sessions, message.fromTitle)}</button></dd>
-      <dt>目标</dt><dd><button type="button" className="sl-text-button" data-i18n-skip="" onClick={() => open(message.to)}>{sessionLabel(message.to, sessions, message.toTitle)}</button></dd>
-      <dt>创建</dt><dd>{date(message.createdAt)}</dd>
-      <dt>宿主接收</dt><dd>{date(message.acceptedAt)}</dd>
-      {receipt && receipt.receivedAt != null && <><dt>接收时间</dt><dd>{date(receipt.receivedAt)}{Number.isSafeInteger(receipt.receivedSeq) && <> · seq {receipt.receivedSeq}</>}</dd></>}
-      {receipt && receiptText && <><dt>接收状态</dt><dd>{receiptText}</dd></>}
-      {receipt?.transfer && <><dt>转移</dt><dd>{transferText} · {date(receipt.transfer.at)}</dd></>}
-      {deadlineVisible && <><dt>等待期限</dt><dd>{date(message.deadlineAt)}</dd></>}
-      <dt>类型</dt><dd>{KIND[message.kind] ?? message.kind}</dd>
-      <dt>关联消息</dt><dd><button type="button" className="sl-text-button" onClick={() => selectChain(message.chainId)}>查看关联消息</button> · {chainStateText(chainState)} · {chain?.messageCount ?? '—'} 条</dd>
-      <dt>持久身份</dt><dd><code data-i18n-skip="">{message.durableMessageId ?? ''}</code>{!message.durableMessageId && <span className="sl-muted">尚未创建宿主消息</span>}</dd>
-    </dl>
-    {message.error && <p className="sl-alert" role="status" data-i18n-skip="">{typeof message.error === 'string' ? message.error : `${message.error.code}：${message.error.message}`}</p>}
+    <div className="sl-thread-head">
+      <h3>{fromLabel} <span aria-hidden="true">→</span> {toLabel}</h3>
+      <span className={`sl-status sl-${status}`}>{messageState(message)}</span>
+    </div>
+    <div className="sl-thread" aria-label="完整往返">
+      {messages.map(item => <article className={item.id === message.id ? 'sl-thread-msg is-current' : 'sl-thread-msg'} key={item.id}>
+        <div className="sl-thread-author">{sessionLabel(item.from, sessions, item.fromTitle)}</div>
+        <div className="sl-thread-bubble" data-i18n-skip="">{textOf(item) || '正文已清理，或此记录无正文。'}</div>
+        <div className="sl-thread-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time></div>
+        {item.error && <p className="sl-alert" role="status" data-i18n-skip="">{typeof item.error === 'string' ? item.error : `${item.error.code}：${item.error.message}`}</p>}
+      </article>)}
+    </div>
     {status === 'unknown' && <p className="sl-note">消息可能已执行，但尚无可靠确认。不要直接重发；先核对目标会话。人工结案不等于证明未投递。</p>}
     {hint && <p className="sl-note">{hint}</p>}
-    {receipt?.state === 'received' && <p className="sl-note">“已进入上下文”只表示目标会话已接收这条消息，不代表已读或已处理，也不代表请求已发给模型。</p>}
     {receipt?.state === 'queued' && <p className="sl-note">“已送达 · 待接收”表示宿主已接收并排队，尚未确认进入目标会话上下文；不是已读。</p>}
     {receipt?.state === 'uncertain' && receipt.policy !== 'legacy-accepted' && <p className="sl-note">接收需核对：尚无可靠的上下文接收证据；不会自动重发，请核对目标会话。</p>}
     {receipt?.transfer?.state === 'uncertain' && <p className="sl-alert" role="status">转移需核对：原消息可能已经移动但无法确认；保留原记录，不自动重发，请核对目标会话的待处理输入。</p>}
     {legacyTiming && <p className="sl-note">旧计时规则：这条旧记录沿用 0.2 的期限与超时结果，接收证据只作辅助，不重算。</p>}
-    {status === 'accepted' && !receipt && <p className="sl-note">“已投递”只表示宿主接收，不代表已读或已处理；超时不撤销任务。</p>}
     {chainState === 'paused' && <p className="sl-note">这组通信已暂停；恢复后继续投递尚未开始的消息，已开始的工作不受影响。</p>}
     {chainState === 'closed' && <p className="sl-note">这组通信已结束；未投递的消息已取消，已开始的工作不受影响。</p>}
     {!writable && <p className="sl-alert" role="status">存储异常：记录只读，控制操作已禁用。</p>}
-    <pre className="sl-message-body" data-i18n-skip="">{textOf(message) || ''}</pre>
-    {!textOf(message) && <p className="sl-muted">正文已按保留期限清理，或此记录无正文。</p>}
+    <details className="sl-delivery">
+      <summary>投递详情</summary>
+      <dl className="sl-meta">
+        <dt>创建</dt><dd>{date(message.createdAt)}</dd>
+        <dt>宿主接收</dt><dd>{date(message.acceptedAt)}</dd>
+        {receipt && receipt.receivedAt != null && <><dt>接收时间</dt><dd>{date(receipt.receivedAt)}{Number.isSafeInteger(receipt.receivedSeq) && <> · seq {receipt.receivedSeq}</>}</dd></>}
+        {receipt && receiptText && <><dt>接收状态</dt><dd>{receiptText}</dd></>}
+        {receipt?.transfer && <><dt>转移</dt><dd>{transferText} · {date(receipt.transfer.at)}</dd></>}
+        {deadlineVisible && <><dt>等待期限</dt><dd>{date(message.deadlineAt)}</dd></>}
+        <dt>类型</dt><dd>{KIND[message.kind] ?? message.kind}</dd>
+        <dt>关联消息</dt><dd>{messages.length} 条往返记录</dd>
+        <dt>持久身份</dt><dd><code data-i18n-skip="">{message.durableMessageId ?? ''}</code>{!message.durableMessageId && <span className="sl-muted">尚未创建宿主消息</span>}</dd>
+      </dl>
+      <p className="sl-tech-line">“已进入上下文”只表示目标会话已接收这条消息，不代表已读或已处理，也不代表请求已发给模型。</p>
+    </details>
     {!!message.paths?.length && <div><h3>引用的本机路径</h3><ul>{message.paths.map((path, index) => <li key={index} data-i18n-skip=""><code>{path}</code></li>)}</ul><p className="sl-muted">只传路径，不搬运文件；工作目录和权限仍各自独立。</p></div>}
     {!!message.references?.length && <div><h3>历史引用</h3>{message.references.map((ref, index) => <blockquote key={index} data-i18n-skip=""><button type="button" className="sl-text-button" onClick={() => open(ref.sessionId)}>{ref.sessionId} · seq {ref.seq}</button><pre>{ref.text}</pre></blockquote>)}</div>}
     <div className="sl-actions">
@@ -262,44 +272,8 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, sel
         <Action busy={blocked} onClick={() => { if (confirm('只有你已查实目标接收时才确认。此操作不会重发，且会记录人工确认。')) act('resolve_unknown', message.id, { resolution: 'accepted' }); }}>人工确认已接收</Action>
         <Action busy={blocked} onClick={() => { if (confirm('结案为未确认；不代表未执行，也不会重发。')) act('resolve_unknown', message.id, { resolution: 'closed' }); }}>结束此记录为未确认</Action>
       </>}
-      {chain && chain.state === 'open' && <Action busy={blocked} onClick={() => act('pause', chain.id)}>暂停这组通信</Action>}
-      {chain && chain.state === 'paused' && <Action busy={blocked} onClick={() => act('resume', chain.id)}>恢复这组通信</Action>}
-      {chain && chain.state !== 'closed' && <Action busy={blocked} danger onClick={() => { if (confirm('结束这组通信会取消尚未投递的消息；不会撤销已开始的工作。')) act('close', chain.id); }}>结束这组通信</Action>}
     </div>
-    <h3>关联回复（当前加载页）</h3>
-    {related.length ? related.map(item => <article className="sl-related" key={item.id}><div>#{short(item.id)} · {messageState(item)}</div><pre data-i18n-skip="">{textOf(item)}</pre></article>) : <p className="sl-muted">当前页暂无关联记录。可通过关联消息筛选继续查询。</p>}
-    <p className="sl-note">“已送达 · 待接收”“已进入上下文”都不是“已读”。超时不撤销任务；停止/归档目标可能影响其待处理输入。</p>
   </section>;
-}
-
-function SessionPicker({ label, value, onChange, sessions }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const close = event => { if (!box.current?.contains(event.target)) setOpen(false); };
-    document.addEventListener('pointerdown', close);
-    return () => document.removeEventListener('pointerdown', close);
-  }, [open]);
-  const current = value ? sessionLabel(value, sessions) : '全部';
-  const options = [{ value: '', label: '全部' }, ...sessions.map(item => {
-    const id = item.sessionId ?? item.id;
-    return { value: id, label: sessionLabel(id, sessions) };
-  })];
-  const choose = next => { onChange(next); setOpen(false); };
-  const keyDown = event => {
-    if (event.key === 'Escape') { setOpen(false); return; }
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen(true); }
-  };
-  return <div className="sl-slicer" ref={box}>
-    <span>{label}</span>
-    <button type="button" className="sl-slicer__button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(current => !current)} onKeyDown={keyDown}>
-      <span className="sl-slicer__value">{current}</span><span className="sl-slicer__chevron" aria-hidden="true">⌄</span>
-    </button>
-    {open && <div className="sl-slicer__menu" role="listbox" aria-label={label}>
-      {options.map(option => <button key={option.value || 'all'} type="button" role="option" aria-selected={option.value === value} className={option.value === value ? 'sl-slicer__option is-selected' : 'sl-slicer__option'} onClick={() => choose(option.value)}>{option.label}</button>)}
-    </div>}
-  </div>;
 }
 
 export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setFilter, senderSessionId, setSenderSessionId, receiverSessionId, setReceiverSessionId, offset, setOffset, selected, setSelected, chainId, setChainId }) {
@@ -307,6 +281,17 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
   const sessions = snapshot.sessions ?? [];
   const message = messages.find(item => item.id === selected);
   const total = snapshot.total ?? messages.length;
+  const [thread, setThread] = useState(null);
+  useEffect(() => {
+    if (!message?.chainId) { setThread(null); return undefined; }
+    const controller = new AbortController();
+    let alive = true;
+    setThread(null);
+    callApi('snapshot', { view: 'thread', chainId: message.chainId }, { signal: controller.signal })
+      .then(result => { if (alive) setThread(result.messages ?? []); })
+      .catch(error => { if (alive && error.name !== 'AbortError') setThread(null); });
+    return () => { alive = false; controller.abort(); };
+  }, [selected, message?.chainId]);
   const reset = () => { setOffset(0); setSelected(null); };
   const chooseFilter = key => { setFilter(key); setChainId(''); reset(); };
   const chooseSender = next => { setSenderSessionId(next); setChainId(''); reset(); };
@@ -334,7 +319,7 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
         <div className="sl-pagination"><Action busy={busy || offset === 0} onClick={() => { setOffset(Math.max(0, offset - LIMIT)); setSelected(null); }}>上一页</Action><span>{total} 条 · 第 {Math.floor(offset / LIMIT) + 1} 页</span><Action busy={busy || offset + LIMIT >= total} onClick={() => { setOffset(offset + LIMIT); setSelected(null); }}>下一页</Action></div>
       </aside>
       <section className="sl-mail-detail" aria-label="通信记录详情">
-        {message ? <RecordDetail message={message} snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} selectChain={id => { setFilter('chain'); setChainId(id); setSenderSessionId(''); setReceiverSessionId(''); setOffset(0); setSelected(null); }}/> : <p className="sl-mail-empty">从左侧选择一条记录，查看正文和投递证据。</p>}
+        {message ? <RecordDetail message={message} snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} thread={thread}/> : <p className="sl-mail-empty">从左侧选择一条记录，查看正文和投递证据。</p>}
       </section>
     </div>
   </div>;
@@ -497,7 +482,7 @@ export function apply(ctx) {
   ctx.effect(() => {
     const style = document.createElement('style');
     style.dataset.plugin = name;
-    style.textContent = css + CARD_CSS;
+    style.textContent = css + CARD_CSS + BUBBLE_CSS;
     document.head.append(style);
     return () => style.remove();
   });

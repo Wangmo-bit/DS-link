@@ -369,7 +369,6 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
       </button>
       {open === true ? (
         <div className="sl-card__expanded" data-session-link-card-expanded="">
-          <div className="sl-card__notice">会话协作，非本人指令</div>
           {bodyContent}
           <details className="sl-card__tech" data-session-link-card-technical="">
             <summary>技术详情/原始消息</summary>

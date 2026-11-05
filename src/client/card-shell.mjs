@@ -227,3 +227,87 @@ body[data-ds-dark-theme] .sl-card--received {
   font: inherit;
 }
 `;
+
+/**
+ * Stable chat-shell overrides: one bubble-shaped message row for both
+ * directions. The existing two/three-line DOM stays intact (tests and
+ * attributes depend on it); only its visual hierarchy becomes a message.
+ */
+export const BUBBLE_CSS = `
+.sl-card {
+  max-width: min(78%, 720px);
+  margin: 8px 0;
+  border: 0;
+  border-radius: 15px;
+  background: #ECF3F0;
+  color: #223029;
+  box-shadow: 0 1px 2px rgba(16,19,24,.04);
+}
+.sl-card--sent {
+  margin-left: auto;
+  margin-right: 0;
+  border-radius: 15px 15px 4px 15px;
+  background: #E8EFFA;
+  color: #1E2A3B;
+}
+.sl-card--received {
+  margin-left: 0;
+  margin-right: auto;
+  border-radius: 15px 15px 15px 4px;
+  background: #EDF3F0;
+  color: #223029;
+}
+body[data-ds-dark-theme] .sl-card--sent { background: #263248; color: #E8EDF6; border: 0; }
+body[data-ds-dark-theme] .sl-card--received { background: #23302D; color: #E6EEEA; border: 0; }
+.sl-card__toggle {
+  gap: 5px;
+  padding: 10px 13px 11px;
+  border-radius: inherit;
+  flex-wrap: wrap;
+}
+.sl-card__party {
+  width: auto;
+  flex: 0 1 auto;
+  align-items: baseline;
+  gap: 5px;
+}
+.sl-card__party[data-session-link-card-sender-row] { max-width: calc(100% - 56px); }
+.sl-card__party[data-session-link-card-recipient-row] { max-width: 100%; }
+.sl-card__party[data-session-link-card-recipient-row]::before {
+  content: "→";
+  flex: none;
+  opacity: .45;
+}
+.sl-card__party[data-session-link-card-subject-row],
+.sl-card__party[data-session-link-card-subject] { flex-basis: 100%; width: 100%; }
+.sl-card__party-label { display: none; }
+.sl-card__party-name { font-size: 11px; line-height: 1.4; opacity: .72; flex: 0 1 auto; }
+.sl-card__toggle-text {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: .55;
+}
+.sl-card__subject {
+  flex: 1 1 auto;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 1;
+}
+.sl-card__status {
+  flex: none;
+  align-self: flex-end;
+  font-size: 10px;
+  opacity: .6;
+}
+.sl-card__expanded {
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  padding: 10px 13px 12px;
+}
+.sl-card__body--pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font: inherit; font-size: 13px; line-height: 1.6; }
+.sl-card__notice { display: none; }
+`;
