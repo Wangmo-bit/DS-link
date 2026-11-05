@@ -374,6 +374,10 @@ export class MemoryAdapter {
     return this.#fsHost.checkProjectLocation(request)
   }
 
+  async checkExistingProjectPath(directoryPath) {
+    return this.#fsHost.checkExistingProjectPath(directoryPath)
+  }
+
   async ensureProjectDirectory(request) {
     return this.#fsHost.ensureProjectDirectory(request)
   }

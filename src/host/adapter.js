@@ -925,6 +925,34 @@ export class HostAdapter {
   }
 
   /**
+   * Validate an explicit existing-project directory without reading its
+   * contents or creating anything. The registry canonicalizes realpaths and
+   * reuses an already-registered identical directory.
+   * @param {string} directoryPath
+   * @returns {Promise<{ path: string }>}
+   */
+  async checkExistingProjectPath(directoryPath) {
+    if (typeof directoryPath !== 'string' || directoryPath.length === 0 || !directoryPath.startsWith('/') || directoryPath.includes('\u0000')) {
+      throw fail('invalid_argument', 'existingProject.path must be an absolute path')
+    }
+    let real
+    try {
+      real = await fs.realpath(directoryPath)
+    } catch (error) {
+      if (error?.code === 'ENOENT') throw fail('project_missing', 'the existing project directory does not exist', {})
+      throw fail('invalid_location', 'the existing project path could not be resolved', { reason: errorCode(error) })
+    }
+    let stat
+    try {
+      stat = await fs.lstat(real)
+    } catch (error) {
+      throw fail('invalid_location', 'the existing project path could not be inspected', { reason: errorCode(error) })
+    }
+    if (!stat.isDirectory()) throw fail('invalid_location', 'the existing project path must be a directory', {})
+    return { path: real }
+  }
+
+  /**
    * Register an existing real directory as a workspace. The registry
    * canonicalizes and reuses an identical realpath under host semantics.
    * @param {string} directoryPath

@@ -78,7 +78,7 @@ function journalFixture(from, operationId, overrides = {}) {
       task: 'please summarize the failing test',
       subject: null,
       title: 'Summarize',
-      location: { kind: 'workspace', workspaceId: 'w-1', parentDir: null, directoryName: null, workspaceTitle: 'WS' },
+      location: { kind: 'workspace', workspaceId: 'w-1', parentDir: null, directoryName: null, workspacePath: null, workspaceTitle: 'WS' },
       requestedSessionId: 'session-reserved',
       sessionId: null,
       workspaceId: 'w-1',
@@ -397,6 +397,7 @@ test('a create interrupted in creating becomes uncertain and never re-runs an ef
         workspaceId: null,
         parentDir: parent,
         directoryName: 'ghost',
+        workspacePath: null,
         workspaceTitle: null,
       },
       workspaceId: null,
@@ -1724,4 +1725,131 @@ test('card_lookup withholds the unknown first-message body until evidence accept
   assert.equal(accepted.results[0].status, 'accepted')
   assert.equal(accepted.results[0].body, 'unconfirmed body')
   assert.equal(accepted.results[0].bodyState, 'available')
+})
+
+// ---------------------------------------------------------------------------
+// A2. Existing project directory registration
+// ---------------------------------------------------------------------------
+
+test('create with existingProject registers the explicit directory and sends its first task', async (t) => {
+  const { adapter, engine, ledger, workspaceDir } = await setup(t)
+  const project = await tempDir('v04-existing-')
+  // A marker proves the plugin never writes, moves, renames or deletes the
+  // user's directory contents during registration.
+  await fs.writeFile(path.join(project, 'README.md'), 'keep me\n', 'utf8')
+  t.after(async () => fs.rm(project, { recursive: true, force: true }))
+
+  const operationId = engine.mintOperation().operationId
+  const result = await engine.create(
+    createArgs(operationId, {
+      existingProject: { path: project, title: 'Notification Repo' },
+      task: 'implement notification plugin',
+      title: '通知插件 - 开发伙伴',
+    }),
+  )
+
+  assert.equal(result.idempotent, false)
+  assert.equal(result.phase, 'sent')
+  assert.equal(result.error, null)
+  const realProject = await fs.realpath(project)
+  assert.equal(result.workspace.path, realProject)
+  assert.equal(result.workspace.title, 'Notification Repo')
+  assert.ok(adapter.workspaces.some((item) => item.path === realProject))
+  assert.deepEqual(await fs.readFile(path.join(project, 'README.md'), 'utf8'), 'keep me\n')
+  assert.deepEqual(await fs.readdir(project), ['README.md'])
+  assert.equal(ledger.read().creates?.[`A|${operationId}`]?.location.kind, 'existing_project')
+
+  const retry = await engine.create(
+    createArgs(operationId, {
+      existingProject: { path: project, title: 'Notification Repo' },
+      task: 'implement notification plugin',
+      title: '通知插件 - 开发伙伴',
+    }),
+  )
+  assert.equal(retry.idempotent, true)
+  assert.equal(retry.sessionId, result.sessionId)
+  assert.equal(adapter.createCalls.length, 1, 'retry must not create a second session')
+})
+
+test('existingProject reuses an already registered identical realpath', async (t) => {
+  const { adapter, engine } = await setup(t)
+  const operationId = engine.mintOperation().operationId
+  const result = await engine.create(createArgs(operationId, { existingProject: { path: adapter.workspaces[0].path } }))
+  assert.equal(result.phase, 'sent')
+  assert.equal(adapter.workspaces.length, 1)
+  assert.equal(result.workspace.id, 'w-1')
+})
+
+test('existingProject rejects relative, missing, and non-directory paths before any effect', async (t) => {
+  const { adapter, engine, ledger } = await setup(t)
+  const file = path.join(await tempDir('v04-existing-file-'), 'not-a-dir.txt')
+  await fs.writeFile(file, 'x', 'utf8')
+  t.after(async () => fs.rm(file, { recursive: true, force: true }))
+
+  for (const existingProject of [
+    { path: 'relative/project' },
+    { path: '/definitely/missing/session-link-project' },
+    { path: file },
+  ]) {
+    const operationId = engine.mintOperation().operationId
+    await assert.rejects(
+      engine.create(createArgs(operationId, { existingProject })),
+      (error) => ['invalid_argument', 'project_missing', 'invalid_location'].includes(error.code),
+    )
+  }
+  assert.deepEqual(ledger.read().creates ?? {}, {})
+  assert.equal(adapter.createCalls.length, 0)
+})
+
+test('existingProject is mutually exclusive with workspaceId and newProject', async (t) => {
+  const { engine, parent } = await setup(t)
+  await assert.rejects(
+    engine.create(createArgs(engine.mintOperation().operationId, {
+      workspaceId: 'w-1',
+      existingProject: { path: parent },
+    })),
+    (error) => error.code === 'invalid_argument',
+  )
+  await assert.rejects(
+    engine.create(createArgs(engine.mintOperation().operationId, {
+      newProject: { parentDir: parent, directoryName: 'x' },
+      existingProject: { path: parent },
+    })),
+    (error) => error.code === 'invalid_argument',
+  )
+})
+
+test('existingProject retry after session failure reuses the registered workspace and creates one session', async (t) => {
+  const { adapter, engine } = await setup(t)
+  const project = await tempDir('v04-existing-retry-')
+  t.after(async () => fs.rm(project, { recursive: true, force: true }))
+  const operationId = engine.mintOperation().operationId
+  adapter.createHooks.createError = { code: 'HOST_CREATE_FAILED', message: 'synthetic create failure' }
+  const first = await engine.create(createArgs(operationId, { existingProject: { path: project } }))
+  assert.notEqual(first.phase, 'sent')
+  const realProject = await fs.realpath(project)
+  const registered = adapter.workspaces.filter((item) => item.path === realProject)
+  assert.equal(registered.length, 1)
+
+  const second = await engine.create(createArgs(operationId, { existingProject: { path: project } }))
+  // The host create failed with an unknown error, so the operation is kept
+  // uncertain and is not blindly re-executed; the workspace is reused and no
+  // second session/message is created.
+  assert.equal(second.idempotent, true)
+  assert.equal(second.phase, first.phase)
+  assert.equal(adapter.workspaces.filter((item) => item.path === realProject).length, 1)
+  assert.equal(adapter.createCalls.length, 1)
+})
+
+test('existingProject retry with a changed path/title is rejected as a conflicting operation', async (t) => {
+  const { engine } = await setup(t)
+  const a = await tempDir('v04-existing-a-')
+  const b = await tempDir('v04-existing-b-')
+  t.after(async () => { await fs.rm(a, { recursive: true, force: true }); await fs.rm(b, { recursive: true, force: true }) })
+  const operationId = engine.mintOperation().operationId
+  await engine.create(createArgs(operationId, { existingProject: { path: a, title: 'A' } }))
+  await assert.rejects(
+    engine.create(createArgs(operationId, { existingProject: { path: b, title: 'A' } })),
+    (error) => error.code === 'conflict_operation',
+  )
 })

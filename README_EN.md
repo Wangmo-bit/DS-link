@@ -53,6 +53,8 @@ Back up the profile's `package.json`, `pnpm-lock.yaml` and `cordis.patch.yml` be
 4. The target replies with `session_link_reply`, passing the original `messageId` and a new `operationId`.
 5. Status shown on cards is ledger truth: persisted, delivered into context, explicit reply.
 
+`session_link_create` takes exactly one location: an existing `workspaceId`, `newProject:{parentDir,directoryName,title?}` (creates a single-level directory), or `existingProject:{path,title?}` (registers an already existing directory through the Host workspace registry; it never creates, reads, or modifies that directory's contents).
+
 If the target is busy, delivery happens at the next step boundary and does not interrupt a running tool batch.
 
 ## Security

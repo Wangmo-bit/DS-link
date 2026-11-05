@@ -298,6 +298,7 @@ export function callFingerprint(call) {
     parentMessageId: call.parentMessageId ?? null,
     targets: [...call.targets].sort(),
   }
+  if (call.workspacePath !== undefined && call.workspacePath !== null) payload.workspacePath = call.workspacePath
   if (call.subject !== undefined) payload.subject = call.subject
   return JSON.stringify(payload)
 }
@@ -425,7 +426,7 @@ export function normalizeTask(value) {
  * normalized inputs on purpose: the host defaults an omitted title while an
  * explicit one is displayed verbatim. Only byte-identical normalized inputs
  * share a fingerprint.
- * @param {{ task: string, targets: readonly string[], workspaceId?: string|null, parentDir?: string|null, directoryName?: string|null, workspaceTitle?: string|null, title?: string|null, subject?: string }} call
+ * @param {{ task: string, targets: readonly string[], workspaceId?: string|null, parentDir?: string|null, directoryName?: string|null, workspacePath?: string|null, workspaceTitle?: string|null, title?: string|null, subject?: string }} call
  * @returns {string}
  */
 export function createFingerprint(call) {
@@ -440,6 +441,7 @@ export function createFingerprint(call) {
     workspaceTitle: call.workspaceTitle ?? null,
     title: call.title ?? null,
   }
+  if (call.workspacePath !== undefined && call.workspacePath !== null) payload.workspacePath = call.workspacePath
   if (call.subject !== undefined) payload.subject = call.subject
   return JSON.stringify(payload)
 }

@@ -139,7 +139,7 @@ function parseCreateRequest(request) {
   const object = assertPlainObject(request, 'create request')
   assertAllowedKeys(
     object,
-    ['from', 'operationId', 'task', 'workspaceId', 'newProject', 'title', 'subject'],
+    ['from', 'operationId', 'task', 'workspaceId', 'newProject', 'existingProject', 'title', 'subject'],
     'create request',
   )
   const from = requiredString(object.from, 'from', { min: 1, max: 256 })
@@ -161,8 +161,10 @@ function parseCreateRequest(request) {
   const title = optionalString(object.title, 'title', { max: 500 })
   const hasWorkspace = object.workspaceId !== undefined && object.workspaceId !== null
   const hasProject = object.newProject !== undefined && object.newProject !== null
-  if (hasWorkspace === hasProject) {
-    throw fail('invalid_argument', 'provide exactly one of workspaceId or newProject')
+  const hasExisting = object.existingProject !== undefined && object.existingProject !== null
+  const locationCount = Number(hasWorkspace) + Number(hasProject) + Number(hasExisting)
+  if (locationCount !== 1) {
+    throw fail('invalid_argument', 'provide exactly one of workspaceId, newProject, or existingProject')
   }
   let location
   if (hasWorkspace) {
@@ -171,7 +173,19 @@ function parseCreateRequest(request) {
       workspaceId: requiredString(object.workspaceId, 'workspaceId', { min: 1, max: 256 }),
       parentDir: null,
       directoryName: null,
+      workspacePath: null,
       workspaceTitle: null,
+    }
+  } else if (hasExisting) {
+    const existing = assertPlainObject(object.existingProject, 'existingProject')
+    assertAllowedKeys(existing, ['path', 'title'], 'existingProject arguments')
+    location = {
+      kind: 'existing_project',
+      workspaceId: null,
+      parentDir: null,
+      directoryName: null,
+      workspacePath: absolutePath(existing.path, 'existingProject.path'),
+      workspaceTitle: optionalString(existing.title, 'existingProject.title', { max: 500 }) ?? null,
     }
   } else {
     const project = assertPlainObject(object.newProject, 'newProject')
@@ -181,6 +195,7 @@ function parseCreateRequest(request) {
       workspaceId: null,
       parentDir: absolutePath(project.parentDir, 'newProject.parentDir'),
       directoryName: assertProjectSegment(project.directoryName, 'newProject.directoryName'),
+      workspacePath: null,
       workspaceTitle: optionalString(project.title, 'newProject.title', { max: 500 }) ?? null,
     }
   }
@@ -191,6 +206,7 @@ function parseCreateRequest(request) {
     workspaceId: location.workspaceId,
     parentDir: location.parentDir,
     directoryName: location.directoryName,
+    workspacePath: location.workspacePath,
     workspaceTitle: location.workspaceTitle,
     title: resolvedTitle,
     ...(subject === undefined ? {} : { subject }),
@@ -1906,10 +1922,16 @@ export class SessionLinkEngine {
       location.workspaceTitle = workspace.title
       resolvedWorkspacePath = workspace.path
     } else {
-      await this.adapter.checkProjectLocation({
-        parentDir: location.parentDir,
-        directoryName: location.directoryName,
-      })
+      if (location.kind === 'existing_project') {
+        const project = await this.adapter.checkExistingProjectPath(location.workspacePath)
+        location.workspacePath = project.path
+        resolvedWorkspacePath = project.path
+      } else {
+        await this.adapter.checkProjectLocation({
+          parentDir: location.parentDir,
+          directoryName: location.directoryName,
+        })
+      }
     }
 
     // A pure-random reserved id, proven absent before it is offered. Even a
@@ -2008,7 +2030,7 @@ export class SessionLinkEngine {
       try {
         workspace = await this.adapter.createWorkspace(
           journal.workspacePath,
-          journal.location.workspaceTitle ?? journal.title,
+          journal.location.workspaceTitle ?? (journal.location.kind === 'existing_project' ? undefined : journal.title),
         )
       } catch (error) {
         await this.#journalCreateFailure(key, error)

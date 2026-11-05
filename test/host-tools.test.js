@@ -270,3 +270,30 @@ test('create tool, workspace scope, and card_lookup work through the plugin boun
   const stillWorks = await list.execute({}, exec(host, 'A'))
   assert.ok(Array.isArray(stillWorks.sessions), 'original tools keep working without create APIs')
 })
+
+test('session_link_create existingProject registers a real directory through the Host adapter', async (t) => {
+  const { host } = await mount(t)
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), 'v04-host-existing-'))
+  await fs.writeFile(path.join(project, 'note.md'), 'untouched\n', 'utf8')
+  t.after(() => fs.rm(project, { recursive: true, force: true }))
+
+  const operation = host.tools.get('session_link_operation')
+  const create = host.tools.get('session_link_create')
+  const operationId = (await operation.execute({}, exec(host, 'A'))).operationId
+  const result = await create.execute({
+    operationId,
+    task: 'wire the notification repo',
+    title: '通知插件 - 开发伙伴',
+    existingProject: { path: project, title: 'Notification Repo' },
+  }, exec(host, 'A'))
+
+  const real = await fs.realpath(project)
+  assert.equal(result.phase, 'sent')
+  assert.equal(result.workspace.path, real)
+  assert.equal(result.workspace.title, 'Notification Repo')
+  assert.equal(host.createCalls.length, 1)
+  assert.equal(host.renameCalls.length, 1)
+  assert.equal(host.renameCalls[0].title, '通知插件 - 开发伙伴')
+  assert.deepEqual(await fs.readFile(path.join(project, 'note.md'), 'utf8'), 'untouched\n')
+  assert.deepEqual(await fs.readdir(project), ['note.md'])
+})

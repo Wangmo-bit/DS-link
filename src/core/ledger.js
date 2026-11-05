@@ -426,6 +426,7 @@ const CREATE_LOCATION_KEYS = Object.freeze([
   'workspaceId',
   'parentDir',
   'directoryName',
+  'workspacePath',
   'workspaceTitle',
 ])
 
@@ -475,12 +476,15 @@ function validateCreates(creates) {
       }
     }
     for (const field of CREATE_LOCATION_KEYS) {
+      // workspacePath is additive for the existing_project mode; older 0.4
+      // journals (workspace/new_project) legitimately lack it.
+      if (field === 'workspacePath') continue
       if (!(field in location)) throw corrupt(`ledger create ${key} location is missing ${field}`)
     }
-    if (location.kind !== 'workspace' && location.kind !== 'new_project') {
+    if (location.kind !== 'workspace' && location.kind !== 'new_project' && location.kind !== 'existing_project') {
       throw corrupt(`ledger create ${key} location.kind is invalid`)
     }
-    for (const field of ['workspaceId', 'parentDir', 'directoryName', 'workspaceTitle']) {
+    for (const field of ['workspaceId', 'parentDir', 'directoryName', 'workspacePath', 'workspaceTitle']) {
       if (location[field] !== null && typeof location[field] !== 'string') {
         throw corrupt(`ledger create ${key} location.${field} is invalid`)
       }
@@ -490,6 +494,9 @@ function validateCreates(creates) {
     }
     if (location.kind === 'new_project' && (typeof location.parentDir !== 'string' || typeof location.directoryName !== 'string')) {
       throw corrupt(`ledger create ${key} new_project location lacks parentDir/directoryName`)
+    }
+    if (location.kind === 'existing_project' && typeof location.workspacePath !== 'string') {
+      throw corrupt(`ledger create ${key} existing_project location lacks workspacePath`)
     }
     for (const field of ['requestedSessionId', 'sessionId', 'workspaceId', 'workspacePath', 'sendOperationId', 'firstMessageId']) {
       if (journal[field] !== null && typeof journal[field] !== 'string') {

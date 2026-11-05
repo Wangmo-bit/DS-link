@@ -231,7 +231,7 @@ export function createToolDefinitions(options) {
   const createTool = {
     name: TOOL_NAMES.create,
     description:
-      'Create a new ordinary session in an explicit location and immediately send it its first task as a request through the standard agent-message relay; empty sessions are not offered. Call session_link_operation first and pass its operationId. Provide exactly one of workspaceId (an existing registered workspace, discoverable with session_link_list scope=workspaces) or newProject:{parentDir,directoryName,title?} — never a bare cwd; the directory is created single-level under an existing parent without overwriting anything. A retry with the same operationId continues the same created session and first message instead of creating another. In the result, phase "sent" only means a first-message record exists — firstMessage.status is authoritative and may be held, pending, or unknown; never treat "sent" as accepted, read, processed, or task started. accepted on the first message only means the Host durably took it, never that the task ran. ' +
+      'Create a new ordinary session in an explicit location and immediately send it its first task as a request through the standard agent-message relay; empty sessions are not offered. Call session_link_operation first and pass its operationId. Provide exactly one of workspaceId (an existing registered workspace, discoverable with session_link_list scope=workspaces), newProject:{parentDir,directoryName,title?} (creates a single-level directory under an existing parent without overwriting), or existingProject:{path,title?} (registers an already existing project directory via the Host workspace registry; it never creates, moves, reads, or modifies directory contents). Never pass a bare cwd. A retry with the same operationId continues the same created session and first message instead of creating another. In the result, phase "sent" only means a first-message record exists — firstMessage.status is authoritative and may be held, pending, or unknown; never treat "sent" as accepted, read, processed, or task started. accepted on the first message only means the Host durably took it, never that the task ran. ' +
       SUBJECT_HINT,
     parameters: {
       type: 'object',
@@ -249,6 +249,15 @@ export function createToolDefinitions(options) {
           required: ['parentDir', 'directoryName'],
           additionalProperties: false,
         },
+        existingProject: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            title: { type: 'string' },
+          },
+          required: ['path'],
+          additionalProperties: false,
+        },
         title: { type: 'string' },
         subject: { type: 'string' },
       },
@@ -260,7 +269,7 @@ export function createToolDefinitions(options) {
       const object = assertObject(args)
       assertAllowedKeys(
         object,
-        ['operationId', 'task', 'workspaceId', 'newProject', 'title', 'subject'],
+        ['operationId', 'task', 'workspaceId', 'newProject', 'existingProject', 'title', 'subject'],
         'session_link_create arguments',
       )
       const caller = await requireCaller(exec)
