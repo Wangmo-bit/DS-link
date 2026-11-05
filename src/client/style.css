@@ -1,3 +1,20 @@
+/* Compact, neutral tool-process record, distinct from message direction cards. */
+.sl-tool-record{margin:2px 0;border:1px solid #d4d4d4;border-radius:8px;background:#f2f2f2;color:#292929;font:inherit;overflow:hidden}
+body[data-ds-dark-theme] .sl-tool-record{border-color:#484848;background:#292929;color:#e6e6e6}
+.sl-tool-record__row{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;min-width:0;padding:6px 10px}
+.sl-tool-record__title{min-width:0;white-space:nowrap}
+.sl-tool-record__status{white-space:nowrap;opacity:.75;font-size:.85em}
+.sl-tool-record__status--error{color:#a23a3a;opacity:1}
+body[data-ds-dark-theme] .sl-tool-record__status--error{color:#ef9b9b}
+.sl-tool-record__inspect,.sl-tool-record__tech summary{border:0;background:transparent;color:inherit;font:inherit;font-size:.85em;cursor:pointer;opacity:.8}
+.sl-tool-record__inspect{margin-left:auto;padding:0}
+.sl-tool-record__tech{margin-left:auto;min-width:0}
+.sl-tool-record__inspect + .sl-tool-record__tech{margin-left:0}
+.sl-tool-record__tech[open]{flex-basis:100%}
+.sl-tool-record__tech summary{white-space:nowrap}
+.sl-tool-record__tech summary:focus-visible,.sl-tool-record__inspect:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.sl-tool-record__tech pre{max-height:240px;overflow:auto;margin:8px 0 0;padding-top:8px;border-top:1px solid rgba(127,127,127,.28);white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85em}
+
 /* Session-link 0.2 settings section + retired-main hint.
    Host tokens only: canvas/surface/label/border/brand, semantic status colors,
    4px spacing grid. No nested scroll container: the settings shell's content

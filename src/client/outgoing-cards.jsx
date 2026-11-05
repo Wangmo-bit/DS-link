@@ -15,11 +15,10 @@
  *     create result.sessionId). Fork history, lookup missing/404, no result,
  *     out-of-window, non-append (model-only) results, or an error result
  *     (incl. AUTO_REVIEW_DENIED) → NO card; the native record stands alone;
- *   - keyed `tool.call.toolview` for EXACTLY session_link_send|reply|create:
- *     brief visible status, complete args/result/error + multi-target ledger
- *     statuses behind a default-closed 技术详情, native `inspect` ("查看轨迹")
- *     button forwarded when the host provides one (never faked), honest
- *     "参数未加载" when the call head left the window;
+ *   - keyed `tool.call.toolview` for EXACTLY session_link_send|reply|create|
+ *     operation: one compact neutral row; complete args/result/error behind a
+ *     default-closed 技术详情, native `inspect` ("查看轨迹") in the row when
+ *     supplied (never faked), honest "参数未加载" when the call head left the window;
  *   - status via the receiver-tested truth table + local 截至 (stamped when
  *     the lookup RESPONSE completed) + 状态未更新 on failed refresh; refresh
  *     is window-batched/throttled (expand/tab-visible force), never per-card
@@ -43,7 +42,7 @@ import { createOutgoingCoordinator } from './outgoing-coordinator.mjs';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 
 /** Strict tool set — anything else (status/control/list/…) stays native. */
-export const TOOL_KEYS = Object.freeze(['session_link_send', 'session_link_reply', 'session_link_create']);
+export const TOOL_KEYS = Object.freeze(['session_link_send', 'session_link_reply', 'session_link_create', 'session_link_operation']);
 
 /** Key guard: the toolview may only ever claim session_link_* keys. */
 export function assertToolKey(key) {
@@ -208,7 +207,7 @@ export function createSenderCardView({ onRefresh } = {}) {
  * record shapes (contract/records.d.ts): PreparingToolCall (args not yet
  * complete), StartedToolCall.argsRaw, ToolResultNode.call?.argsRaw/content/
  * error — with an honest "参数未加载" when the call head left the window.
- * Only ever rendered inside the default-closed 技术详情 disclosure.
+ * Only ever rendered inside the default-closed 详情 disclosure.
  * @param {{phase?: string, block?: Record<string, any>}} stage
  * @returns {string}
  */
@@ -244,29 +243,32 @@ export function toolTechText({ phase, block } = {}) {
 }
 
 /**
- * Keyed toolview for the three session_link tools: brief visible status only;
- * complete args/result/error behind the default-closed 技术详情; the native
- * `inspect` entry ("查看轨迹") is forwarded when the host supplies it and
- * hidden otherwise — never faked, never executes args.
+ * Keyed toolview for session_link send/reply/create/operation: one compact
+ * neutral row with a brief visible status; complete args/result/error behind
+ * the default-closed 技术详情. The native `inspect` entry lives in the row and
+ * is hidden when unavailable — never faked, never executes args.
  */
 export function createSessionLinkToolview() {
   return function SessionLinkToolview({ phase, block, callId, inspect } = {}) {
-    const status =
-      phase === 'preparing' ? '准备中' : phase === 'start' ? '执行中' : block?.isError === true ? '宿主返回错误' : '宿主已返回结果';
+    const status = phase === 'preparing' || phase === 'start'
+      ? '处理中'
+      : phase !== 'result' ? '未知状态'
+        : block?.isError === true || block?.error != null ? '调用失败' : '已返回';
     const tech = toolTechText({ phase, block });
     const canInspect = typeof inspect === 'function';
     return (
-      <div data-session-link-toolview={callId}>
-        <span data-session-link-toolview-status>{`session-link · ${status}`}</span>
-        {canInspect ? (
-          <button type="button" data-session-link-toolview-inspect onClick={inspect}>
-            查看轨迹
-          </button>
-        ) : null}
-        <details data-session-link-toolview-tech>
-          <summary>技术详情</summary>
-          <pre>{tech}</pre>
-        </details>
+      <div className="sl-tool-record" data-session-link-toolview={callId} data-session-link-i18n-root="">
+        <div className="sl-tool-record__row">
+          <span className="sl-tool-record__title">会话互通</span>
+          <span className={`sl-tool-record__status${status === '调用失败' ? ' sl-tool-record__status--error' : ''}`} data-session-link-toolview-status>{status}</span>
+          {phase === 'result' && canInspect ? (
+            <button type="button" className="sl-tool-record__inspect" data-session-link-toolview-inspect onClick={inspect}>查看轨迹</button>
+          ) : null}
+          <details className="sl-tool-record__tech" data-session-link-toolview-tech>
+            <summary>技术详情</summary>
+            <pre data-i18n-skip="">{tech}</pre>
+          </details>
+        </div>
       </div>
     );
   };

@@ -5,6 +5,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { readFile } from 'node:fs/promises';
+import { setI18nLocale, translateText } from '../src/client/i18n.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -343,11 +345,11 @@ test('window scope: unique resolution / shared object / missing binding all fall
 
 // ---- bundled JSX entry ----
 
-test('entry surface: installOutgoingCards registers the non-exclusive definition + exactly three toolview keys', async () => {
+test('entry surface: installOutgoingCards registers the non-exclusive definition + operation/send/reply/create toolview keys', async () => {
   const mod = await loadOutgoingCards();
   assert.equal(typeof mod.installOutgoingCards, 'function');
   assert.deepEqual(mod.inject, ['sessions', 'uiConversation', 'slots']);
-  assert.deepEqual([...mod.TOOL_KEYS], ['session_link_send', 'session_link_reply', 'session_link_create']);
+  assert.deepEqual([...mod.TOOL_KEYS], ['session_link_send', 'session_link_reply', 'session_link_create', 'session_link_operation']);
   assert.throws(() => mod.assertToolKey('bash'), /refuses toolview key/);
 
   const registered = { definitions: [], slots: [] };
@@ -374,7 +376,7 @@ test('entry surface: installOutgoingCards registers the non-exclusive definition
   assert.equal(nodeRenders.length, 1);
   assert.equal(nodeRenders[0].descriptor.key, CARD_KIND);
   const toolviews = registered.slots.filter((slot) => slot.descriptor?.name === 'tool.call.toolview');
-  assert.deepEqual(toolviews.map((slot) => slot.descriptor.key).sort(), ['session_link_create', 'session_link_reply', 'session_link_send']);
+  assert.deepEqual(toolviews.map((slot) => slot.descriptor.key).sort(), ['session_link_create', 'session_link_operation', 'session_link_reply', 'session_link_send']);
 });
 
 test('card structure: exactly three compact lines by default; body and closed tech details only after expand', async () => {
@@ -575,7 +577,7 @@ test('card structure: exactly three compact lines by default; body and closed te
   assert.equal(textOf(findByAttr(unknown, 'data-session-link-card-recipient')).trim(), '未知接收者');
 });
 
-test('toolview: brief visible status; complete args/result/error in closed tech details; honest missing call', async () => {
+test('toolview: compact row status; complete args/result/error in closed tech details; honest missing call', async () => {
   const mod = await loadOutgoingCards();
   const textOf = (element) => {
     if (element === null || element === undefined || typeof element === 'boolean') return '';
@@ -599,8 +601,12 @@ test('toolview: brief visible status; complete args/result/error in closed tech 
   const View = mod.createSessionLinkToolview();
 
   const start = View({ phase: 'start', callId: 'c', block: { argsRaw: '{"text":"秘密正文"}' } });
-  assert.ok(textOf(findByAttr(start, 'data-session-link-toolview-status')).includes('执行中'));
+  assert.equal(textOf(findByAttr(start, 'data-session-link-toolview-status')), '处理中');
+  assert.equal(start.type, 'div');
+  assert.equal(start.props.children.props.className, 'sl-tool-record__row', 'one compact row');
+  assert.equal(findByAttr(start, 'data-session-link-toolview-inspect'), null, 'no trace entry before a result');
   const startTech = findByAttr(start, 'data-session-link-toolview-tech');
+  assert.equal(startTech.type, 'details');
   assert.equal(startTech.props.open, undefined, 'closed by default');
   assert.ok(textOf(startTech).includes('秘密正文'), 'complete args preserved');
 
@@ -610,6 +616,7 @@ test('toolview: brief visible status; complete args/result/error in closed tech 
     block: { call: { name: 'session_link_send', argsRaw: '{"targets":["sess-B"]}' }, content: [{ type: 'text', text: '{"ok":true}' }], isError: false },
   });
   const doneTech = textOf(findByAttr(done, 'data-session-link-toolview-tech'));
+  assert.equal(textOf(findByAttr(done, 'data-session-link-toolview-status')), '已返回');
   assert.ok(doneTech.includes('{"targets":["sess-B"]}') && doneTech.includes('{"ok":true}'));
 
   const orphan = View({ phase: 'result', callId: 'c', block: { call: null, content: [{ type: 'text', text: 'ok' }], isError: false } });
@@ -623,9 +630,14 @@ test('toolview: brief visible status; complete args/result/error in closed tech 
   });
   const failedTech = textOf(findByAttr(failed, 'data-session-link-toolview-tech'));
   assert.ok(failedTech.includes('AUTO_REVIEW_DENIED') && failedTech.includes('denied'));
-  assert.ok(textOf(findByAttr(failed, 'data-session-link-toolview-status')).includes('宿主返回错误'));
+  assert.equal(textOf(findByAttr(failed, 'data-session-link-toolview-status')), '调用失败');
+  const errorOnly = View({ phase: 'result', block: { error: { reason: 'bad' } } });
+  assert.equal(textOf(findByAttr(errorOnly, 'data-session-link-toolview-status')), '调用失败');
 
   const preparing = View({ phase: 'preparing', callId: 'c', block: { name: 'session_link_send' } });
+  assert.equal(textOf(findByAttr(preparing, 'data-session-link-toolview-status')), '处理中');
+  const unknown = View({ phase: 'mystery', callId: 'c' });
+  assert.equal(textOf(findByAttr(unknown, 'data-session-link-toolview-status')), '未知状态', 'unknown phases are not guessed');
   assert.ok(textOf(findByAttr(preparing, 'data-session-link-toolview-tech')).includes('参数流式接收中'));
 });
 
@@ -1091,6 +1103,18 @@ test('append gate: model-only replacement results are never claimed nor queried'
   void coordinator;
 });
 
+test('toolview: neutral light/dark frame and translated process labels', async () => {
+  const css = await readFile(new URL('../src/client/style.css', import.meta.url), 'utf8');
+  assert.match(css, /\.sl-tool-record\{[^}]*border:1px solid #d4d4d4;[^}]*border-radius:8px;[^}]*background:#f2f2f2/);
+  assert.match(css, /body\[data-ds-dark-theme\] \.sl-tool-record\{[^}]*border-color:#484848;background:#292929/);
+  assert.match(css, /\.sl-tool-record__row\{[^}]*display:flex;[^}]*flex-wrap:wrap/);
+  assert.match(css, /\.sl-tool-record__tech\[open\]\{flex-basis:100%\}/);
+  setI18nLocale('en');
+  try {
+    assert.deepEqual(['处理中', '已返回', '调用失败', '未知状态'].map(translateText), ['Processing', 'Returned', 'Call failed', 'Unknown state']);
+  } finally { setI18nLocale('zh'); }
+});
+
 test('toolview: native inspect entry is forwarded as 查看轨迹 when provided, hidden otherwise', async () => {
   const mod = await loadOutgoingCards();
   const View = mod.createSessionLinkToolview();
@@ -1111,11 +1135,15 @@ test('toolview: native inspect entry is forwarded as 查看轨迹 when provided,
   const withInspect = View({ phase: 'result', callId: 'c', block: { call: null, content: [], isError: false }, inspect: () => { inspected += 1; } });
   const button = findByAttr(withInspect, 'data-session-link-toolview-inspect');
   assert.ok(button !== null, 'inspect entry shown when the host provides it');
+  assert.equal(findByAttr(withInspect.props.children, 'data-session-link-toolview-inspect'), button, 'lives in the compact row');
+  assert.equal(findByAttr(findByAttr(withInspect, 'data-session-link-toolview-tech'), 'data-session-link-toolview-inspect'), null, 'not duplicated inside technical details');
   button.props.onClick();
   assert.equal(inspected, 1, 'the real inspect callback is invoked (no fake, no args execution)');
 
   const withoutInspect = View({ phase: 'result', callId: 'c', block: { call: null, content: [], isError: false } });
   assert.equal(findByAttr(withoutInspect, 'data-session-link-toolview-inspect'), null, 'no button when inspect is unavailable');
+  const runningWithInspect = View({ phase: 'start', callId: 'c', block: { argsRaw: '{}' }, inspect: () => {} });
+  assert.equal(findByAttr(runningWithInspect, 'data-session-link-toolview-inspect'), null, 'trace entry only after the call has a result');
 });
 
 test('card tech details keep the per-target ledger statuses visible (多目标状态 detail)', async () => {

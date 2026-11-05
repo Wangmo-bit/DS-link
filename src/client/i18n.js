@@ -109,6 +109,7 @@ const EN = {
   '（多目标状态明细见上一行）': '(multi-target details on the previous line)',
   '参数未加载': 'Arguments not loaded', '参数未加载（调用头不在当前窗口）': 'Arguments not loaded (call head outside the current window)',
   '技术详情': 'Technical details', '技术详情/原始消息': 'Technical details / raw message', '查看轨迹': 'View trace',
+  '处理中': 'Processing', '已返回': 'Returned', '调用失败': 'Call failed', '未知状态': 'Unknown state',
   '展开 ⌄': 'Expand ⌄', '收起 ⌃': 'Collapse ⌃', '发件人': 'Sender', '收件人': 'Recipient',
   '主题': 'Subject', '发件': 'Sent', '收件': 'Received', '发送': 'Send', '接收': 'Receive',
   '正文加载中…': 'Loading body…', '正文已清除，无法展示。': 'Body was cleared and cannot be shown.',
