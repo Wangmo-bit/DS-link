@@ -276,6 +276,15 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, thr
   </section>;
 }
 
+class RecordBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) return <div className="sl-empty" role="alert">通信记录页加载失败：{this.state.error.message}<button type="button" className="sl-button" onClick={() => this.setState({ error: null })}>重试</button></div>;
+    return this.props.children;
+  }
+}
+
 export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setFilter, senderSessionId, setSenderSessionId, receiverSessionId, setReceiverSessionId, offset, setOffset, selected, setSelected, chainId, setChainId }) {
   const messages = snapshot.messages ?? [];
   const sessions = snapshot.sessions ?? [];
@@ -367,15 +376,21 @@ export function GlobalSettingsPage({ close, openSession }) {
       request.current = controller;
       try {
         const view = tab === 'records' ? 'records' : 'settings';
-        const result = await callApi('snapshot', {
-          view,
+        const payload = {
           limit: LIMIT,
           offset,
           filter,
           ...(senderSessionId ? { senderSessionId } : {}),
           ...(receiverSessionId ? { receiverSessionId } : {}),
           ...(chainId ? { chainId } : {}),
-        }, { signal: controller.signal });
+        };
+        let result;
+        try {
+          result = await callApi('snapshot', { view, ...payload }, { signal: controller.signal });
+        } catch (error) {
+          if (view !== 'records' || error.name === 'AbortError') throw error;
+          result = await callApi('snapshot', payload, { signal: controller.signal });
+        }
         if (!stopped && !controller.signal.aborted) {
           setSnapshot(result); setError(''); failures = 0;
           if (view === 'records') void loadSessions();
@@ -463,7 +478,7 @@ export function GlobalSettingsPage({ close, openSession }) {
       <div id="sl-panel-records" role="tabpanel" aria-labelledby="sl-tab-records" hidden={tab !== 'records'}>
         <section className="sl-page-card">
           <div className="sl-page-card-body">
-            {snapshot.messages ? <RecordsPanel snapshot={panelSnapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} senderSessionId={senderSessionId} setSenderSessionId={setSenderSessionId} receiverSessionId={receiverSessionId} setReceiverSessionId={setReceiverSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/> : <p className="sl-empty" role="status">正在读取通信记录…</p>}
+            {snapshot.messages ? <RecordBoundary><RecordsPanel snapshot={panelSnapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} senderSessionId={senderSessionId} setSenderSessionId={setSenderSessionId} receiverSessionId={receiverSessionId} setReceiverSessionId={setReceiverSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/></RecordBoundary> : <p className="sl-empty" role="status">正在读取通信记录…</p>}
           </div>
         </section>
       </div>
