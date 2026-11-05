@@ -139,6 +139,7 @@ body[data-ds-dark-theme] .sl-tool-record__status--error{color:#ef9b9b}
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Segoe UI",sans-serif;
   color:var(--sl-ink);
 }
+html[data-ds-dark-theme] .sl-section.sl-page,
 body[data-ds-dark-theme] .sl-section.sl-page{
   --sl-brand:#8aa4ff; --sl-brand-fg:#101318; --sl-brand-soft:rgba(138,164,255,.14);
   --sl-paper:#1a1e24; --sl-card:#1a1e24;
@@ -191,4 +192,20 @@ body[data-ds-dark-theme] .sl-card{box-shadow:0 1px 2px rgba(0,0,0,.22),0 12px 32
   .sl-card-body{padding:12px 16px 16px}
   .sl-page .sl-setting{flex-direction:column;align-items:stretch}
   .sl-page .sl-setting input[type=number]{width:100%}
+}
+
+/* Handbook UI-DIAG-01: diagnostics stay outside the cards, full width,
+   collapsed, centered bold, no disclosure triangle. */
+.sl-diagnostics{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--sl-line);width:100%}
+.sl-diagnostics .sl-tech{margin:0;padding:0;border:0;background:transparent}
+.sl-diagnostics .sl-tech summary{display:block;list-style:none;padding:4px 0;text-align:center;font-size:13px;font-weight:650;color:var(--sl-ink)}
+.sl-diagnostics .sl-tech summary::-webkit-details-marker{display:none}
+.sl-diagnostics .sl-tech summary::marker{content:''}
+.sl-diagnostics .sl-tech[open] summary{margin-bottom:10px}
+.sl-diagnostics .sl-tech > p,.sl-diagnostics .sl-tech-list{max-width:760px;margin-left:auto;margin-right:auto}
+.sl-diagnostics .sl-tech-list{grid-template-columns:minmax(120px,auto) minmax(0,1fr)}
+.sl-page .sl-statusline .sl-muted{color:var(--sl-dim)}
+.sl-page .sl-statusline .sl-health{margin-left:auto}
+@media (max-width:700px){
+  .sl-diagnostics .sl-tech-list{grid-template-columns:1fr}
 }

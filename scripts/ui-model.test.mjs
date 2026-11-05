@@ -319,6 +319,10 @@ test('global panel page is the only entry and registers the left sidebar row', a
   assert.match(source, /className="sl-card"/);
   assert.match(source, /className="sl-card-head"/);
   assert.match(source, /className="sl-card-body"/);
+  assert.match(source, /保存并应用/);
+  assert.doesNotMatch(source, /保存后立即生效/);
+  assert.match(source, /className="sl-diagnostics"/);
+  assert.doesNotMatch(source, /className="sl-card-desc"/);
   assert.match(source, /aria-label="会话互通页面"/);
   assert.match(source, /role="tablist"/);
   assert.match(source, /role="tab"/);
@@ -384,7 +388,8 @@ test('records detail keeps truthful receipt wording and bounded polling', async 
 test('stylesheet has no retired nav/migration hooks and stays single-column at narrow widths', async () => {
   const css = await readFile(new URL('../src/client/style.css', import.meta.url), 'utf8');
   assert.doesNotMatch(css, /data-session-link-nav|sl-migrate|sl-navlabel|:has\(/);
-  assert.match(css, /body\[data-ds-dark-theme\] \.sl-section\.sl-page\{[^}]*--sl-paper:#1a1e24/);
+  assert.match(css, /html\[data-ds-dark-theme\] \.sl-section\.sl-page/);
+  assert.match(css, /html\[data-ds-dark-theme\] \.sl-section\.sl-page,[\s\S]*?body\[data-ds-dark-theme\] \.sl-section\.sl-page\{[^}]*--sl-paper:#1a1e24/);
   assert.match(css, /@media \(max-width:700px\)/);
   assert.match(css, /flex-direction:column/);
   assert.doesNotMatch(css, /grid-template-columns:minmax\(280px/);

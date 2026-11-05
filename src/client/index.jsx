@@ -77,10 +77,11 @@ function Tabs({ value, onChange }) {
 
 function StatusLine({ snapshot }) {
   const health = snapshot.storage?.health ?? 'ok';
-  const summary = storageSummary(snapshot.storage);
+  const inFlight = Number(snapshot.inFlight ?? 0);
+  const records = Number(snapshot.total ?? snapshot.messages?.length ?? 0);
   return <p className="sl-statusline" role="status">
-    <span>{`正在投递${snapshot.inFlight ?? 0}，通道${snapshot.settings?.maxConcurrent ?? '—'}`}</span>
-    {summary && <><span aria-hidden="true">·</span><span>{summary}</span></>}
+    <span>{inFlight > 0 ? `正在投递 ${inFlight} 条消息` : '当前没有正在投递的消息'}</span>
+    <span className="sl-muted">{records > 0 ? `已有 ${records} 条通信记录` : '还没有通信记录'}</span>
     <span className={`sl-health sl-health-${health}`}>{healthLabel(health)}</span>
   </p>;
 }
@@ -192,7 +193,7 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
     </details>
     {localError && <p className="sl-alert" role="alert">{localError}</p>}
     <div className="sl-actions">
-      <button type="submit" className="sl-button sl-primary" disabled={busy || !writable || !dirty}>{saving ? '保存中…' : '保存设置'}</button>
+      <button type="submit" className="sl-button sl-primary" disabled={busy || !writable || !dirty}>{saving ? '保存中…' : '保存并应用'}</button>
       <Action onClick={reset} busy={busy} disabled={!dirty}>放弃草稿</Action>
     </div>
   </form>;
@@ -387,9 +388,8 @@ export function GlobalSettingsPage({ close, openSession }) {
 
   return <section className="sl-section sl-page" aria-label="会话互通页面" data-sl-root="" data-session-link-i18n-root="">
     <header className="sl-page-head">
-      <p className="sl-eyebrow">DSH 通信</p>
       <h1>会话互通</h1>
-      <p className="sl-lead">让已有 DSH 会话在工作中可靠协作；发送、回复和投递证据都在这里。</p>
+      <p className="sl-lead">管理会话之间的消息投递和通信记录。</p>
     </header>
     {!snapshot && !error && <p className="sl-empty" role="status">正在读取通信记录…</p>}
     {error && <div className="sl-alert" role="alert">{error}<span> · 可刷新重试；失败操作不会显示为成功。</span></div>}
@@ -402,21 +402,21 @@ export function GlobalSettingsPage({ close, openSession }) {
       <Tabs value={tab} onChange={setTab}/>
       <div id="sl-panel-settings" role="tabpanel" aria-labelledby="sl-tab-settings" hidden={tab !== 'settings'}>
         <section className="sl-card">
-          <div className="sl-card-head"><div><h2>设置</h2><p className="sl-card-desc">保存后立即生效。</p></div><span className={`sl-pill ${snapshot.settings?.paused ? 'sl-pill--warn' : 'sl-pill--ok'}`}>{snapshot.settings?.paused ? '已暂停' : '运行中'}</span></div>
+          <div className="sl-card-head"><div><h2>设置</h2></div><span className={`sl-pill ${snapshot.settings?.paused ? 'sl-pill--warn' : 'sl-pill--ok'}`}>{snapshot.settings?.paused ? '已暂停' : '运行中'}</span></div>
           <div className="sl-card-body">
             <SettingsForm snapshot={snapshot} writable={writable} busy={busy} save={saveSettings}/>
-            <TechnicalDetails snapshot={snapshot}/>
           </div>
         </section>
       </div>
       <div id="sl-panel-records" role="tabpanel" aria-labelledby="sl-tab-records" hidden={tab !== 'records'}>
         <section className="sl-card">
-          <div className="sl-card-head"><div><h2>通信记录</h2><p className="sl-card-desc">查看投递、回复和异常证据。</p></div></div>
+          <div className="sl-card-head"><div><h2>通信记录</h2></div></div>
           <div className="sl-card-body">
             <RecordsPanel snapshot={snapshot} busy={busy} writable={writable} act={act} open={open} filter={filter} setFilter={setFilter} sessionId={sessionId} setSessionId={setSessionId} offset={offset} setOffset={setOffset} selected={selected} setSelected={setSelected} chainId={chainId} setChainId={setChainId}/>
           </div>
         </section>
       </div>
+      <div className="sl-diagnostics"><TechnicalDetails snapshot={snapshot}/></div>
     </>}
   </section>;
 }
