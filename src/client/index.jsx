@@ -17,6 +17,7 @@ import {
   healthNotice,
   heldHint,
   messageState,
+  visibleMessageState,
   minutesFromMs,
   msFromMinutes,
   parseIntegerText,
@@ -32,21 +33,22 @@ import {
   textOf,
 } from './model.js';
 import css from './style.css';
-import { CARD_CSS, BUBBLE_CSS } from './card-shell.mjs';
+import { CARD_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
 import { installChatSkin } from './chat-skin.jsx';
 import { MessageBubble, CopyMessage, ExchangeLink } from './chat-ui.jsx';
 import { installI18n, translateText } from './i18n.js';
+import { useDisplayMode, setDisplayMode } from './display-mode.mjs';
+import { installSubagentMessages } from './subagent-message.jsx';
 
 export const name = '@wangmo/dsh-session-link';
-export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale'];
+export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale', 'remote.session'];
 const PANEL = 'session-link';
 const TAB_ORDER = ['settings', 'records'];
 const FILTERS = [['all', '全部'], ['pending_reply', '待回复'], ['abnormal', '异常 / 未确认']];
 const KIND = { request: '协作请求', notification: '通知', reply: '明确回复' };
 const date = value => value ? new Date(value).toLocaleString() : '—';
-const short = value => String(value ?? '').slice(0, 8);
 const statusOf = message => message.dispatchStatus ?? message.status;
 
 function LinkIcon({ size = 16, active } = {}) {
@@ -117,6 +119,11 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
   const [external, setExternal] = useState(false);
   const [localError, setLocalError] = useState('');
   const [saving, setSaving] = useState(false);
+  const mode = useDisplayMode();
+  const [modeDraft, setModeDraft] = useState(mode);
+  const [modeTouched, setModeTouched] = useState(false);
+  const modeDirty = modeDraft !== mode;
+  useEffect(() => { if (!modeTouched) setModeDraft(mode); }, [mode, modeTouched]);
   const base = useRef({ settingsRevision: revision, settings: snapshot.settings });
   const savingRef = useRef(false);
 
@@ -136,23 +143,28 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
     setLocalError('');
     const built = buildSettingsPatch(draft, base.current.settings);
     if (!built.ok) { setLocalError(Object.values(built.errors).join(' ')); return; }
-    if (built.empty) { setLocalError('没有需要保存的改动。'); return; }
+    if (built.empty && !modeDirty) { setLocalError('没有需要保存的改动。'); return; }
+    if (!built.empty && !writable) { setLocalError('通信设置当前只读。'); return; }
     savingRef.current = true;
     setSaving(true);
     let result;
     try {
-      result = await save(built.patch, base.current.settingsRevision);
+      result = built.empty ? { ok: true } : await save(built.patch, base.current.settingsRevision);
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
     if (result?.ok) {
+      // A successful server save is authoritative even if the separate local
+      // presentation preference fails; retrying must not resend a stale patch.
       setDirty(false);
       setExternal(false);
       if (result.value?.settings) {
         base.current = { settingsRevision: result.value.settingsRevision ?? revision, settings: result.value.settings };
         setDraft(fieldsOf(result.value.settings));
       }
+      if (modeDirty && !setDisplayMode(modeDraft)) { setLocalError(built.empty ? '浏览器未能保存展示模式；请检查站点存储权限后重试。' : '通信设置已保存，但浏览器未能保存展示模式；请检查站点存储权限后重试。'); return; }
+      setModeTouched(false);
     }
   };
 
@@ -171,6 +183,7 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
       <span><strong>暂停新消息投递</strong><small>暂停时新消息排队，不打断已开始的工作；恢复后继续投递。</small></span>
       <input type="checkbox" checked={Boolean(draft.paused)} onChange={event => change('paused', event.target.checked)} disabled={busy || !writable}/>
     </label>
+    <fieldset className="sl-setting sl-mode-setting"><legend>消息展示模式</legend><small>仅影响当前浏览器的会话互通展示，不改变消息或投递。</small><div className="sl-mode-options">{[['bubble','气泡模式'],['card','卡片模式']].map(([value, label]) => <label key={value}><input type="radio" name="sl-display-mode" value={value} checked={modeDraft === value} disabled={busy || saving} onChange={() => { setModeDraft(value); setModeTouched(true); setLocalError(''); }}/><span>{label}</span></label>)}</div></fieldset>
     <div className="sl-settings-grid">
       <label className="sl-setting sl-field">
         <span><strong>同时投递通道数</strong><small>{concurrent.ok ? '1～10；只限制同时入队的消息，不限制会话同时工作。' : concurrent.error}</small></span>
@@ -187,7 +200,7 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
     </div>
     {localError && <p className="sl-alert" role="alert">{localError}</p>}
     <div className="sl-actions">
-      <button type="submit" className="sl-button sl-primary" disabled={busy || !writable || !dirty}>{saving ? '保存中…' : '保存并应用'}</button>
+      <button type="submit" className="sl-button sl-primary" disabled={busy || saving || (!dirty && !modeDirty) || (dirty && !writable)}>{saving ? '保存中…' : '保存并应用'}</button>
     </div>
   </form>;
 }
@@ -234,7 +247,7 @@ export function RecordDetail({ message, snapshot, busy, writable, act, open, thr
       <span className={`sl-status sl-${status}`}>{messageState(message)}</span>
     </div>
     <div className="sl-thread" aria-label="完整往返">
-      {messages.map(item => <MessageBubble key={item.id} selected={item.id === message.id} author={sessionLabel(item.from, sessions, item.fromTitle)} direction={item.from === message.from ? 'sent' : 'received'} text={textOf(item) || '正文已清理，或此记录无正文。'} time={item.createdAt} status={messageState(item)} actions={<CopyMessage text={textOf(item)}/>}>
+      {messages.map(item => <MessageBubble key={item.id} selected={item.id === message.id} author={sessionLabel(item.from, sessions, item.fromTitle)} direction={item.from === message.from ? 'sent' : 'received'} text={textOf(item) || '正文已清理，或此记录无正文。'} time={item.createdAt} status={visibleMessageState(item)} actions={<CopyMessage text={textOf(item)}/>}>
         {item.error && <p className="sl-chat-error" role="status" data-i18n-skip="">{typeof item.error === 'string' ? item.error : `${item.error.code}：${item.error.message}`}</p>}
       </MessageBubble>)}
     </div>
@@ -352,7 +365,7 @@ export function RecordsPanel({ snapshot, busy, writable, act, open, filter, setF
           {!messages.length ? <div className="sl-empty">{filter === 'all' && !senderSessionId && !receiverSessionId ? '还没有通信记录。' : '没有符合条件的记录。'}</div> : messages.map(item => <button key={item.id} type="button" className={`sl-record ${selected === item.id ? 'sl-selected' : ''}`} onClick={() => setSelected(item.id)}>
             <div className="sl-route"><span data-i18n-skip="">{sessionLabel(item.from, sessions, item.fromTitle)}</span><span aria-hidden="true">→</span><span data-i18n-skip="">{sessionLabel(item.to, sessions, item.toTitle)}</span></div>
             <div className="sl-preview"><span data-i18n-skip="">{textOf(item) || ''}</span>{!textOf(item) && '正文已清理，或此记录无正文。'}</div>
-            <div className="sl-record-meta"><span className={`sl-status sl-${statusOf(item)}`}>{messageState(item)}</span><time>{date(item.createdAt)}</time><code>#{short(item.id)}</code></div>
+            <div className="sl-record-meta">{visibleMessageState(item) && <span className={`sl-status sl-${statusOf(item)}`}>{visibleMessageState(item)}</span>}<time>{date(item.createdAt)}</time></div>
           </button>)}
         </section>
         <div className="sl-pagination"><Action busy={busy || offset === 0} onClick={() => { setOffset(Math.max(0, offset - LIMIT)); setSelected(null); }}>上一页</Action><span>{total} 条 · 第 {Math.floor(offset / LIMIT) + 1} 页</span><Action busy={busy || offset + LIMIT >= total} onClick={() => { setOffset(offset + LIMIT); setSelected(null); }}>下一页</Action></div>
@@ -527,7 +540,8 @@ export function apply(ctx) {
   ctx.effect(() => {
     const style = document.createElement('style');
     style.dataset.plugin = name;
-    style.textContent = css + CARD_CSS + BUBBLE_CSS;
+    // In card mode the preserved legacy frame must not be restyled as a bubble.
+    style.textContent = css + CARD_CSS;
     document.head.append(style);
     return () => style.remove();
   });
@@ -550,6 +564,11 @@ export function apply(ctx) {
     // A visual skin failure must not take messaging down; keep the cause in
     // the developer console rather than silently hiding an assembly failure.
     console.warn('[session-link] Chat skin unavailable; native chat remains.', error);
+  }
+  try {
+    installSubagentMessages(ctx);
+  } catch (error) {
+    console.warn('[session-link] Subagent messages unavailable; native chat remains.', error);
   }
   try {
     installIncomingCards(ctx);

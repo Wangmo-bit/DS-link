@@ -346,7 +346,10 @@ test('window scope: unique resolution / shared object / missing binding all fall
 
 // ---- bundled JSX entry ----
 
-test('entry surface: installOutgoingCards registers the non-exclusive definition + operation/send/reply/create toolview keys', async () => {
+test('entry surface: card mode registers the non-exclusive definition + operation/send/reply/create toolview keys', async (t) => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => 'card' } });
+  t.after(() => { if (previous) Object.defineProperty(globalThis, 'localStorage', previous); else delete globalThis.localStorage; });
   const mod = await loadOutgoingCards();
   assert.equal(typeof mod.installOutgoingCards, 'function');
   assert.deepEqual(mod.inject, ['sessions', 'uiConversation', 'slots']);
@@ -1025,7 +1028,10 @@ function makeTransactionalCtx({ failSlotKey = null, duplicateKind = false } = {}
   return { ctx, activeKinds, listListeners, bindingListeners, registeredSlots, source, events };
 }
 
-test('P1 transaction: a slot failure mid-install rolls back definition/subscriptions/slots and rethrows', async () => {
+test('P1 transaction: a slot failure mid-install rolls back definition/subscriptions/slots and rethrows', async (t) => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => 'card' } });
+  t.after(() => { if (previous) Object.defineProperty(globalThis, 'localStorage', previous); else delete globalThis.localStorage; });
   const mod = await loadOutgoingCards();
   const fixture = makeTransactionalCtx({ failSlotKey: 'session_link_reply' });
   let fetchCalls = 0;
@@ -1104,10 +1110,10 @@ test('append gate: model-only replacement results are never claimed nor queried'
   void coordinator;
 });
 
-test('toolview: neutral light/dark frame and translated process labels', async () => {
+test('toolview: warm light/dark card frame and translated process labels', async () => {
   const css = await readFile(new URL('../src/client/style.css', import.meta.url), 'utf8');
-  assert.match(css, /\.sl-tool-record\{[^}]*border:1px solid #d4d4d4;[^}]*border-radius:8px;[^}]*background:#f2f2f2/);
-  assert.match(css, /body\[data-ds-dark-theme\] \.sl-tool-record\{[^}]*border-color:#484848;background:#292929/);
+  assert.match(css, /\.sl-tool-record\{[^}]*border:1px solid #d4c3ad;[^}]*border-radius:8px;[^}]*background:#f5eee5/);
+  assert.match(css, /body\[data-ds-dark-theme\] \.sl-tool-record\{[^}]*border-color:#69513c;background:#30271f/);
   assert.match(css, /\.sl-tool-record__row\{[^}]*display:flex;[^}]*flex-wrap:wrap/);
   assert.match(css, /\.sl-tool-record__tech\[open\]\{flex-basis:100%\}/);
   setI18nLocale('en');

@@ -33,7 +33,7 @@
  *     No module-level test hooks: tests inject through `options.onReady`.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_KIND, createSenderCardDefinition } from './outgoing-card.mjs';
 import { createWindowScope } from './outgoing-window-scope.mjs';
@@ -41,6 +41,7 @@ import { createCardVerifier } from './outgoing-card-verify.mjs';
 import { createOutgoingCoordinator } from './outgoing-coordinator.mjs';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 import { ExchangeLink } from './chat-ui.jsx';
+import { getDisplayMode, subscribeDisplayMode, useDisplayMode } from './display-mode.mjs';
 
 /** Strict tool set — anything else (status/control/list/…) stays native. */
 export const TOOL_KEYS = Object.freeze(['session_link_send', 'session_link_reply', 'session_link_create', 'session_link_operation']);
@@ -182,23 +183,37 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
   );
 }
 
-/**
- * Card view: one compact two-line button by default (nothing else rendered);
- * expanding reveals the real business body and the single default-closed
- * technical details, and triggers one batched status refresh for its ids.
- */
+/** Compact sender-side notice for bubble mode. The old card layout above stays
+ * available for the future card-mode switch. Routine receipt state is omitted;
+ * per-target failure/uncertainty remains visible and is never treated as safe
+ * to resend. Selecting a recipient opens the bounded exchange reader. */
+export function senderIndicator(label) {
+  if (label === '已进入上下文' || label === '明确回复') return { kind: 'received', title: label === '明确回复' ? '已收到明确回复' : '已进入对方上下文' };
+  if (['待投递', '已暂存·待投递', '投递中·结果待确认', '宿主已接收·待进入上下文'].includes(label)) return { kind: 'pending', title: label === '宿主已接收·待进入上下文' ? '已送达宿主，等待进入对方上下文' : label };
+  if (label === '失败' || label === '已取消') return { kind: 'failed', title: label === '失败' ? '投递失败' : '已取消' };
+  return { kind: 'warning', title: label || '状态需要核对' };
+}
+
 export function createSenderCardView({ onRefresh } = {}) {
-  return function SenderCardView({ node } = {}) {
+  return function SenderCardView({ node, inspectCall } = {}) {
+    const mode = useDisplayMode();
+    const [open, setOpen] = useState(false);
     const data = node?.data;
     if (!data) return null;
+    if (mode === 'card') return <SenderCardLayout data={data} open={open} onToggle={() => setOpen(value => !value)} onRefresh={onRefresh} inspectCall={inspectCall}/>;
     const targets = Array.isArray(data.to) ? data.to : [];
     const names = Array.isArray(data.toDisplay) ? data.toDisplay : [];
+    const states = Array.isArray(data.targetStatus) ? data.targetStatus : [];
     return <div className="sl-chat-event" data-session-link-card={data.callId} data-session-link-i18n-root="" data-session-link-direction="sent">
-      {targets.map((target, index) => <ExchangeLink key={target} selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'}>
-        已发消息给 {names[index] || '目标会话'}
-      </ExchangeLink>)}
-      <span className="sl-chat-event-status" title={data.statusStale ? '最近刷新失败，显示上次核对结果' : undefined}>{data.statusStale ? '状态未更新' : data.status}</span>
-      <button type="button" className="sl-chat-copy" aria-label="刷新投递状态" onClick={() => onRefresh?.({ sessionId: data.from, ids: data.evidence?.messageIds ?? [] })}>↻</button>
+      {targets.map((target, index) => {
+        const item = states.find(entry => entry.target === target);
+        const status = item ? (item.stale || typeof item.asOf !== 'number' ? '状态未更新' : item.label) : (data.statusStale ? '状态未更新' : data.status);
+        const indicator = senderIndicator(status);
+        return <span className="sl-chat-event-target" key={target}>
+          <ExchangeLink selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'}>已发消息给 {names[index] || '目标会话'}</ExchangeLink>
+          <span className={`sl-delivery-indicator sl-delivery-indicator--${indicator.kind}`} role="status" aria-label={indicator.title} title={indicator.title} tabIndex={0}>{indicator.kind === 'pending' ? <span className="sl-delivery-spinner" aria-hidden="true"/> : <span aria-hidden="true">{indicator.kind === 'received' ? '✓' : indicator.kind === 'failed' ? '×' : '?'}</span>}</span>
+        </span>;
+      })}
     </div>;
   };
 }
@@ -403,9 +418,16 @@ export function installOutgoingCards(ctx, { fetchImpl, onReady } = {}) {
     for (const key of TOOL_KEYS) {
       assertToolKey(key);
       slotStops.push(
-        ctx.slots.inject('tool.call.toolview', () =>
-          ctx.slots.register({ name: 'tool.call.toolview', key }, SessionLinkToolview),
-        ),
+        ctx.slots.inject('tool.call.toolview', () => {
+          let stop;
+          const sync = () => {
+            if (getDisplayMode() === 'card') stop ??= ctx.slots.register({ name: 'tool.call.toolview', key }, SessionLinkToolview);
+            else if (stop) { stop(); stop = undefined; }
+          };
+          sync();
+          const off = subscribeDisplayMode(sync);
+          return () => { off(); stop?.(); };
+        }),
       );
     }
 

@@ -20,6 +20,7 @@ import {
   healthNotice,
   heldHint,
   messageState,
+  visibleMessageState,
   minutesFromMs,
   msFromMinutes,
   parseIntegerText,
@@ -54,6 +55,17 @@ const LIMITS = Object.freeze({
   snapshotPageMax: 100,
   operationFirstSubmitMs: 86400000,
   operationRetentionMs: 7776000000,
+});
+
+test('reading view hides only routine statuses, never pending or uncertain facts', () => {
+  assert.equal(visibleMessageState({ status: 'accepted', receipt: { state: 'received' }, replyStatus: 'answered' }), '');
+  assert.equal(visibleMessageState({ status: 'failed' }), '投递失败');
+  assert.equal(visibleMessageState({ status: 'unknown' }), '需要核对');
+  assert.match(visibleMessageState({ status: 'accepted', receipt: { state: 'queued' } }), /待接收/);
+  assert.match(visibleMessageState({ status: 'accepted', receipt: { state: 'uncertain', policy: 'context' } }), /核对/);
+  assert.match(visibleMessageState({ status: 'accepted', replyStatus: 'timed_out' }), /超时/);
+  assert.match(visibleMessageState({ status: 'accepted', lateReply: true }), /迟到/);
+  assert.match(visibleMessageState({ status: 'accepted', receipt: { state: 'received', transfer: { state: 'uncertain' } } }), /核对/);
 });
 
 test('frozen status wording matches the blueprint and never claims read/handled', () => {
@@ -365,7 +377,10 @@ test('no budget UI, no manual send form and no hard-coded old capacities', async
   assert.match(source, /migration\.backupAvailable/);
   assert.doesNotMatch(source, /backupPath/);
   assert.match(source, /const TAB_ORDER = \['settings', 'records'\]/);
-  assert.equal((source.match(/<input /g) ?? []).length, 5, 'the section keeps exactly five settings');
+  assert.equal((source.match(/<input /g) ?? []).length, 6, 'five relay inputs plus a mapped local display-mode radio');
+  assert.match(source, /name="sl-display-mode"/);
+  assert.match(source, /style\.textContent = css \+ CARD_CSS;/);
+  assert.doesNotMatch(source, /css \+ CARD_CSS \+ BUBBLE_CSS/, 'legacy cards must not inherit bubble-only overrides');
   assert.doesNotMatch(source, /发送消息|投递方式/);
 });
 

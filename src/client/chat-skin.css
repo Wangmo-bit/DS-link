@@ -29,6 +29,11 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
   box-sizing: border-box;
 }
 .sl-chat-message--sent { align-items: flex-end; margin-left: auto; }
+/* Keep the original Host action row, but align it closely with the answer. */
+[data-chat-flow-kind="assistant-step"]:has(.sl-chat-message--received) .sl-chat-message--received { margin-bottom: 0; }
+[data-chat-flow-kind="assistant-step"]:has(.sl-chat-message--received) + [data-chat-flow-kind="turn-tail"], [data-sl-native-message] + [data-chat-flow-kind="turn-tail"] { margin-top: 4px !important; }
+[data-sl-native-message]:has(+ [data-chat-flow-kind="turn-tail"]) > .sl-chat-message--received { margin-bottom: 0; }
+.sl-chat-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; width: 100%; min-width: 0; }
 .sl-chat-author {
   display: block;
   color: var(--sl-chat-ink);
@@ -62,18 +67,71 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-chat-bubble table { display: block; max-width: 100%; overflow-x: auto; }
 .sl-chat-text { min-width: 0; white-space: normal; }
 .sl-chat-bubble [data-markdown-variant] { color: var(--sl-chat-ink) !important; font-size: inherit; line-height: 1.7; }
-.sl-native-user { min-width: 0; width: 100%; }
-.sl-native-user > div { max-width: 100% !important; width: 100%; align-items: stretch; }
-.sl-chat-user-content > div { max-width: 100% !important; width: 100%; align-items: stretch; }
-.sl-chat-user-content [data-message-attachments] { justify-content: flex-start; }
+/* Keep the intrinsic width of the user's text. The Host's user row includes
+   its own action footer; only the text gets a surface, not the whole row. */
+.sl-chat-user { width: fit-content; max-width: min(84%, 960px); }
+.sl-native-user { max-width: 100%; min-width: 0; }
+.sl-native-user > [class*="_userRow"] { max-width: 100%; align-items: flex-end; gap: 4px; }
+.sl-chat-user-content { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 100%; min-width: 0; }
+.sl-chat-user-content [class*="_userStack"] { max-width: 100%; align-items: flex-end; }
+.sl-user-attachments, .sl-user-bubble { max-width: 100%; min-width: 0; }
+.sl-user-bubble { width: fit-content; padding: 12px 16px; box-sizing: border-box; border-radius: 18px 18px 6px 18px; background: var(--sl-chat-user-surface); color: var(--sl-chat-ink); text-align: left; overflow-wrap: anywhere; }
+.sl-chat-user-content .sl-user-bubble [class*="_bubble"] { background: transparent !important; padding: 0 !important; max-width: 100% !important; text-align: left; }
+.sl-chat-user-content [data-message-attachments] { justify-content: flex-end; }
+/* Codex viewer's single-image loading button otherwise has height:auto and
+   collapses to the height of its ellipsis until the image resolves. Reserve
+   the probed aspect ratio while preserving its own preview/lightbox actions. */
+.sl-stable-user-images { max-width: 100%; }
+.sl-stable-user-images[data-sl-single] { width: var(--sl-img-width, 240px); }
+.sl-stable-user-images .codexMessageImages[data-single="true"] .codexImageThumb {
+  width: min(var(--sl-img-width, 240px), 100%);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: var(--sl-img-ratio, 4 / 3);
+  box-sizing: border-box;
+}
+.sl-stable-user-images .codexMessageImages[data-single="true"] .codexImageThumb img { width: 100%; height: 100%; max-height: none; object-fit: contain; }
+.sl-native-user [class*="_actions"] { margin-top: 0; }
 .sl-chat-text[data-folded] { mask-image: linear-gradient(to bottom,#000 calc(100% - 30px),transparent); }
 .sl-chat-more { display: inline-flex; margin-top: 8px; padding: 2px 0; border: 0; background: none; color: inherit; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .sl-chat-more:hover { text-decoration: underline; text-underline-offset: 3px; }
 .sl-chat-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; color: var(--sl-chat-muted); font-size: 11px; line-height: 1.5; padding: 0 2px; }
 .sl-chat-copy, .sl-chat-close { border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 4px 7px; }
+.sl-chat-copy { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; }
 .sl-chat-copy:hover, .sl-chat-close:hover { background: color-mix(in srgb,currentColor 9%,transparent); }
 .sl-chat-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .sl-chat-process { display: flex; align-items: center; gap: 6px; color: var(--sl-chat-muted); font-size: 12px; line-height: 1.6; margin: 6px 0; }
+/* The Host's running announcer remains in the accessibility tree; only its
+   redundant visual row leaves the flow when our live header is present. */
+[data-slot="conversation.chat.flow"]:has([data-sl-running]) > [data-chat-running],
+[data-slot="conversation.chat.flow.adapter"]:has([data-sl-running]) > [data-chat-running] {
+  position: absolute !important; width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: 0 !important; overflow: hidden !important;
+  clip-path: inset(50%); white-space: nowrap; border: 0 !important;
+}
+[data-chat-flow-kind="turn-process"]:has([data-sl-process-relocated]) { display: none; }
+/* Claude Style adds its own numeric caption to the native group. When our
+   answer header already carries the turn summary, keep the group button and
+   native tool actions but suppress that duplicate decorative caption. */
+[data-chat-flow-kind="turn-process"]:has([data-sl-process-relocated]) + [data-step-process] .dsh-claude-process-summary { display: none !important; }
+.sl-chat-thinking-dots { display:inline-flex; gap:3px; color:var(--sl-chat-muted); line-height:1; }
+.sl-chat-thinking-dots > span { display:inline-block; opacity:.45; animation:sl-thinking-pulse 1.35s ease-in-out infinite; }
+.sl-chat-thinking-dots > span:nth-child(2) { animation-delay:.16s; }
+.sl-chat-thinking-dots > span:nth-child(3) { animation-delay:.32s; }
+@keyframes sl-thinking-pulse { 0%,65%,100% { opacity:.4; } 32% { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .sl-chat-thinking-dots > span { animation:none; opacity:.75; } }
+.sl-chat-process-toggle.sl-heading-process { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap; font-size: 12px; color: var(--sl-chat-muted); }
+.sl-process-chevron { display: inline-flex; flex: none; align-items: center; justify-content: center; line-height: 1; }
+[data-sl-native-message] { position:relative; }
+.sl-native-anchor { position:absolute; top:0; left:0; width:1px; height:1px; pointer-events:none; }
+.sl-chat-bubble [data-sl-native-process]:not([hidden]) + [data-chat-flow-kind] { margin-top: 12px; }
+.sl-process-attention { display:block; border:0; border-radius:6px; padding:3px 5px; background:transparent; color:var(--dsw-alias-state-error-primary,#d56868); font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+.sl-process-attention:focus-visible { outline:2px solid #829aff; outline-offset:3px; }
+.sl-inline-process { display: flex; flex-direction: column; gap: 5px; padding: 0 0 10px; margin-bottom: 10px; border-bottom: 1px solid var(--sl-chat-border); color: var(--sl-chat-muted); font-size: 12px; }
+.sl-inline-process details > summary { cursor: pointer; }
+.sl-inline-tool { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sl-inline-tool > span:first-child { overflow-wrap: anywhere; }
+.sl-inline-tool button { margin-left: auto; border: 0; padding: 2px 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .sl-chat-process-toggle { border: 0; border-radius: 6px; padding: 3px 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .sl-chat-process-toggle:disabled { opacity: 1; cursor: default; }
 .sl-chat-process-toggle:focus-visible { outline: 2px solid #829aff; outline-offset: 3px; }
@@ -88,7 +146,15 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-chat-event { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; align-items: center; margin: 12px 0; color: var(--sl-chat-muted); font-size: 12px; line-height: 1.5; }
 .sl-exchange-link { border: 0; border-radius: 9px; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 4px 8px; }
 .sl-exchange-link:hover { background: color-mix(in srgb,currentColor 7%,transparent); color: var(--sl-chat-ink); }
-.sl-chat-event-status { font-size: 11px; }
+.sl-chat-event-target { display: inline-flex; align-items: center; gap: 4px; }
+.sl-chat-event .sl-exchange-link { background: color-mix(in srgb, var(--sl-chat-muted) 12%, transparent); border-radius: 999px; }
+.sl-chat-event .sl-exchange-link:hover { background: color-mix(in srgb, var(--sl-chat-muted) 20%, transparent); }
+.sl-chat-event-status { font-size: 11px; color: var(--dsw-alias-state-error-primary, #d56868); }
+.sl-delivery-indicator { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; color:var(--sl-chat-muted); font-size:13px; line-height:1; }
+.sl-delivery-indicator--warning,.sl-delivery-indicator--failed { color:var(--dsw-alias-state-error-primary,#d56868); }
+.sl-delivery-spinner { width:11px; height:11px; box-sizing:border-box; border:1.5px solid currentColor; border-right-color:transparent; border-radius:50%; animation:sl-delivery-spin 1s linear infinite; }
+@keyframes sl-delivery-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .sl-delivery-spinner { animation:none; } }
 .sl-chat-error { color: #d56868; font-size: 12px; line-height: 1.5; }
 .sl-chat-notice { color: var(--sl-chat-muted); font-size: 12px; }
 .sl-exchange-dialog { width: min(1100px, calc(100vw - 48px)); max-width: none; height: min(88dvh, 1000px); max-height: 90dvh; padding: 0; border: 1px solid var(--sl-chat-border); border-radius: 20px; background: var(--sl-chat-dialog); color: var(--sl-chat-ink); box-shadow: 0 20px 80px #0006; }
@@ -98,31 +164,34 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-exchange-head h2 { margin: 0; font: inherit; font-weight: 650; font-size: 15px; overflow-wrap: anywhere; }
 .sl-exchange-head h2 span { color: var(--sl-chat-muted); padding: 0 8px; }
 .sl-exchange-scroll { overflow-y: auto; padding: 10px 28px 28px; flex: 1; min-height: 0; overscroll-behavior: contain; }
+.sl-exchange-older { display: flex; justify-content: center; margin: 4px 0 12px; }
+.sl-exchange-older-button { border: 0; border-radius: 999px; padding: 5px 12px; background: color-mix(in srgb, var(--sl-chat-muted) 12%, transparent); color: var(--sl-chat-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.sl-exchange-older-button:hover { background: color-mix(in srgb, var(--sl-chat-muted) 20%, transparent); color: var(--sl-chat-ink); }
+.sl-exchange-older-button:disabled { opacity: .6; cursor: wait; }
 .sl-chat-message button:focus-visible, .sl-chat-process summary:focus-visible, .sl-chat-event button:focus-visible, .sl-exchange-dialog button:focus-visible { outline: 2px solid #829aff; outline-offset: 3px; }
-/* Preserve the native details/action behavior while giving our wrapper the
-   ONLY colored surface. Target factory output only, never arbitrary files. */
-.sl-chat-user-content { min-width: 0; }
-.sl-chat-user-content [class*="bubble"], .sl-chat-user-content [data-dsh-claude-part~="user-bubble"] { background: transparent !important; padding: 0 !important; max-width: 100% !important; border-radius: 0 !important; }
-/* The Host renders local submission echoes before a durable keyed user node.
-   Keep that short-lived surface consistent without changing its lifecycle. */
-[data-submission-echo], [data-pending-steering] {
+/* The local echo uses the Host's native user row before the durable keyed
+   node exists. Match its text surface and width to the durable renderer; keep
+   image thumbnails outside the text bubble in both states. */
+:root:not([data-sl-card-mode]) [data-submission-echo], :root:not([data-sl-card-mode]) [data-pending-steering] {
   position: relative;
   box-sizing: border-box;
   width: fit-content;
-  max-width: 84%;
+  max-width: min(84%, 960px);
   margin: 35px 0 20px auto;
-  padding: 12px 16px;
-  border-radius: 18px 18px 6px 18px;
-  background: var(--sl-chat-user-surface);
   color: var(--sl-chat-ink);
+  background: transparent;
 }
-[data-submission-echo]::before, [data-pending-steering]::before {
+:root:not([data-sl-card-mode]) [data-submission-echo]::before, :root:not([data-sl-card-mode]) [data-pending-steering]::before {
   content: '王墨'; position: absolute; right: 2px; bottom: calc(100% + 7px);
   font-size: 14px; font-weight: 650; line-height: 1.5; color: var(--sl-chat-ink);
 }
-[data-submission-echo] [class*="bubble"], [data-pending-steering] [class*="bubble"] { background: transparent !important; padding: 0 !important; max-width: 100% !important; }
+:root:not([data-sl-card-mode]) [data-submission-echo] [class*="_userStack"], :root:not([data-sl-card-mode]) [data-pending-steering] [class*="_userStack"] { max-width: 100%; }
+:root:not([data-sl-card-mode]) [data-submission-echo] [class*="_bubble"], :root:not([data-sl-card-mode]) [data-pending-steering] [class*="_bubble"] { max-width: 100%; padding: 12px 16px; box-sizing: border-box; border-radius: 18px 18px 6px 18px; background: var(--sl-chat-user-surface); color: var(--sl-chat-ink); text-align: left; }
+@media (prefers-reduced-motion: reduce) { .sl-chat-user, :root:not([data-sl-card-mode]) [data-submission-echo], :root:not([data-sl-card-mode]) [data-pending-steering] { animation: none !important; transition: none !important; } }
 @media (max-width: 720px) {
-  .sl-chat-message, [data-submission-echo], [data-pending-steering] { max-width: 95%; }
+  .sl-chat-message, :root:not([data-sl-card-mode]) [data-submission-echo], :root:not([data-sl-card-mode]) [data-pending-steering] { max-width: 95%; }
+  .sl-chat-heading { flex-wrap: wrap; row-gap: 2px; }
+  .sl-chat-process-toggle.sl-heading-process { white-space: normal; text-align: right; }
   .sl-chat-bubble { padding: 10px 13px; }
   .sl-exchange-dialog { width: calc(100vw - 16px); height: 92dvh; max-height: 96dvh; border-radius: 14px; }
   .sl-exchange-head { padding: 14px 16px; }

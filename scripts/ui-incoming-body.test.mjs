@@ -19,6 +19,7 @@ function harness(Component) {
       return [slots[at], value => { slots[at] = typeof value === 'function' ? value(slots[at]) : value; }];
     },
     useRef(initial) { const at = cursor++; return slots[at] ??= { current: initial }; },
+    useSyncExternalStore(_subscribe, getSnapshot) { cursor++; return getSnapshot(); },
     useEffect(callback, deps) {
       const at = cursor++;
       const previous = slots[at];

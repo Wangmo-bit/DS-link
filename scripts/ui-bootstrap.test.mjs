@@ -48,7 +48,8 @@ test('card registration failures leave existing settings entry registered', asyn
   assert.ok(injected.includes('main'));
   assert.ok(injected.includes('sidebar.panellist'));
   assert.ok(!injected.includes('settings.section'));
-  assert.equal(warnings.length, 2);
+  assert.equal(warnings.length, 3);
+  assert.ok(warnings.some(args => /Subagent messages unavailable; native chat remains/.test(String(args[0]))));
   assert.ok(warnings.some(args => /Incoming cards unavailable; native chat remains available/.test(String(args[0]))));
   assert.ok(warnings.some(args => /Outgoing cards unavailable; native chat remains available/.test(String(args[0]))));
 });

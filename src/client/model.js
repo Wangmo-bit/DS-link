@@ -142,6 +142,21 @@ export function messageState(message) {
   return parts.join(' · ');
 }
 
+// Normal delivered/answered states remain available in the message detail,
+// without repeating a status line under every bubble in the reading view.
+// Pending, failed, unknown, timed-out, late and uncertain states stay visible.
+export function visibleMessageState(message) {
+  const status = message.dispatchStatus ?? message.status;
+  const receipt = receiptOf(message);
+  const routine = status === 'accepted'
+    && (!receipt || receipt.state === 'received' || (receipt.policy === 'legacy-accepted' && receipt.state === 'uncertain'))
+    && receipt?.transfer?.state !== 'uncertain'
+    && (!message.replyStatus || ['none', 'answered'].includes(message.replyStatus))
+    && !message.late && !message.lateReply && message.lateReplyAt == null
+    && message.resolution !== 'unconfirmed';
+  return routine ? '' : messageState(message);
+}
+
 export function chainStateText(state) {
   return CHAIN_STATE[state] ?? '未加载';
 }

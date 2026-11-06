@@ -75,6 +75,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 import { MessageBubble, ExchangeLink, CopyMessage } from './chat-ui.jsx';
+import { useDisplayMode } from './display-mode.mjs';
 
 const KIND = 'session-link-card';
 const SCAN_DEBOUNCE_MS = 200;
@@ -404,6 +405,8 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
   function SessionLinkCardView({ node }) {
     const [body, setBody] = useState(null);
     const [retry, setRetry] = useState(0);
+    const [cardOpen, setCardOpen] = useState(false);
+    const mode = useDisplayMode();
     const data = node?.data ?? {};
     const durableId = typeof data.durableMessageId === 'string' ? data.durableMessageId : '';
     const sessionId = typeof data.row?.to === 'string' ? data.row.to : '';
@@ -420,7 +423,7 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     // A live turn rebuilds nodes frequently. Always use the latest proof for
     // scope checks without aborting/re-fetching on every durable event.
     useEffect(() => {
-      if (durableId === '' || sessionId === '') return undefined;
+      if (durableId === '' || sessionId === '' || (mode === 'card' && !cardOpen)) return undefined;
       if (typeof windowProof.current !== 'function' || !windowProof.current()) {
         setBody({ phase: 'unavailable', reason: '事件已不在当前会话窗口' });
         return undefined;
@@ -446,14 +449,17 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
         cancelled = true;
         controller.abort();
       };
-    }, [durableId, sessionId, senderSessionId, retry]);
+    }, [durableId, sessionId, senderSessionId, retry, mode, cardOpen]);
 
     const from = data.fromDisplay || '发送会话';
     const to = data.toDisplay || '当前会话';
     const available = body?.phase === 'available' && body.identity === `${sessionId}\n${durableId}\n${senderSessionId}` && windowProof.current?.() === true;
+    const info = statusDisplay(body?.row ?? data.row, data.statusAsOf, data.statusStale === true);
+    const status = info.stale ? '状态未更新' : ['已进入上下文', '明确回复'].includes(info.label) ? '' : info.label;
+    if (mode === 'card') return <SessionLinkCardLayout data={data} open={cardOpen} body={available ? body : body?.phase === 'available' ? { phase: 'unavailable', reason: '事件已不在当前会话窗口' } : body} onToggle={() => setCardOpen(value => !value)} onRetry={() => { setBody(null); setRetry(value => value + 1); }}/>;
     return <div data-session-link-card="" data-session-link-i18n-root="" data-session-link-direction="received">
       <div className="sl-chat-event"><ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from}>收到消息，来自 {from}</ExchangeLink></div>
-      <MessageBubble author={from} text={available ? body.body : undefined} time={data.row?.createdAt} status={statusDisplay(body?.row ?? data.row, data.statusAsOf, data.statusStale === true).label} actions={available ? <CopyMessage text={body.body}/> : undefined}>
+      <MessageBubble author={from} text={available ? body.body : undefined} time={data.row?.createdAt} status={status} actions={available ? <CopyMessage text={body.body}/> : undefined}>
         {!body && <p className="sl-chat-notice" role="status">正在读取消息…</p>}
         {body?.phase === 'error' && <p className="sl-chat-error" role="alert">消息读取失败。<button type="button" onClick={() => { setBody(null); setRetry(value => value + 1); }}>重试</button></p>}
         {body && !available && body.phase !== 'error' && <p className="sl-chat-notice">{body.phase === 'redacted' ? '消息正文已清理。' : '消息暂不可用，请在往返记录中核对。'}</p>}

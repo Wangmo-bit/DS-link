@@ -1,6 +1,6 @@
-/* Compact, neutral tool-process record, distinct from message direction cards. */
-.sl-tool-record{margin:2px 0;border:1px solid #d4d4d4;border-radius:8px;background:#f2f2f2;color:#292929;font:inherit;overflow:hidden}
-body[data-ds-dark-theme] .sl-tool-record{border-color:#484848;background:#292929;color:#e6e6e6}
+/* Warm call-card surface, shown only in the legacy card mode. */
+.sl-tool-record{margin:2px 0;border:1px solid #d4c3ad;border-radius:8px;background:#f5eee5;color:#322b24;font:inherit;overflow:hidden}
+body[data-ds-dark-theme] .sl-tool-record{border-color:#69513c;background:#30271f;color:#ece6de}
 .sl-tool-record__row{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;min-width:0;padding:6px 10px}
 .sl-tool-record__title{min-width:0;white-space:nowrap}
 .sl-tool-record__status{white-space:nowrap;opacity:.75;font-size:.85em}
@@ -66,6 +66,16 @@ body[data-ds-dark-theme] .sl-tool-record__status--error{color:#ef9b9b}
 .sl-text-button{padding:0;border:0;background:none;text-align:left;color:var(--sl-link);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .sl-section code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;overflow-wrap:anywhere}
 
+/* Local presentation choice is separate from relay settings. */
+.sl-mode-setting{display:block;min-width:0}
+.sl-mode-setting legend{font-weight:600;padding:0 4px}
+.sl-mode-setting small{display:block;color:var(--sl-dim);margin-bottom:8px}
+.sl-mode-options{display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border:1px solid var(--sl-line);border-radius:9px}
+.sl-mode-options label{position:relative;cursor:pointer}
+.sl-mode-options input{position:absolute;opacity:0}
+.sl-mode-options span{display:block;padding:5px 12px;border-radius:6px;color:var(--sl-dim)}
+.sl-mode-options input:checked+span{background:color-mix(in srgb,var(--sl-link) 18%,transparent);color:var(--sl-ink)}
+.sl-mode-options input:focus-visible+span{outline:2px solid var(--sl-link);outline-offset:2px}
 /* Settings form */
 .sl-settings{max-width:100%;padding:4px 0 8px}
 .sl-setting{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--sl-line);font-size:14px}

@@ -45,6 +45,7 @@ async function loadClientEntry(entry) {
 
 const skin = await loadClientEntry('src/client/chat-skin.jsx');
 const ui = await loadClientEntry('src/client/chat-ui.jsx');
+const imageSkin = await loadClientEntry('src/client/image-skin.jsx');
 
 /* ── Hook dispatcher ─────────────────────────────────────────────────────── */
 
@@ -135,7 +136,7 @@ function renderNodes(element, context, pathName) {
   if (!React.isValidElement(element)) throw new Error(`unsupported test node at ${pathName}`);
 
   const { type, props } = element;
-  if (type === React.Fragment) return renderNodes(props?.children, context, `${pathName}.fragment`);
+  if (type === React.Fragment || type?.$$typeof === Symbol.for('react.provider')) return renderNodes(props?.children, context, `${pathName}.fragment`);
   if (typeof type === 'function') {
     let store = context.stores.get(pathName);
     if (!store) {
@@ -237,7 +238,7 @@ function makeNativeEntries() {
   return { entries, hooks, keyedHooks, injectArgs };
 }
 
-function installFixture(entries = makeNativeEntries().entries) {
+function installFixture(entries = makeNativeEntries().entries, { adapter = false } = {}) {
   const registers = [];
   const stops = [];
   const effects = [];
@@ -249,7 +250,9 @@ function installFixture(entries = makeNativeEntries().entries) {
     },
     slots: {
       inject(name, callback) {
-        const cleanup = callback();
+        // This fixture tests the chat-node seat. Image-viewer declaration is
+        // not mounted here and is exercised by its own independent tests.
+        const cleanup = name === 'conversation.chat.user.images' || (name === 'conversation.chat.flow.adapter' && !adapter) ? () => {} : callback();
         injections.push({ name, cleanup });
         return cleanup;
       },
@@ -264,7 +267,7 @@ function installFixture(entries = makeNativeEntries().entries) {
     },
     sessions: {
       list: {
-        getSnapshot: () => ({ byId: { 'sess-1': { title: '设计评审' } } }),
+        getSnapshot: () => ({ byId: { 'sess-1': { title: '设计评审' }, 'child-1': { title: '这是一次全新独立的总体冷审', origin: 'subagent', projectionValues: { subagent: { mode: 'continuable', label: '冷审' } } }, 'child-2': { title: '很长的任务内容', origin: 'subagent' } } }),
       },
     },
   };
@@ -383,14 +386,13 @@ function articleOf(tree) {
 
 function assertSingleBubbleSibling(tree, author) {
   const article = articleOf(tree);
-  const header = findOne(article, (node) => host(node, 'header') && hasProp(node, 'data-sl-author'), 'author header');
+  const label = findOne(article, (node) => hasProp(node, 'data-sl-author'), 'author label');
+  const header = label.type === 'header' ? label : label.parent;
   const bubbles = findAll(article, (node) => hasProp(node, 'data-sl-bubble'));
   assert.equal(bubbles.length, 1, 'exactly one bubble');
   assert.equal(header.parent, article, 'author header is a direct child of the message row');
-  assert.equal(bubbles[0].parent, article, 'bubble is a direct child of the message row');
-  assert.ok(article.children.indexOf(header) >= 0);
-  assert.ok(article.children.indexOf(bubbles[0]) > article.children.indexOf(header), 'header sits above the bubble');
-  assert.match(textOf(header), new RegExp(author));
+  assert.ok(!hasAncestor(label, node => node === bubbles[0]), 'author is outside the message bubble');
+  assert.match(textOf(label), new RegExp(author));
   return { article, header, bubble: bubbles[0] };
 }
 
@@ -418,8 +420,7 @@ test('install registers keyed wrappers with native key, priority-5 and no redecl
     restoreDocument(descriptor);
   }
 
-  assert.equal(fixture.injections.length, 1);
-  assert.equal(fixture.injections[0].name, 'conversation.chat.flow');
+  assert.deepEqual(fixture.injections.map(item => item.name), ['conversation.chat.user.images', 'conversation.chat.flow.adapter', 'conversation.chat.flow']);
   assert.deepEqual(fixture.registers.map(({ options }) => options.key), ['user', 'steering', 'assistant-step', 'turn-process']);
   const expectedPriority = { user: 5, steering: 2, 'assistant-step': -2, 'turn-process': -4 };
   for (const { options, component } of fixture.registers) {
@@ -438,8 +439,17 @@ test('install registers keyed wrappers with native key, priority-5 and no redecl
   });
   assert.equal(findAll(nativeView.tree, (node) => hasProp(node, 'data-native-marker')).length, 1, 'the registered user wrapper keeps the native component');
 
-  fixture.injections[0].cleanup();
+  fixture.injections.find(item => item.name === 'conversation.chat.flow').cleanup();
   assert.deepEqual(fixture.stops, ['turn-process', 'assistant-step', 'steering', 'user']);
+});
+
+test('when the scoped flow adapter exists, native assistant and process renderers stay authoritative', () => {
+  const fixture=installFixture(makeNativeEntries().entries,{adapter:true});
+  assert.deepEqual(fixture.registers.map(({options})=>[options.name,options.key]),[
+    ['conversation.chat.flow.adapter',undefined],['conversation.chat.node','user'],['conversation.chat.node','steering'],
+  ]);
+  fixture.injections.find(item=>item.name==='conversation.chat.flow').cleanup();
+  fixture.injections.find(item=>item.name==='conversation.chat.flow.adapter').cleanup();
 });
 
 test('native inject receives the session id string and its hooks survive', () => {
@@ -460,7 +470,14 @@ test('native inject receives the session id string and its hooks survive', () =>
   assert.equal(injectArgs.at(-1)[0], undefined);
 
   const assistant = fixture.registers.find(({ options }) => options.key === 'assistant-step').options;
-  assert.deepEqual(assistant.inject('sess-1'), { hooks: { assistant: true }, skinAuthor: '设计评审' });
+  const assistantFace = assistant.inject('sess-1');
+  assert.deepEqual(assistantFace.hooks, { assistant: true });
+  assert.equal(assistantFace.skinAuthor, '设计评审');
+  assert.equal(typeof assistantFace.keyedHooks.turnSteps, 'function');
+  assert.equal(typeof assistantFace.keyedHooks.turnTools, 'function');
+  assert.deepEqual(assistantFace.keyedHooks.turnSteps('1').getSnapshot(), []);
+  assert.equal(assistant.inject('child-1').skinAuthor, '冷审');
+  assert.equal(assistant.inject('child-2').skinAuthor, '子智能体');
 });
 
 test('install effect owns one removable style node and never decorates chat rows', () => {
@@ -510,7 +527,7 @@ test('MessageBubble keeps the author header as a sibling of exactly one bubble',
   assert.equal(findAll(view.tree, (node) => hasProp(node, 'data-sl-bubble')).length, 1);
 });
 
-test('user skin keeps Native and original props, folds the content factory, and copies the original text', () => {
+test('user skin keeps Host actions outside the bubble and preserves the full original text', () => {
   const long = 'x'.repeat(1600);
   const fixture = makeUserFixture(long);
   const view = mount(skin.createUserSkin(fixture.Native), fixture.props);
@@ -524,8 +541,8 @@ test('user skin keeps Native and original props, folds the content factory, and 
 
   const contentCalls = fixture.factoryCalls.filter((call) => call.name === 'conversation.chat.user.content');
   assert.equal(contentCalls.length, 1);
-  assert.equal(contentCalls[0].input.content.text, 'x'.repeat(600), 'display factory receives the preview');
-  assert.equal(contentCalls[0].input.content.attachments, fixture.props.node.data.content.attachments);
+  assert.equal(contentCalls[0].input.content.text, long, 'display factory receives the full text');
+  assert.deepEqual(contentCalls[0].input.content.attachments, []);
   assert.equal(contentCalls[0].rest[0], 'native-rest', 'extra factory arguments are forwarded');
 
   const copyButton = findOne(view.tree, (node) => host(node, 'button') && hasProp(node, 'data-copy-original'), 'original copy button');
@@ -535,18 +552,27 @@ test('user skin keeps Native and original props, folds the content factory, and 
 
   const { article, bubble } = assertSingleBubbleSibling(view.tree, '王墨');
   const nativeNode = findOne(article, (node) => hasProp(node, 'data-native'), 'native renderer');
-  assert.ok(hasAncestor(nativeNode, (node) => node === bubble), 'Native stays below the single bubble');
+  assert.ok(hasAncestor(bubble, (node) => node === nativeNode), 'text bubble stays inside the native renderer');
+  assert.ok(!hasAncestor(copyButton, (node) => node === bubble), 'native copy action stays outside the text surface');
+  assert.equal(findAll(view.tree, (node) => host(node, 'button') && textOf(node).includes('显示全部')).length, 0);
+});
 
-  const foldButton = findOne(view.tree, (node) => host(node, 'button') && textOf(node).includes('显示全部'), 'fold button');
-  assert.equal(foldButton.props['aria-expanded'], false);
-  foldButton.props.onClick();
-  view.render();
-
-  const expandedCalls = fixture.factoryCalls.filter((call) => call.name === 'conversation.chat.user.content');
-  assert.equal(expandedCalls.at(-1).input.content.text, long, 'expanded display passes the original text');
-  const collapseButton = findOne(view.tree, (node) => host(node, 'button') && textOf(node).includes('收起'), 'collapse button');
-  assert.equal(collapseButton.props['aria-expanded'], true);
-  assert.equal(fixture.nativeProps.at(-1).node, fixture.props.node, 'Native keeps the original props after expansion');
+test('user image is separate from text and Host receives each attachment exactly once', () => {
+  const fixture = makeUserFixture('随图文字');
+  const image = { type:'image', image:{preview:{url:'blob:one',width:800,height:400}} };
+  fixture.props.node.data.content.attachments = [image];
+  const view = mount(skin.createUserSkin(fixture.Native), fixture.props);
+  const parts = fixture.factoryCalls.filter(call => call.name === 'conversation.chat.user.content');
+  assert.equal(parts.length,2);
+  assert.deepEqual(parts[0].input.content.attachments,[image]);
+  assert.equal(parts[0].input.content.text,'');
+  assert.deepEqual(parts[1].input.content.attachments,[]);
+  assert.equal(parts[1].input.content.text,'随图文字');
+  const attachment = findOne(view.tree,node=>host(node,'div') && node.props.className==='sl-user-attachments','attachment area');
+  const bubble = findOne(view.tree,node=>hasProp(node,'data-sl-bubble'),'text bubble');
+  assert.ok(!hasAncestor(attachment,node=>node===bubble));
+  const copy = findOne(view.tree,node=>host(node,'button') && hasProp(node,'data-copy-original'),'copy');
+  assert.ok(!hasAncestor(copy,node=>node===bubble));
 });
 
 test('short user text stays original and has no fold control', () => {
@@ -561,7 +587,7 @@ test('short user text stays original and has no fold control', () => {
   assert.deepEqual(fixture.copied, ['hello']);
 });
 
-test('assistant text folds through MessageText, never through the native factory', () => {
+test('assistant text remains full through MessageText, never through the native factory', () => {
   const long = 'y'.repeat(1600);
   markdownCalls.length = 0;
   const fixture = makeAssistantFixture({ blocks: [{ kind: 'text', text: long }], status: 'closed', skinAuthor: '设计评审' });
@@ -569,15 +595,11 @@ test('assistant text folds through MessageText, never through the native factory
 
   assert.equal(fixture.factoryCalls.length, 0, 'text must not go back through the native factory');
   assert.equal(markdownCalls.length, 1);
-  assert.equal(markdownCalls[0].text, 'y'.repeat(600));
+  assert.equal(markdownCalls[0].text, long);
   assert.equal(markdownCalls[0].streaming, false);
   assertSingleBubbleSibling(view.tree, '设计评审');
 
-  const foldButton = findOne(view.tree, (node) => host(node, 'button') && textOf(node).includes('显示全部'), 'assistant fold button');
-  foldButton.props.onClick();
-  view.render();
-  assert.equal(markdownCalls.at(-1).text, long);
-  assert.equal(findAll(view.tree, (node) => host(node, 'button') && textOf(node).includes('收起')).length, 1);
+  assert.equal(findAll(view.tree, (node) => host(node, 'button') && textOf(node).includes('显示全部')).length, 0);
   assert.equal(fixture.factoryCalls.length, 0);
 
   markdownCalls.length = 0;
@@ -616,6 +638,82 @@ test('assistant images and reasoning are rendered only through factories', () =>
   assertSingleBubbleSibling(view.tree, '设计评审');
 });
 
+test('answer header owns one summary and expands real process inside the bubble', () => {
+  const calls = [];
+  const turnProcess = { ...makeTurnProcess(), spec: { answerStep: 2, toolCallCount: 1 } };
+  const { props } = makeAssistantFixture({ blocks: [{ kind: 'text', text: '完整答复' }], status: 'settled', skinAuthor: '开发伙伴' });
+  props.node.data.turn = 7; props.node.data.step = 2;
+  props.node.location = { turn: makeTurnNode({ reasoningCount: 1 }).location.turn };
+  props.turnProcess = turnProcess;
+  props.useTurnSteps = () => [{ step: 1, time: 10, blocks: [{ kind: 'reasoning', text: '先检查' }] }];
+  props.useTurnTools = () => [{ root: { kind:'tool-result',callId:'call1',name:'read',isError:false,callTime:20,time:30 } }];
+  props.inspectCall = id => calls.push(id);
+  const view = mount(skin.createAssistantSkin(), props);
+  const button = findOne(view.tree, node => host(node,'button') && node.props.className?.includes('sl-heading-process'), 'header process');
+  const { article, bubble } = assertSingleBubbleSibling(view.tree, '开发伙伴');
+  assert.ok(!hasAncestor(button,node => node === bubble), 'summary is outside and beside the author');
+  assert.equal(button.props['aria-expanded'],false);
+  button.props.onClick(); view.render();
+  const details = findOne(view.tree,node => host(node,'div') && node.props.className === 'sl-inline-process','process details');
+  assert.ok(hasAncestor(details,node => node.props?.['data-sl-bubble'] === ''),'expanded details are inside the same bubble');
+  assert.match(textOf(details),/思考过程/); assert.match(textOf(details),/读取文件/);
+  const inspect=findOne(details,node => host(node,'button') && textOf(node)==='查看详情','inspect'); inspect.props.onClick(); assert.deepEqual(calls,['call1']);
+  assert.match(textOf(article),/完整答复/);
+  const relocated = mount(skin.TurnProcessSkin,{node:{...makeTurnNode(),data:{...makeTurnNode().data,answerStep:2,answerAnchorSeq:12}},turnProcess});
+  assert.equal(findAll(relocated.tree,node=>hasProp(node,'data-sl-process-relocated')).length,1);
+  assert.equal(findAll(relocated.tree,node=>host(node,'button')).length,0);
+});
+
+test('long turn reasoning seats do not subscribe to whole-turn step and tool arrays', () => {
+  const Skin=skin.createAssistantSkin();
+  let steps=0, tools=0;
+  for (let i=0;i<167;i++) {
+    const {props}=makeAssistantFixture({blocks:[{kind:'reasoning',text:'思考'}],status:'settled'});
+    props.groupPart='reasoning';
+    props.useTurnSteps=()=>{steps++;return [];};
+    props.useTurnTools=()=>{tools++;return [];};
+    mount(Skin,props);
+  }
+  assert.equal(steps,0); assert.equal(tools,0);
+});
+
+test('live placeholder yields to the streaming response without an empty or duplicate bubble', () => {
+  const node=makeTurnNode({status:'running'}); node.data.turn=7;
+  node.location.turn.steps=[{step:2}];
+  const steps=[{step:2,status:'running',blocks:[{kind:'text',text:'开始回答'}]}];
+  const process=makeTurnProcess(); process.spec={answerStep:null,toolCallCount:0};
+  const placeholder=mount(skin.TurnProcessSkin,{node,turnProcess:process,useTurnSteps:()=>steps});
+  assert.equal(findAll(placeholder.tree,n=>hasProp(n,'data-sl-message')).length,0);
+  const {props}=makeAssistantFixture({blocks:steps[0].blocks,status:'running',skinAuthor:'助手'});
+  props.node.data.turn=7;props.node.data.step=2;props.node.location={turn:node.location.turn};
+  props.turnProcess=process;
+  const response=mount(skin.createAssistantSkin(),props);
+  assert.equal(findAll(response.tree,n=>hasProp(n,'data-sl-message')).length,1);
+  const heading=findOne(response.tree,n=>host(n,'button') && n.props.className?.includes('sl-heading-process'),'streaming status');
+  assert.match(textOf(heading),/思考中/);
+  assert.equal(heading.props['data-sl-running'],true);
+  props.node.data.blocks=[];
+  const empty=mount(skin.createAssistantSkin(),props);
+  assert.equal(findAll(empty.tree,n=>hasProp(n,'data-sl-message')).length,0);
+});
+
+test('live process renders one expandable bubble while retaining a safe original-process escape', () => {
+  const node=makeTurnNode({status:'running'}); node.data.turn=7;
+  const props={node,skinAuthor:'助手',turnProcess:makeTurnProcess(),useTurnSteps:()=>[{step:1,time:10,blocks:[{kind:'reasoning',text:'思考'}]}],useTurnTools:()=>[{root:{kind:'tool-result',callId:'x',name:'read',time:20}}],renderFactorySlot:()=>null};
+  const view=mount(skin.TurnProcessSkin,props);
+  const heading=findOne(view.tree,n=>host(n,'button') && n.props.className?.includes('sl-heading-process'),'live heading');
+  assert.match(textOf(heading),/思考中/);
+  assert.equal(heading.props['data-sl-running'],'');
+  const style=findOne(view.tree,n=>host(n,'style'),'scoped native grouping');
+  assert.match(textOf(style),/data-state\]:not\(\[data-state="ok"\]\)/);
+  assert.match(textOf(style),/data-approval/);
+  assert.match(textOf(style),/data-chat-turn="7"/);
+  heading.props.onClick();view.render();
+  const original=findOne(view.tree,n=>host(n,'button') && textOf(n)==='查看原有过程','original process');
+  original.props.onClick();view.render();
+  assert.equal(findAll(view.tree,n=>host(n,'style')).length,0,'user can reveal native tool details');
+});
+
 test('TurnProcess renders one summary line and toggles its disclosure', () => {
   const turnProcess = makeTurnProcess();
   const view = mount(skin.TurnProcessSkin, { node: makeTurnNode(), turnProcess });
@@ -641,8 +739,9 @@ test('TurnProcess renders one summary line and toggles its disclosure', () => {
   const errorView = mount(skin.TurnProcessSkin, { node: makeTurnNode({ reason: 'error' }), turnProcess: makeTurnProcess() });
   assert.match(textOf(turnButton(errorView.tree)), /^执行失败 · 耗时 2 分 5 秒/);
 
-  const openView = mount(skin.TurnProcessSkin, { node: makeTurnNode({ status: 'running' }), turnProcess: makeTurnProcess() });
-  assert.deepEqual(openView.tree, []);
+  const openView = mount(skin.TurnProcessSkin, { node: makeTurnNode({ status: 'running' }), turnProcess: makeTurnProcess(), skinAuthor:'助手' });
+  assert.match(textOf(openView.tree), /思考中/);
+  assert.equal(findAll(openView.tree, node => hasProp(node, 'data-sl-message')).length, 1);
 
   const disabledView = mount(skin.TurnProcessSkin, {
     node: makeTurnNode(),
