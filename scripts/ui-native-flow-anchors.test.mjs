@@ -13,12 +13,18 @@ function render(root){const ref=React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_
  const walk=value=>{if(value==null||typeof value==='boolean')return null;if(Array.isArray(value))return value.map(walk).filter(Boolean);if(typeof value==='string'||typeof value==='number')return value;if(typeof value.type==='function')return walk(value.type(value.props));if(value.type===React.Fragment)return walk(value.props.children);return {type:value.type,props:value.props,children:walk(value.props.children)};};
  try{return walk(root);}finally{ref.current=old;}}
 function flatten(value,hidden=false,out=[]){if(!value||typeof value!=='object')return out;if(Array.isArray(value)){for(const x of value)flatten(x,hidden,out);return out;}const next=hidden||value.props?.hidden===true;out.push({node:value,hidden:next});flatten(value.children,next,out);return out;}
-test('collapsed process offers visible semantic node and paging anchors',()=>{
+// User decision 2026-11-06: bubble mode renders no process area at all, so the
+// old "folded native group" contract is replaced by "no process container, but
+// node identity stays reachable and the bubble still carries its own summary".
+test('bubble mode keeps node and paging anchors without any process container',()=>{
  const tree=render(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'ctrl'},{kind:'group',key:'group',slFlowTurn:7},{kind:'node',key:'answer',groupPart:'response'}]}));
  const all=flatten(tree),outer=all.find(x=>x.node.props?.['data-sl-native-message']!==undefined);
  assert.ok(outer);assert.equal(outer.node.props['data-chat-paging-anchor'],'');
  for(const key of ['ctrl','reason'])assert.ok(all.some(x=>!x.hidden&&x.node.props?.['data-chat-node-key']===key&&typeof x.node.props?.['data-chat-anchor-key']==='string'),`missing visible ${key} anchor`);
- assert.ok(all.some(x=>x.node.props?.['data-sl-native-process']!==undefined&&x.hidden),'native group is actually folded');
+ assert.ok(!all.some(x=>x.node.props?.['data-sl-native-process']!==undefined),'no process container may be rendered');
+ // The running turn still announces itself in the bubble's own heading.
+ const text=JSON.stringify(tree);
+ assert.match(text,/思考中/);
 });
 test('opening turn control retains node identity without becoming a paging anchor',()=>{
  const tree=render(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'ctrl'}]}));const all=flatten(tree),row=all.find(x=>x.node.props?.['data-chat-flow-kind']==='turn-process');

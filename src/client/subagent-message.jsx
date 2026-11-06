@@ -102,7 +102,10 @@ function VerifiedSubagentMessage({ props, Native, sessions, remote, workspace, s
     <button type="button" className="sl-card__toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><span className="sl-card__party"><span className="sl-card__party-label">发送者</span><span className="sl-card__party-name">{from}</span><span className="sl-card__toggle-text">{open?'收起':'展开'}</span></span><span className="sl-card__party"><span className="sl-card__party-label">接收者</span><span className="sl-card__party-name">{to}</span></span><span className="sl-card__party"><span className="sl-card__party-label">主题</span><span className="sl-card__subject">{text.split('\n').find(line=>line.trim())?.slice(0,120) || '会话消息'}</span></span></button>
     {open && <div className="sl-card__expanded"><div className="sl-card__body" data-i18n-skip="">{text}</div><div className="sl-chat-meta"><CopyMessage text={text}/></div><div className="sl-chat-event">{link}</div></div>}
   </div>;
-  return <div data-session-link-subagent-message=""><div className="sl-chat-event">{link}</div><MessageBubble author={from} text={text} time={props.node.data.time} actions={<CopyMessage text={text}/>}/></div>;
+  // Bubble mode (user decision 2026-11-06): a subagent message is announced by
+  // the same notice capsule as any other session message, never laid out inline.
+  // Clicking it opens the existing exchange dialog with the full interaction.
+  return <div className="sl-chat-event" data-session-link-subagent-message="" data-session-link-notice="">{link}</div>;
 }
 export function createSubagentMessageSkin(Native, dependencies) {
   return function SubagentMessageSkin(props) {
@@ -119,9 +122,14 @@ export function createSubagentSenderView({sessions,remote,workspace}) {
     if(!data || data.from!==props.sessionId)return null;
     const pair=directPair(sessions,data.from,data.to);if(!pair)return null;
     const from=titleOf(sender,'当前会话'),to=titleOf(target,data.to===pair.parent?'父会话':'子智能体');
-    const link=<SubagentLink pair={pair} selfId={data.from} selfName={from} peerName={to} sessions={sessions} remote={remote} workspace={workspace}>已发消息给 {to}</SubagentLink>;
+    // Bubble mode carries the receipt inside the capsule (user decision 2026-11-06);
+    // card mode keeps the untouched original capsule so nothing changes there.
+    const capsule = extra => <SubagentLink pair={pair} selfId={data.from} selfName={from} peerName={to} sessions={sessions} remote={remote} workspace={workspace}>已发消息给 {to}{extra}</SubagentLink>;
+    const link=capsule(null);
     if(mode==='card')return <div className={cardClass('sent')} data-session-link-subagent-sender-card="" {...directionAttribute('sent')}><button type="button" className="sl-card__toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><span className="sl-card__party"><span className="sl-card__party-label">发送者</span><span className="sl-card__party-name">{from}</span><span className="sl-card__toggle-text">{open?'收起':'展开'}</span></span><span className="sl-card__party"><span className="sl-card__party-label">接收者</span><span className="sl-card__party-name">{to}</span></span><span className="sl-card__party"><span className="sl-card__party-label">主题</span><span className="sl-card__subject">{data.text.split('\n').find(line=>line.trim())?.slice(0,120)||'会话消息'}</span></span></button>{open && <div className="sl-card__expanded"><div className="sl-card__body" data-i18n-skip="">{data.text}</div><div className="sl-chat-meta"><CopyMessage text={data.text}/></div><div className="sl-chat-event">{link}</div></div>}</div>;
-    return <div className="sl-chat-event" data-session-link-subagent-sent=""><span className="sl-chat-event-target">{link}<span className="sl-delivery-indicator sl-delivery-indicator--received" role="status" aria-label="宿主已确认投递，不代表已读或已回复" title="宿主已确认投递，不代表已读或已回复" tabIndex={0}>✓</span></span></div>;
+    // ✓ stays a real receipt, never a claim of "read" or "answered". The icon is
+    // presentational only: keyboard focus is not added inside the capsule button.
+    return <div className="sl-chat-event" data-session-link-subagent-sent="" data-session-link-notice="">{capsule(<span className="sl-delivery-indicator sl-delivery-indicator--received" role="status" aria-label="宿主已确认投递，不代表已读或已回复" title="宿主已确认投递，不代表已读或已回复">✓</span>)}</div>;
   };
 }
 export function installSubagentMessages(ctx) {

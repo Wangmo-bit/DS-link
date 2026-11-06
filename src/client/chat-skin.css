@@ -114,19 +114,24 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
    answer header already carries the turn summary, keep the group button and
    native tool actions but suppress that duplicate decorative caption. */
 [data-chat-flow-kind="turn-process"]:has([data-sl-process-relocated]) + [data-step-process] .dsh-claude-process-summary { display: none !important; }
-.sl-chat-thinking-dots { display:inline-flex; gap:3px; color:var(--sl-chat-muted); line-height:1; }
-.sl-chat-thinking-dots > span { display:inline-block; opacity:.45; animation:sl-thinking-pulse 1.35s ease-in-out infinite; }
-.sl-chat-thinking-dots > span:nth-child(2) { animation-delay:.16s; }
-.sl-chat-thinking-dots > span:nth-child(3) { animation-delay:.32s; }
-@keyframes sl-thinking-pulse { 0%,65%,100% { opacity:.4; } 32% { opacity:1; } }
-@media (prefers-reduced-motion:reduce) { .sl-chat-thinking-dots > span { animation:none; opacity:.75; } }
+/* User feedback 2026-11-06: the dots were too faint to read as "working".
+   Larger, better spaced, and never dimmer than half opacity. */
+.sl-chat-thinking-dots { display:inline-flex; align-items:center; gap:5px; color:var(--sl-chat-ink); line-height:1; padding:3px 0; }
+.sl-chat-thinking-dots > span { display:inline-block; font-size:18px; font-weight:700; opacity:.62; animation:sl-thinking-pulse 1.25s ease-in-out infinite; }
+.sl-chat-thinking-dots > span:nth-child(2) { animation-delay:.15s; }
+.sl-chat-thinking-dots > span:nth-child(3) { animation-delay:.3s; }
+@keyframes sl-thinking-pulse { 0%,70%,100% { opacity:.55; transform:translateY(0); } 35% { opacity:1; transform:translateY(-1px); } }
+@media (prefers-reduced-motion:reduce) { .sl-chat-thinking-dots > span { animation:none; opacity:.85; } }
 .sl-chat-process-toggle.sl-heading-process { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap; font-size: 12px; color: var(--sl-chat-muted); }
+/* Bubble mode only: the summary line has no chevron, so it needs no button box. */
+:root:not([data-sl-card-mode]) .sl-chat-process-toggle.sl-heading-process { line-height: 1.5; }
 .sl-process-chevron { display: inline-flex; flex: none; align-items: center; justify-content: center; line-height: 1; }
 [data-sl-native-message] { position:relative; }
 .sl-native-anchor { position:absolute; top:0; left:0; width:1px; height:1px; pointer-events:none; }
-.sl-chat-bubble [data-sl-native-process]:not([hidden]) + [data-chat-flow-kind] { margin-top: 12px; }
 .sl-process-attention { display:block; border:0; border-radius:6px; padding:3px 5px; background:transparent; color:var(--dsw-alias-state-error-primary,#d56868); font:inherit; font-size:12px; text-align:left; cursor:pointer; }
 .sl-process-attention:focus-visible { outline:2px solid #829aff; outline-offset:3px; }
+/* A pending user action is the one thing that must stay visible in bubble mode. */
+.sl-bubble-attention { margin:0 0 .6em; color:var(--sl-chat-ink); font-size:12px; }
 .sl-inline-process { display: flex; flex-direction: column; gap: 5px; padding: 0 0 10px; margin-bottom: 10px; border-bottom: 1px solid var(--sl-chat-border); color: var(--sl-chat-muted); font-size: 12px; }
 .sl-inline-process details > summary { cursor: pointer; }
 .sl-inline-tool { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -145,6 +150,8 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-chat-quote { border-left: 2px solid var(--sl-chat-muted); padding: 2px 10px; color: var(--sl-chat-muted); font-size: 12px; line-height: 1.5; }
 .sl-chat-event { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; align-items: center; margin: 12px 0; color: var(--sl-chat-muted); font-size: 12px; line-height: 1.5; }
 .sl-exchange-link { border: 0; border-radius: 9px; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 4px 8px; }
+/* Bubble mode only: the capsule now carries its delivery marker inline. */
+:root:not([data-sl-card-mode]) .sl-exchange-link { display: inline-flex; align-items: center; gap: 4px; }
 .sl-exchange-link:hover { background: color-mix(in srgb,currentColor 7%,transparent); color: var(--sl-chat-ink); }
 .sl-chat-event-target { display: inline-flex; align-items: center; gap: 4px; }
 .sl-chat-event .sl-exchange-link { background: color-mix(in srgb, var(--sl-chat-muted) 12%, transparent); border-radius: 999px; }

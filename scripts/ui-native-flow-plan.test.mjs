@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatRunningElapsed, planNativeFlow, processAttention } from '../src/client/native-flow-plan.mjs';
+import { formatRunningElapsed, planNativeFlow, processNeedsInput } from '../src/client/native-flow-plan.mjs';
 const node=(kind,turn,extra={})=>({kind,location:{kind:'turn',turn:{turn}},...extra});
 const entry=key=>({kind:'node',key});
 const group=(key,turn)=>({kind:'group',key,slFlowTurn:turn});
@@ -26,12 +26,12 @@ test('never move a process across steering, retry or a different Turn',()=>{
  assert.equal(plan[0].response,null);assert.equal(plan[2].response,null);assert.equal(plan[4].response.key,'answer');assert.equal(plan[5].response.key,'a2');
  assert.deepEqual(plan.flatMap(p=>p.kind==='native'?p.entries.map(x=>x.key):p.kind==='control'?[p.entry.key]:[...p.groups.map(x=>x.key),...(p.response?[p.response.key]:[])]),['g1','steer','g2','retry','answer','g3','a2']);
 });
-test('collapsed process exposes actual failures and interactive user requests',()=>{
- assert.equal(processAttention({kind:'tool-call',data:{root:{kind:'tool-result',isError:true}}}),'工具执行失败');
- assert.equal(processAttention({kind:'tool-call',data:{root:{phase:'start',name:'ask_user_question'}}}),'需要你的操作');
- assert.equal(processAttention({kind:'tool-call',data:{root:{phase:'start',name:'bash',subCalls:[{kind:'tool-result',isError:true}]}}}),'工具执行失败');
- assert.equal(processAttention({kind:'tool-call',data:{root:{kind:'tool-result',isError:false,name:'ask_user_question'}}}),'');
- assert.equal(processAttention({kind:'assistant-step',data:{}}),'');
+test('a pending question stays discoverable without any process rendering',()=>{
+ assert.equal(processNeedsInput({kind:'tool-call',data:{root:{phase:'start',name:'ask_user_question'}}}),true);
+ assert.equal(processNeedsInput({kind:'tool-call',data:{root:{phase:'start',name:'exit_plan_mode'}}}),true);
+ assert.equal(processNeedsInput({kind:'tool-call',data:{root:{kind:'tool-result',isError:false,name:'ask_user_question'}}}),false);
+ assert.equal(processNeedsInput({kind:'tool-call',data:{root:{kind:'tool-result',isError:true,error:{code:'EACCES'}}}}),false);
+ assert.equal(processNeedsInput({kind:'assistant-step',data:{}}),false);
 });
 test('standalone native reasoning remains in the same process bubble',()=>{
  const rows=[entry('c1'),{kind:'node',key:'answer',groupPart:'reasoning'},response('answer')];

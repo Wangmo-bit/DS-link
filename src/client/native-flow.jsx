@@ -1,9 +1,21 @@
-// React-owned adapter around the Host's native ChatFlow. Native group and node
-// components remain the sole renderers of thinking, tools, approvals and files.
-import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+// React-owned adapter around the Host's native ChatFlow.
+//
+// Bubble mode (user decisions, 2026-11-06):
+// - One bubble per utterance: body text plus a one-line turn summary. No
+//   thinking/tool process is ever rendered inside the bubble.
+// - The summary carries elapsed time, thinking count, tool count and the turn's
+//   real end state. It updates live
+//   while the turn runs and finalises when it ends. No token counts.
+// - No empty process bubbles. A text-less segment never becomes a bubble; the
+//   turn's last segment only stands alone to carry the summary of a turn that
+//   produced no text at all.
+// - Internal mechanism rows (model retries) never draw in the timeline.
+//
+// Card mode is untouched: the adapter hands the native flow straight through.
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
-import { formatRunningElapsed, planNativeFlow, processAttention } from './native-flow-plan.mjs';
+import { planNativeFlow, processNeedsInput } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
@@ -14,134 +26,245 @@ function inlinePolicy(policy) {
   if (!next) { next = {...policy, stepGrouping:'none', foldCompletedTurns:false}; normalizedPolicies.set(policy,next); }
   return next;
 }
-function disclosureStore() {
-  const values = new Map(), listeners = new Set();
-  return {
-    get: key => values.get(key) === true,
-    set(key, value) { if (values.get(key) === value) return; values.set(key,value); for (const fn of [...listeners]) fn(); },
-    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
-  };
+function statusOf(turn) {
+  const reason = turn?.end?.data?.reason?.kind;
+  if (reason === 'error') return 'error';
+  if (reason === 'aborted' || reason === 'interrupted') return 'interrupted';
+  return undefined;
 }
-function useDisclosure(store, turn) {
-  const get = useCallback(() => store.get(turn), [store,turn]);
-  const open = useSyncExternalStore(store.subscribe,get,()=>false);
-  return [open, useCallback(() => store.set(turn,!store.get(turn)),[store,turn])];
+function thinkingCountOf(turn) {
+  const steps = turn?.steps?.map(step => step.data?.get?.('assistant-step'));
+  if (!steps?.length || !steps.every(Boolean)) return undefined;
+  return steps.filter(step => step.blocks?.some(block => block.kind === 'reasoning' && block.text?.trim())).length;
 }
-function RunningLabel({ start }) {
+function clockText(start, now) {
+  if (!Number.isFinite(start) || !Number.isFinite(now)) return '';
+  const seconds = Math.max(0, Math.floor((now - start) / 1000));
+  return seconds >= 60 ? `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒` : `${seconds} 秒`;
+}
+// Real elapsed time plus the real counts, while the turn is still open.
+function runningText({ turn, control, now }) {
+  const parts = ['思考中'];
+  const elapsed = clockText(turn?.start?.time, now);
+  if (elapsed) parts.push(elapsed);
+  const counts = formatTurnSummary({ thinkingCount: thinkingCountOf(turn), toolCount: control?.data?.toolCallCount, status: statusOf(turn) });
+  if (counts) parts.push(counts);
+  return parts.join(' · ');
+}
+// Frozen one-liner for a turn that ended.
+function endedText({ turn, control }) {
+  const elapsedMs = turn?.start && turn?.end ? turn.end.time - turn.start.time : undefined;
+  const base = formatTurnSummary({ elapsedMs, thinkingCount: thinkingCountOf(turn), toolCount: control?.data?.toolCallCount, status: statusOf(turn) });
+  return base;
+}
+// Re-renders once a second so a running summary keeps moving, then stops.
+function RunningHeading({ turn, control }) {
+  const start = turn?.start?.time;
   const [now,setNow] = useState(Date.now);
-  useEffect(()=>{ if (!Number.isFinite(start)) return; setNow(Date.now()); const timer=setInterval(()=>setNow(Date.now()),1000); return ()=>clearInterval(timer); },[start]);
-  return formatRunningElapsed(start,now);
+  useEffect(() => {
+    if (!Number.isFinite(start)) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [start]);
+  return <span className="sl-chat-process-toggle sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}</span>;
 }
-function Chevron({ open }) {
-  return <svg className="sl-process-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false"><path d={open?'M3 7.5 6 4.5 9 7.5':'M3 4.5 6 7.5 9 4.5'} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+function SummaryHeading({ turn, control, running }) {
+  return running ? <RunningHeading turn={turn} control={control}/> : <EndedHeading turn={turn} control={control}/>;
 }
-function reasonOf(turn) { return turn?.end?.data?.reason?.kind; }
-function summaryOf(turn, control) {
-  if (!turn) return '';
-  const elapsedMs=turn.start && turn.end ? turn.end.time-turn.start.time : undefined;
-  const steps=turn.steps?.map(step=>step.data?.get?.('assistant-step'));
-  const thinkingCount=steps?.length && steps.every(Boolean) ? steps.filter(step=>step.blocks?.some(block=>block.kind==='reasoning'&&block.text?.trim())).length : undefined;
-  const reason=reasonOf(turn);
-  return formatTurnSummary({elapsedMs,thinkingCount,toolCount:control?.data?.toolCallCount,status:reason==='error'?'error':['aborted','interrupted'].includes(reason)?'interrupted':undefined});
+function EndedHeading({ turn, control }) {
+  const text = endedText({ turn, control });
+  return text ? <span className="sl-chat-process-toggle sl-heading-process">{text}</span> : null;
 }
+// Subscribes to real process state only to classify it; nothing it reads is
+// rendered. Both selectors return primitives so the Host snapshot stays stable.
 function AttentionNode({ member, useChatNode, report }) {
-  const message=useChatNode(member.key,processAttention);
-  useEffect(()=>{ report(member.key,message); return ()=>report(member.key,''); },[member.key,message,report]);
+  const needsInput = useChatNode(member.key, processNeedsInput) === true;
+  useEffect(() => {
+    report(member.key, needsInput);
+    return () => report(member.key, false);
+  }, [member.key, needsInput, report]);
   return null;
 }
+// Host group members are `{kind:'node', key, groupPart?}`; the tool filter lives
+// inside processFailure/processNeedsInput, which inspect the resolved node.
 function AttentionGroup({ groupKey, useChatGroup, useChatNode, report }) {
-  const members=useChatGroup(groupKey, group=>group?.members) ?? [];
-  return members.map(member=><AttentionNode key={`${member.key}:${member.groupPart ?? ''}`} member={member} useChatNode={useChatNode} report={report}/>);
+  const members = useChatGroup(groupKey, group => group?.members) ?? [];
+  return members.map(member =>
+    <AttentionNode key={`${member.key}:${member.groupPart ?? ''}`} member={member} useChatNode={useChatNode} report={report}/>);
 }
-const EMPTY_INPUTS=Object.freeze([]), SINGLETONS=new WeakMap();
-function singleton(entry) { let value=SINGLETONS.get(entry); if(!value){value=[entry];SINGLETONS.set(entry,value);} return value; }
+// The only per-turn signal bubble mode still reports is a prompt that is waiting
+// on the user. A tool that failed mid-turn is not reported: the turn's own result
+// is the answer, and printing every recoverable tool failure was judged noise
+// (user decision 2026-11-06). Turn-level failures still show as 执行失败/已停止.
+function TurnAttention({ turn, groups, flow, onReport }) {
+  const [pendingKeys,setPending] = useState(() => new Set());
+  const report = useCallback((key, needsInput) => {
+    setPending(previous => {
+      if (previous.has(key) === needsInput) return previous;
+      const next = new Set(previous);
+      if (needsInput) next.add(key); else next.delete(key);
+      return next;
+    });
+  }, []);
+  const needsInput = pendingKeys.size > 0;
+  useEffect(() => { onReport(turn, needsInput); }, [turn, needsInput, onReport]);
+  return groups.filter(group => group.kind === 'group').map(group =>
+    <AttentionGroup key={group.key} groupKey={group.key} useChatGroup={flow.useChatGroup} useChatNode={flow.useChatNode} report={report}/>);
+}
+const EMPTY_INPUTS = Object.freeze([]), SINGLETONS = new WeakMap();
+function singleton(entry) { let value = SINGLETONS.get(entry); if (!value) { value = [entry]; SINGLETONS.set(entry, value); } return value; }
 function entryKey(entry) { return JSON.stringify([entry.kind,entry.key,entry.groupPart ?? null]); }
-function NoRunningFlow({ NativeFlow, flow, entries, pendingInputs=EMPTY_INPUTS, usePresentation }) {
+function NoRunningFlow({ NativeFlow, flow, entries, pendingInputs = EMPTY_INPUTS, usePresentation }) {
   return <NativeFlow {...flow} entries={entries} pendingInputs={pendingInputs} usePresentation={usePresentation ?? flow.usePresentation} slSuppressRunning/>;
 }
-function MessageSurface({ plan, flow, NativeFlow, store, author, inlinePresentation }) {
-  const firstEntry=plan.groups[0], groupKey=firstEntry?.kind==='group' ? firstEntry.key : '';
-  const groupTurn=flow.useChatGroup(groupKey,group=>group?.data.turn);
-  const memberKey=flow.useChatGroup(groupKey,group=>group?.members?.[0]?.key);
-  const firstKey=firstEntry?.kind==='node' ? firstEntry.key : memberKey ?? '';
-  const groupNode=flow.useChatNode(firstKey);
-  const responseNode=flow.useChatNode(plan.response?.key ?? '');
-  const controlNode=flow.useChatNode(plan.control?.key ?? '');
-  const [open,toggle]=useDisclosure(store,plan.turn);
-  const [alerts,setAlerts]=useState(()=>new Map());
-  const report=useCallback((key,message)=>setAlerts(previous=>{
-    if ((previous.get(key) ?? '') === message) return previous;
-    const next=new Map(previous); if(message)next.set(key,message);else next.delete(key);return next;
-  }),[]);
-  // A different/missing group is never attributed to a guessed turn.
-  if (plan.groups.length && groupTurn !== undefined && groupTurn !== plan.turn) return <><NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={plan.groups}/>{plan.response && <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)}/>}</>;
-  const turn=responseNode?.location?.turn ?? groupNode?.location?.turn ?? controlNode?.location?.turn;
-  const running=turn?.status==='open' && plan.last;
-  const summary=plan.last ? summaryOf(turn,controlNode) : '';
-  const hasProcess=plan.groups.length>0;
-  const heading=hasProcess ? <button type="button" className="sl-chat-process-toggle sl-heading-process" data-sl-running={running || undefined} aria-expanded={open} onClick={toggle}>{running ? <RunningLabel start={turn?.start?.time}/> : summary || '过程'}<Chevron open={open}/></button> : running ? <span className="sl-chat-process-toggle sl-heading-process" data-sl-running=""><RunningLabel start={turn?.start?.time}/></span> : summary ? <span className="sl-chat-process-toggle sl-heading-process">{summary}</span> : null;
-  const key=plan.groups[0]?.key ?? plan.response?.key;
+// Keeps a node key resolvable for navigation without drawing a visible row.
+function AnchorOnly({ entry }) {
+  return <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={entry.key} data-chat-anchor-key={`sl-flow-node:${entry.key}`}/>;
+}
+// A process segment plus its own response. Segments are grouped by the Host, so
+// the text that finishes a turn may arrive in a later segment: `turnHasText`
+// keeps earlier text-less segments from drawing an empty bubble.
+function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention }) {
+  const firstEntry = plan.groups[0], groupKey = firstEntry?.kind === 'group' ? firstEntry.key : '';
+  const groupTurn = flow.useChatGroup(groupKey, group => group?.data.turn);
+  const memberKey = flow.useChatGroup(groupKey, group => group?.members?.[0]?.key);
+  const firstKey = firstEntry?.kind === 'node' ? firstEntry.key : memberKey ?? '';
+  const groupNode = flow.useChatNode(firstKey);
+  const responseNode = flow.useChatNode(plan.response?.key ?? '');
+  const controlNode = flow.useChatNode(plan.control?.key ?? '');
+  // A different or missing group is never attributed to a guessed turn.
+  if (plan.groups.length && groupTurn !== undefined && groupTurn !== plan.turn) {
+    return <><NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={plan.groups}/>{plan.response && <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)}/>}</>;
+  }
+  const turn = responseNode?.location?.turn ?? groupNode?.location?.turn ?? controlNode?.location?.turn;
+  const running = turn?.status === 'open';
+  const hasText = Boolean(plan.response);
+  // The live bubble of the running turn shows the dots even before its text
+  // lands. A finished turn only keeps a text-less final segment when the whole
+  // turn produced no text, so its summary is not lost.
+  const live = running && plan.last;
+  const statsOnly = !running && plan.last && !turnHasText;
+  if (!hasText && !live && !statsOnly) return null;
+  const key = plan.response?.key ?? plan.groups[0]?.key;
   return <div data-sl-native-message="" data-chat-turn={plan.turn} data-chat-flow-key={key} data-chat-anchor-key={`sl-native:${key}`} data-chat-paging-anchor="">
-    {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
+    {plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
-    {plan.groups.filter(group=>group.kind==='group').map(group=><AttentionGroup key={group.key} groupKey={group.key} useChatGroup={flow.useChatGroup} useChatNode={flow.useChatNode} report={report}/>)}
-    <MessageBubble author={author} heading={heading}>
-      {hasProcess && <div hidden={!open} data-sl-native-process=""><NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={plan.groups} usePresentation={inlinePresentation}/></div>}
-      {!open && alerts.size>0 && <button type="button" className="sl-process-attention" onClick={toggle} role="alert">{[...new Set(alerts.values())].join(' · ')} · 查看</button>}
-      {plan.response ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/> : !open && (running ? <ThinkingDots/> : <span className="sl-chat-notice">{reasonOf(turn)==='error'?'执行失败':['aborted','interrupted'].includes(reasonOf(turn))?'已停止':'处理过程'}</span>)}
+    <MessageBubble author={author} bodyless={!hasText && !(carrySummary && attention.needsInput)} heading={carrySummary
+      ? <SummaryHeading turn={turn} control={controlNode} running={running}/>
+      : null}>
+      {carrySummary && attention.needsInput && <p className="sl-bubble-attention">有需要你操作的事项</p>}
+      {hasText
+        ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
+        : running ? <ThinkingDots/> : null}
     </MessageBubble>
   </div>;
 }
-function ControlSurface({ plan, flow, NativeFlow, store, author }) {
-  const node=flow.useChatNode(plan.entry.key), [open,toggle]=useDisclosure(store,plan.turn);
-  if (!node || node.location?.turn?.status !== 'open') return <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.entry)}/>;
-  const turn=node.location.turn;
-  return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}><MessageBubble author={author} heading={<button type="button" className="sl-chat-process-toggle sl-heading-process" data-sl-running="" aria-expanded={open} onClick={toggle}><RunningLabel start={turn.start?.time}/><Chevron open={open}/></button>}><ThinkingDots/></MessageBubble></div>;
+// A turn whose loaded window holds no other material: the live bubble while it
+// runs, or a statistics-only bubble once it ended without producing text.
+function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention }) {
+  const node = flow.useChatNode(plan.entry.key);
+  if (!node) return <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.entry)}/>;
+  const turn = node.location?.turn;
+  const running = turn?.status === 'open';
+  return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}>
+    <MessageBubble author={author} bodyless={!running && !(carrySummary && attention.needsInput)} heading={carrySummary ? <SummaryHeading turn={turn} control={node} running={running}/> : null}>
+      {carrySummary && attention.needsInput && <p className="sl-bubble-attention">有需要你操作的事项</p>}
+      {running ? <ThinkingDots/> : null}
+    </MessageBubble>
+  </div>;
 }
+// Rows that describe an internal mechanism rather than the conversation. They
+// keep an invisible anchor so paging and navigation still resolve, but never draw
+// a fragment between bubbles (user decision 2026-11-06: "要么进气泡，要么不要出现").
+// `turn-error` / `turn-max-tokens` are deliberately NOT silenced: they carry a real
+// terminal failure whose message the bubble does not reproduce.
+const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger', 'compaction', 'command', 'context']);
 function BubbleFlow({ NativeFlow, ...flow }) {
-  const nodes=flow.useChat(snapshot=>snapshot.nodes);
-  const session=flow.useSessions(snapshot=>snapshot.byId?.[flow.sessionId]);
-  const identity=session?.projectionValues?.subagent;
-  const author=session?.origin==='subagent'||identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
-  const plans=useMemo(()=>planNativeFlow(flow.entries,nodes),[flow.entries,nodes]);
-  const store=useMemo(()=>disclosureStore(),[flow.sessionId]);
-  const inlinePresentation=useCallback(selector=>flow.usePresentation(policy=>selector(inlinePolicy(policy))),[flow.usePresentation]);
-  let pending=flow.pendingInputs;
-  const tail=flow.entries.at(-1), tailNode=tail?.kind==='node'?nodes.get(tail.key):undefined;
-  const shouldPlaceBefore=tailNode?.kind==='turn-process' && tailNode.location?.kind==='turn' && tailNode.location.turn.status==='open' && tailNode.location.turn.turn!==flow.lastInputTurn;
-  let early=null;
+  const nodes = flow.useChat(snapshot => snapshot.nodes);
+  const session = flow.useSessions(snapshot => snapshot.byId?.[flow.sessionId]);
+  const identity = session?.projectionValues?.subagent;
+  const author = session?.origin === 'subagent' || identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
+  const plans = useMemo(() => planNativeFlow(flow.entries, nodes), [flow.entries, nodes]);
+  // Statistics belong to the turn, not to one segment. Exactly one bubble per
+  // turn carries them: the turn's last bubble with text, otherwise its last
+  // bubble at all (a turn that produced no text keeps a statistics-only bubble).
+  const { turnsWithText, summaryCarrier } = useMemo(() => {
+    const text = new Set(), carrier = new Map();
+    for (const plan of plans) {
+      if (plan.kind !== 'message' && plan.kind !== 'control') continue;
+      if (plan.response) { text.add(plan.turn); carrier.set(plan.turn, plan); }
+      else if (!carrier.has(plan.turn) || !carrier.get(plan.turn).response) carrier.set(plan.turn, plan);
+    }
+    return { turnsWithText: text, summaryCarrier: carrier };
+  }, [plans]);
+  // A pending user prompt is collected once per turn, independent of which
+  // segment happens to carry a visible bubble.
+  const [pendingTurns,setPendingTurns] = useState(() => new Set());
+  const reportAttention = useCallback((turn, needsInput) => {
+    setPendingTurns(previous => {
+      if (previous.has(turn) === needsInput) return previous;
+      const next = new Set(previous);
+      if (needsInput) next.add(turn); else next.delete(turn);
+      return next;
+    });
+  }, []);
+  const attentionOf = turn => ({ needsInput: pendingTurns.has(turn) });
+  const probes = useMemo(() => {
+    const seen = new Set(), probes = [];
+    for (const plan of plans) {
+      if (seen.has(plan.turn)) continue;
+      seen.add(plan.turn);
+      const groups = plans.filter(candidate => candidate.turn === plan.turn).flatMap(candidate => candidate.groups ?? []);
+      probes.push(<TurnAttention key={`attention:${plan.turn}`} turn={plan.turn} groups={groups} flow={flow} onReport={reportAttention}/>);
+    }
+    return probes;
+  }, [plans, reportAttention, flow]);
+  const inlinePresentation = useCallback(selector => flow.usePresentation(policy => selector(inlinePolicy(policy))), [flow.usePresentation]);
+  let pending = flow.pendingInputs;
+  const tail = flow.entries.at(-1), tailNode = tail?.kind === 'node' ? nodes.get(tail.key) : undefined;
+  const shouldPlaceBefore = tailNode?.kind === 'turn-process' && tailNode.location?.kind === 'turn' && tailNode.location.turn.status === 'open' && tailNode.location.turn.turn !== flow.lastInputTurn;
+  let early = null;
   if (shouldPlaceBefore) {
-    const at=pending.findIndex(item=>'requestId' in item && item.placement==='transcript');
-    if(at!==-1){early=pending[at];pending=pending.filter((_,index)=>index!==at);}
+    const at = pending.findIndex(item => 'requestId' in item && item.placement === 'transcript');
+    if (at !== -1) { early = pending[at]; pending = pending.filter((_, index) => index !== at); }
   }
-  const rows=[];
+  const rows = [];
   for (const plan of plans) {
-    if (plan.kind==='native') {
+    if (plan.kind === 'native') {
       // Each original root entry keeps its own React parent/key. Grouping a
       // whole plain run by its first entry remounts that run on history prepend
       // and invalidates the Host's retained DOM paging anchor.
-      for (const entry of plan.entries) rows.push(<NoRunningFlow key={`native:${entryKey(entry)}`} NativeFlow={NativeFlow} flow={flow} entries={singleton(entry)}/>);
+      for (const entry of plan.entries) {
+        const node = entry.kind === 'node' ? nodes.get(entry.key) : undefined;
+        rows.push(node && SILENT_ROWS.has(node.kind)
+          ? <AnchorOnly key={`silent:${entryKey(entry)}`} entry={entry}/>
+          : <NoRunningFlow key={`native:${entryKey(entry)}`} NativeFlow={NativeFlow} flow={flow} entries={singleton(entry)}/>);
+      }
       continue;
     }
-    const key=plan.kind==='control' ? `control:${plan.entry.key}` : `message:${entryKey(plan.groups[0] ?? plan.response)}`;
-    if (early && plan.kind==='control' && plan.entry.key===tail?.key) rows.push(<NoRunningFlow key={`echo:${early.requestId}`} NativeFlow={NativeFlow} flow={flow} entries={EMPTY_INPUTS} pendingInputs={[early]}/>);
-    rows.push(plan.kind==='control' ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} store={store} author={author}/> : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} store={store} author={author} inlinePresentation={inlinePresentation}/>);
+    const key = plan.kind === 'control' ? `control:${plan.entry.key}` : `message:${entryKey(plan.groups[0] ?? plan.response)}`;
+    if (early && plan.kind === 'control' && plan.entry.key === tail?.key) rows.push(<NoRunningFlow key={`echo:${early.requestId}`} NativeFlow={NativeFlow} flow={flow} entries={EMPTY_INPUTS} pendingInputs={[early]}/>);
+    const attention = attentionOf(plan.turn);
+    rows.push(plan.kind === 'control'
+      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention}/>
+      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention}/>);
   }
   // If an unexpected projection removed the opening controller, show its echo
   // at the tail rather than silently losing it.
-  if (early && !plans.some(plan=>plan.kind==='control' && plan.entry.key===tail?.key)) pending=[early,...pending];
-  return <>{rows}<NativeFlow {...flow} entries={EMPTY_INPUTS} pendingInputs={pending}/></>;
+  if (early && !plans.some(plan => plan.kind === 'control' && plan.entry.key === tail?.key)) pending = [early, ...pending];
+  return <>{probes}{rows}<NativeFlow {...flow} entries={EMPTY_INPUTS} pendingInputs={pending}/></>;
 }
 export function NativeFlowAdapter({ NativeFlow, ...flow }) {
-  const mode=useDisplayMode();
-  return mode==='card' ? <NativeFlow {...flow}/> : <BubbleFlow NativeFlow={NativeFlow} {...flow}/>;
+  const mode = useDisplayMode();
+  return mode === 'card' ? <NativeFlow {...flow}/> : <BubbleFlow NativeFlow={NativeFlow} {...flow}/>;
 }
 export function installNativeFlowAdapter(ctx, onAvailability = () => {}) {
   // The Host owns this optional child slot. No flow props or callbacks are
   // installed on the browser global; when absent, the Host renders natively.
-  return ctx.slots.inject(FLOW_SLOT,()=>{
-    const stop=ctx.slots.register({name:FLOW_SLOT,priority:-5},NativeFlowAdapter);
+  return ctx.slots.inject(FLOW_SLOT, () => {
+    const stop = ctx.slots.register({ name: FLOW_SLOT, priority: -5 }, NativeFlowAdapter);
     onAvailability(true);
-    return ()=>{ stop(); onAvailability(false); };
+    return () => { stop(); onAvailability(false); };
   });
 }

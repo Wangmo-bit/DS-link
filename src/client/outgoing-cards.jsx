@@ -209,9 +209,13 @@ export function createSenderCardView({ onRefresh } = {}) {
         const item = states.find(entry => entry.target === target);
         const status = item ? (item.stale || typeof item.asOf !== 'number' ? '状态未更新' : item.label) : (data.statusStale ? '状态未更新' : data.status);
         const indicator = senderIndicator(status);
+        // The delivery state sits inside the capsule (user decision 2026-11-06):
+        // one small marker per message instead of a floating icon beside it. The
+        // marker is presentational — it must not add a nested tab stop inside the
+        // capsule button; its meaning is exposed through the button's描述.
+        const indicatorText = indicator.kind === 'received' ? '✓' : indicator.kind === 'failed' ? '×' : indicator.kind === 'pending' ? '' : '?';
         return <span className="sl-chat-event-target" key={target}>
-          <ExchangeLink selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'}>已发消息给 {names[index] || '目标会话'}</ExchangeLink>
-          <span className={`sl-delivery-indicator sl-delivery-indicator--${indicator.kind}`} role="status" aria-label={indicator.title} title={indicator.title} tabIndex={0}>{indicator.kind === 'pending' ? <span className="sl-delivery-spinner" aria-hidden="true"/> : <span aria-hidden="true">{indicator.kind === 'received' ? '✓' : indicator.kind === 'failed' ? '×' : '?'}</span>}</span>
+          <ExchangeLink selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'} title={indicator.title}>已发消息给 {names[index] || '目标会话'}<span className={`sl-delivery-indicator sl-delivery-indicator--${indicator.kind}`} role="status" aria-label={indicator.title} title={indicator.title}>{indicator.kind === 'pending' ? <span className="sl-delivery-spinner" aria-hidden="true"/> : <span aria-hidden="true">{indicatorText}</span>}</span></ExchangeLink>
         </span>;
       })}
     </div>;

@@ -5,17 +5,21 @@ export function formatRunningElapsed(start, now) {
   const seconds=Math.max(0,Math.floor((now-start)/1000));
   return `思考中 · ${seconds>=60 ? `${Math.floor(seconds/60)} 分 ${seconds%60} 秒` : `${seconds} 秒`}`;
 }
-export function processAttention(node) {
-  if (node?.kind !== 'tool-call') return '';
+// A question or plan prompt still waiting on the user must stay discoverable even
+// though bubble mode renders no process. Returns a primitive so the Host's
+// snapshot cache stays stable across renders.
+export function processNeedsInput(node) {
+  if (node?.kind !== 'tool-call') return false;
+  let pending = false;
   const visit = root => {
-    if (!root || typeof root !== 'object') return '';
-    if (root.kind === 'tool-result' && (root.isError === true || root.error)) return '工具执行失败';
-    const name=root.name ?? root.call?.name;
-    if (root.kind !== 'tool-result' && (name === 'ask_user_question' || name === 'exit_plan_mode')) return '需要你的操作';
-    for (const child of root.subCalls ?? []) { const value=visit(child); if(value)return value; }
-    return '';
+    if (pending || !root || typeof root !== 'object') return;
+    if (root.kind === 'tool-result') return;
+    const name = root.name ?? root.call?.name;
+    if (name === 'ask_user_question' || name === 'exit_plan_mode') { pending = true; return; }
+    for (const child of root.subCalls ?? []) visit(child);
   };
-  return visit(node.data?.root);
+  visit(node.data?.root);
+  return pending;
 }
 const turnOf = node => node?.location?.turn?.turn;
 const nodeOf = (store, entry) => entry?.kind === 'node' ? store.get(entry.key) : undefined;

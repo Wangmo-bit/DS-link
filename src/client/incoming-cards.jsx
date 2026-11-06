@@ -74,7 +74,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
-import { MessageBubble, ExchangeLink, CopyMessage } from './chat-ui.jsx';
+import { ExchangeLink } from './chat-ui.jsx';
 import { useDisplayMode } from './display-mode.mjs';
 
 const KIND = 'session-link-card';
@@ -423,7 +423,8 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     // A live turn rebuilds nodes frequently. Always use the latest proof for
     // scope checks without aborting/re-fetching on every durable event.
     useEffect(() => {
-      if (durableId === '' || sessionId === '' || (mode === 'card' && !cardOpen)) return undefined;
+      // Bubble mode never needs the body: only the dialog reads it.
+      if (durableId === '' || sessionId === '' || mode !== 'card' || !cardOpen) return undefined;
       if (typeof windowProof.current !== 'function' || !windowProof.current()) {
         setBody({ phase: 'unavailable', reason: '事件已不在当前会话窗口' });
         return undefined;
@@ -457,13 +458,14 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     const info = statusDisplay(body?.row ?? data.row, data.statusAsOf, data.statusStale === true);
     const status = info.stale ? '状态未更新' : ['已进入上下文', '明确回复'].includes(info.label) ? '' : info.label;
     if (mode === 'card') return <SessionLinkCardLayout data={data} open={cardOpen} body={available ? body : body?.phase === 'available' ? { phase: 'unavailable', reason: '事件已不在当前会话窗口' } : body} onToggle={() => setCardOpen(value => !value)} onRetry={() => { setBody(null); setRetry(value => value + 1); }}/>;
-    return <div data-session-link-card="" data-session-link-i18n-root="" data-session-link-direction="received">
-      <div className="sl-chat-event"><ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from}>收到消息，来自 {from}</ExchangeLink></div>
-      <MessageBubble author={from} text={available ? body.body : undefined} time={data.row?.createdAt} status={status} actions={available ? <CopyMessage text={body.body}/> : undefined}>
-        {!body && <p className="sl-chat-notice" role="status">正在读取消息…</p>}
-        {body?.phase === 'error' && <p className="sl-chat-error" role="alert">消息读取失败。<button type="button" onClick={() => { setBody(null); setRetry(value => value + 1); }}>重试</button></p>}
-        {body && !available && body.phase !== 'error' && <p className="sl-chat-notice">{body.phase === 'redacted' ? '消息正文已清理。' : '消息暂不可用，请在往返记录中核对。'}</p>}
-      </MessageBubble>
+    // Bubble mode (user decision 2026-11-06): the timeline only carries the
+    // notice capsule. The message body is never laid out inline; clicking the
+    // capsule opens the existing exchange dialog with the full interaction, so
+    // the body is not even fetched until the reader asks for it.
+    // The delivery state belongs inside the capsule; a bare trailing span would be
+    // unstyled text that escapes the "capsule only" rule.
+    return <div className="sl-chat-event" data-session-link-i18n-root="" data-session-link-direction="received" data-session-link-notice="">
+      <ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from} title={status || undefined}>收到消息，来自 {from}{status ? <span className="sl-delivery-indicator" role="status" aria-label={status} title={status}>{status === '已进入上下文' || status === '明确回复' ? '✓' : status === '状态未更新' ? '?' : '·'}</span> : null}</ExchangeLink>
     </div>;
   }
   return SessionLinkCardView;

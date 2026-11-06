@@ -20,8 +20,16 @@ function renderToStaticMarkup(root){
  const walk=value=>{if(value==null||typeof value==='boolean')return '';if(Array.isArray(value))return value.map(walk).join('');if(typeof value==='string'||typeof value==='number')return String(value);if(typeof value.type==='function')return walk(value.type(value.props));if(value.type===React.Fragment)return walk(value.props.children);const attrs=Object.entries(value.props||{}).filter(([key,v])=>key.startsWith('data-')&&v!==undefined).map(([key,v])=>` ${key}=${String(v)}`).join('');return `<${String(value.type)}${attrs}>${walk(value.props?.children)}</${String(value.type)}>`;};
  try{return walk(root);}finally{ref.current=prior;}
 }
-test('verified direct child message becomes readable bubble with exact body',()=>{
- const restore=storage('bubble');try{const html=renderToStaticMarkup(React.createElement(Skin,props));assert.match(html,/data-session-link-subagent-message/);assert.match(html,/子会话/);assert.match(html,/Hello full body/);assert.doesNotMatch(html,/Agent C sent a message|data-native/);}finally{restore();}
+test('verified direct child message announces itself by capsule, never inline body',()=>{
+ const restore=storage('bubble');try{const html=renderToStaticMarkup(React.createElement(Skin,props));
+  // User decision 2026-11-06: the timeline only carries the notice capsule; the
+  // body is revealed by opening the exchange dialog, so it must not be laid out.
+  assert.match(html,/data-session-link-subagent-message/);
+  assert.match(html,/data-session-link-notice/);
+  assert.match(html,/收到消息，来自/);
+  assert.match(html,/子会话/);
+  assert.doesNotMatch(html,/Hello full body/);
+  assert.doesNotMatch(html,/Agent C sent a message|data-native/);}finally{restore();}
 });
 test('verified direct child message switches to old card visual',()=>{
  const restore=storage('card');try{const html=renderToStaticMarkup(React.createElement(Skin,props));assert.match(html,/data-session-link-subagent-card/);assert.doesNotMatch(html,/data-session-link-subagent-message/);}finally{restore();}

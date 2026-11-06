@@ -20,14 +20,14 @@ export function ThinkingDots() {
   return <span className="sl-chat-thinking-dots" aria-hidden="true"><span>·</span><span>·</span><span>·</span></span>;
 }
 
-export function MessageBubble({ author, direction = 'received', text, children, time, status, streaming, mentions, actions, quote, selected, heading }) {
-  return <article className={`sl-chat-message sl-chat-message--${direction}`} data-sl-message="" data-selected={selected || undefined} aria-current={selected ? 'true' : undefined}>
+export function MessageBubble({ author, direction = 'received', text, children, time, status, streaming, mentions, actions, quote, selected, heading, bodyless = false }) {
+  return <article className={`sl-chat-message sl-chat-message--${direction}`} data-sl-message="" data-selected={selected || undefined} aria-current={selected ? 'true' : undefined} data-sl-bodyless={bodyless || undefined}>
     <header className="sl-chat-heading"><span className="sl-chat-author" data-sl-author="" data-i18n-skip="">{author || '会话消息'}</span>{heading}</header>
-    <div className="sl-chat-bubble" data-sl-bubble="">
+    {bodyless ? null : <div className="sl-chat-bubble" data-sl-bubble="">
       {quote && <blockquote className="sl-chat-quote" data-i18n-skip="">{quote}</blockquote>}
       {children}
       {typeof text === 'string' && text !== '' && <MessageText text={text} streaming={streaming} mentions={mentions}/>}
-    </div>
+    </div>}
     {(time || status || actions) && <footer className="sl-chat-meta">{status && <span>{status}</span>}{time && <time dateTime={new Date(time).toISOString()}>{new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>}{actions}</footer>}
   </article>;
 }
@@ -133,7 +133,7 @@ export function ExchangeDialog({ selfId, peerId, selfName, peerName, onClose }) 
   </dialog>;
 }
 
-export function ExchangeLink({ selfId, peerId, selfName, peerName, children, className = '' }) {
+export function ExchangeLink({ selfId, peerId, selfName, peerName, children, className = '', title }) {
   const [open, setOpen] = useState(false);
-  return <><button type="button" className={`sl-exchange-link ${className}`} onClick={() => setOpen(true)}>{children}</button>{open && <ExchangeDialog selfId={selfId} peerId={peerId} selfName={selfName} peerName={peerName} onClose={() => setOpen(false)}/>}</>;
+  return <><button type="button" className={`sl-exchange-link ${className}`} title={title} onClick={() => setOpen(true)}>{children}</button>{open && <ExchangeDialog selfId={selfId} peerId={peerId} selfName={selfName} peerName={peerName} onClose={() => setOpen(false)}/>}</>;
 }
