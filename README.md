@@ -100,6 +100,14 @@ dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offlin
 - 真实模型/供应商延迟不在插件控制范围。
 - 当前为个人自用候选，未承诺跨版本升级/回滚路径；如后续提供 release notes，升级前请阅读。
 
+**回退方式**：保留上一版 tgz（本机 `~/.dsh/plugin-artifacts/<简称>/`），回退时用官方入口重装上一版并复核版本：
+
+```bash
+dsh plugin --profile web add ~/.dsh/plugin-artifacts/dsh-session-link/wangmo-dsh-session-link-<上一版>.tgz
+```
+
+跨版本账本/待投递/迁移数据的兼容性**尚未验证**，回退前请先备份 profile 与记录。
+
 ## 许可
 
 本项目自有代码采用 **MIT License**（见 [LICENSE](LICENSE)，版权人 `Wangmo-bit`）。第三方代码/素材/依赖的许可独立保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与各自许可中，**不因本项目 MIT 而改变**。决策记录见 [LICENSING.md](LICENSING.md)。

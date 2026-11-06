@@ -1,10 +1,5 @@
 // Preserve the Host's root-entry order. Only a contiguous native process run
 // and its immediately following same-Turn response may share one surface.
-export function formatRunningElapsed(start, now) {
-  if (!Number.isFinite(start) || !Number.isFinite(now)) return '思考中…';
-  const seconds=Math.max(0,Math.floor((now-start)/1000));
-  return `思考中 · ${seconds>=60 ? `${Math.floor(seconds/60)} 分 ${seconds%60} 秒` : `${seconds} 秒`}`;
-}
 // A question or plan prompt still waiting on the user must stay discoverable even
 // though bubble mode renders no process. Returns a primitive so the Host's
 // snapshot cache stays stable across renders.

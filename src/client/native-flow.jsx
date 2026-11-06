@@ -67,14 +67,14 @@ function RunningHeading({ turn, control }) {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [start]);
-  return <span className="sl-chat-process-toggle sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}</span>;
+  return <span className="sl-chat-summary sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}</span>;
 }
 function SummaryHeading({ turn, control, running }) {
   return running ? <RunningHeading turn={turn} control={control}/> : <EndedHeading turn={turn} control={control}/>;
 }
 function EndedHeading({ turn, control }) {
   const text = endedText({ turn, control });
-  return text ? <span className="sl-chat-process-toggle sl-heading-process">{text}</span> : null;
+  return text ? <span className="sl-chat-summary sl-heading-process">{text}</span> : null;
 }
 // Subscribes to real process state only to classify it; nothing it reads is
 // rendered. Both selectors return primitives so the Host snapshot stays stable.
@@ -87,7 +87,7 @@ function AttentionNode({ member, useChatNode, report }) {
   return null;
 }
 // Host group members are `{kind:'node', key, groupPart?}`; the tool filter lives
-// inside processFailure/processNeedsInput, which inspect the resolved node.
+// inside processNeedsInput, which inspects the resolved node.
 function AttentionGroup({ groupKey, useChatGroup, useChatNode, report }) {
   const members = useChatGroup(groupKey, group => group?.members) ?? [];
   return members.map(member =>
@@ -148,12 +148,12 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
   if (!hasText && !live && !statsOnly) return null;
   const key = plan.response?.key ?? plan.groups[0]?.key;
   return <div data-sl-native-message="" data-chat-turn={plan.turn} data-chat-flow-key={key} data-chat-anchor-key={`sl-native:${key}`} data-chat-paging-anchor="">
-    {plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
+    {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
     <MessageBubble author={author} bodyless={!hasText && !(carrySummary && attention.needsInput)} heading={carrySummary
       ? <SummaryHeading turn={turn} control={controlNode} running={running}/>
       : null}>
-      {carrySummary && attention.needsInput && <p className="sl-bubble-attention">有需要你操作的事项</p>}
+      {carrySummary && attention.needsInput && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
         ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
         : running ? <ThinkingDots/> : null}
@@ -169,7 +169,7 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
   const running = turn?.status === 'open';
   return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}>
     <MessageBubble author={author} bodyless={!running && !(carrySummary && attention.needsInput)} heading={carrySummary ? <SummaryHeading turn={turn} control={node} running={running}/> : null}>
-      {carrySummary && attention.needsInput && <p className="sl-bubble-attention">有需要你操作的事项</p>}
+      {carrySummary && attention.needsInput && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {running ? <ThinkingDots/> : null}
     </MessageBubble>
   </div>;
@@ -177,9 +177,11 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
 // Rows that describe an internal mechanism rather than the conversation. They
 // keep an invisible anchor so paging and navigation still resolve, but never draw
 // a fragment between bubbles (user decision 2026-11-06: "要么进气泡，要么不要出现").
-// `turn-error` / `turn-max-tokens` are deliberately NOT silenced: they carry a real
-// terminal failure whose message the bubble does not reproduce.
-const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger', 'compaction', 'command', 'context']);
+// Only mechanism plumbing is silenced. Rows that carry real user-visible
+// information keep rendering natively: `turn-error` / `turn-max-tokens` report a
+// terminal failure the bubble does not reproduce, `manual-compaction` is a command
+// the user issued, and `context` is injected content.
+const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger']);
 function BubbleFlow({ NativeFlow, ...flow }) {
   const nodes = flow.useChat(snapshot => snapshot.nodes);
   const session = flow.useSessions(snapshot => snapshot.byId?.[flow.sessionId]);

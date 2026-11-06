@@ -42,6 +42,8 @@ import { createOutgoingCoordinator } from './outgoing-coordinator.mjs';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 import { ExchangeLink } from './chat-ui.jsx';
 import { getDisplayMode, subscribeDisplayMode, useDisplayMode } from './display-mode.mjs';
+import { senderIndicator } from './delivery-indicator.mjs';
+export { senderIndicator };
 
 /** Strict tool set — anything else (status/control/list/…) stays native. */
 export const TOOL_KEYS = Object.freeze(['session_link_send', 'session_link_reply', 'session_link_create', 'session_link_operation']);
@@ -187,12 +189,6 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
  * available for the future card-mode switch. Routine receipt state is omitted;
  * per-target failure/uncertainty remains visible and is never treated as safe
  * to resend. Selecting a recipient opens the bounded exchange reader. */
-export function senderIndicator(label) {
-  if (label === '已进入上下文' || label === '明确回复') return { kind: 'received', title: label === '明确回复' ? '已收到明确回复' : '已进入对方上下文' };
-  if (['待投递', '已暂存·待投递', '投递中·结果待确认', '宿主已接收·待进入上下文'].includes(label)) return { kind: 'pending', title: label === '宿主已接收·待进入上下文' ? '已送达宿主，等待进入对方上下文' : label };
-  if (label === '失败' || label === '已取消') return { kind: 'failed', title: label === '失败' ? '投递失败' : '已取消' };
-  return { kind: 'warning', title: label || '状态需要核对' };
-}
 
 export function createSenderCardView({ onRefresh } = {}) {
   return function SenderCardView({ node, inspectCall } = {}) {

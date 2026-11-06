@@ -63,6 +63,16 @@ Messages are collaboration, not user authorization: a receiving session gains no
 
 Security reporting is documented in [SECURITY.md](SECURITY.md). The repository is private, so GitHub private vulnerability reporting is not enabled yet; the owner must enable it before a public release.
 
+## Rollback
+
+Keep the previous `.tgz` in `~/.dsh/plugin-artifacts/<short-name>/`. To roll back, reinstall that package through the official entry point and then re-check the version:
+
+```bash
+dsh plugin --profile web add ~/.dsh/plugin-artifacts/dsh-session-link/wangmo-dsh-session-link-<previous>.tgz
+```
+
+Ledger/pending-delivery/migration compatibility across versions is **not verified**; back up the profile and records before rolling back.
+
 ## Testing and limits
 
 See [TESTING.md](TESTING.md) for scope, skipped cases and the isolation requirements for tests that use fixed `/tmp` paths. Real model/provider latency is outside this plugin; busy-target latency has no public benchmark yet.

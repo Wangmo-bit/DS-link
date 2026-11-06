@@ -1,18 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatRunningElapsed, planNativeFlow, processNeedsInput } from '../src/client/native-flow-plan.mjs';
+import { planNativeFlow, processNeedsInput } from '../src/client/native-flow-plan.mjs';
 const node=(kind,turn,extra={})=>({kind,location:{kind:'turn',turn:{turn}},...extra});
 const entry=key=>({kind:'node',key});
 const group=(key,turn)=>({kind:'group',key,slFlowTurn:turn});
 const response=key=>({kind:'node',key,groupPart:'response'});
 const store=new Map([['c1',node('turn-process',1)],['user',node('user',1)],['answer',node('assistant-step',1)],['steer',node('steering',1)],['retry',node('model-retry',1)],['c2',node('turn-process',2)],['a2',node('assistant-step',2)]]);
 
-test('live timer uses real elapsed wall time without fabricating absent data',()=>{
- assert.equal(formatRunningElapsed(undefined,1000),'思考中…');
- assert.equal(formatRunningElapsed(1000,24000),'思考中 · 23 秒');
- assert.equal(formatRunningElapsed(1000,73000),'思考中 · 1 分 12 秒');
- assert.equal(formatRunningElapsed(2000,1000),'思考中 · 0 秒');
-});
 test('native process immediately preceding answer shares one ordered surface',()=>{
  const rows=[entry('user'),entry('c1'),group('g1',1),response('answer'),entry('retry')];
  const plan=planNativeFlow(rows,store);
