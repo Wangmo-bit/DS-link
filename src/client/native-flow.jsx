@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
-import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, turnWindows } from './native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
@@ -233,6 +233,10 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
 const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger']);
 function BubbleFlow({ NativeFlow, ...flow }) {
   const nodes = flow.useChat(snapshot => snapshot.nodes);
+  // `nodes` is a stable live reader, not an immutable value. Subscribe to the
+  // actual timeline boundaries so agent attribution updates when turns load,
+  // close, or are prepended, even if the reader's identity never changes.
+  const turnSignature = flow.useChat(snapshot => turnWindowSignature(snapshot.timeline));
   const session = flow.useSessions(snapshot => snapshot?.byId?.[flow.sessionId]);
   // Agent badges need the parent's catalog plus every child's status, which all
   // live in the same list snapshot. The selector returns one primitive signature
@@ -263,7 +267,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       const [id, label, createdAt, running, completed, failed] = row.split('\u0000');
       return { id, label: label || undefined, createdAt: Number(createdAt), running: running === 'r', completed: completed === 'c', failed: failed === 'f' };
     });
-    const windows = turnWindows(nodes);
+    const windows = turnWindows(turnSignature);
     if (!windows.length) return badges;
     for (const [turn, agents] of agentsByTurn(catalog, windows)) {
       // One badge per agent label, folded over every instance that label ran.
@@ -280,7 +284,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       badges.set(turn, agentBadges(states));
     }
     return badges;
-  }, [agentSignature, nodes]);
+  }, [agentSignature, turnSignature]);
   // Statistics belong to the turn, not to one segment. Exactly one bubble per
   // turn carries them: the turn's last bubble with text, otherwise its last
   // bubble at all (a turn that produced no text keeps a statistics-only bubble).

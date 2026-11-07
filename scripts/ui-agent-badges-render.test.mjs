@@ -24,7 +24,7 @@ const text=v=>{if(v==null)return'';if(typeof v==='string'||typeof v==='number')r
 function render(catalog){
  const nodes=new Map([['ctrl',node('turn-process',{toolCallCount:2})],['r',node('assistant-step',{blocks:[]})]]);
  const sessions={byId:{self:{title:'助手'}},projectionsBySession:{self:{values:{subagentCatalog:catalog}}}};
- const base={sessionId:'self',pendingInputs:[],lastInputTurn:7,useChat:fn=>fn({nodes}),useSessions:fn=>fn(sessions),useChatNode:(key,fn=x=>x)=>fn(nodes.get(key)),useChatGroup:()=>undefined,usePresentation:fn=>fn({foldCompletedTurns:true,stepGrouping:'collapsed'}),NativeFlow:()=>null};
+ const base={sessionId:'self',pendingInputs:[],lastInputTurn:7,useChat:fn=>fn({nodes,timeline:{turns:new Map([[7,closed]])}}),useSessions:fn=>fn(sessions),useChatNode:(key,fn=x=>x)=>fn(nodes.get(key)),useChatGroup:()=>undefined,usePresentation:fn=>fn({foldCompletedTurns:true,stepGrouping:'collapsed'}),NativeFlow:()=>null};
  return mount(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'ctrl'},{kind:'node',key:'r',groupPart:'response'}]}));
 }
 
@@ -44,7 +44,7 @@ test('a turn with agents renders grouped svg badges after the summary',()=>{
  const nodes=new Map([['ctrl',node('turn-process',{toolCallCount:2})],['r',node('assistant-step',{blocks:[]})]]);
  const sessions={byId:{self:{title:'助手'},a:{running:false,projectionValues:{subagentTiming:{lastTurnCompleted:true}}},b:{running:true}},
   projectionsBySession:{self:{values:{subagentCatalog:catalog}}}};
- const base={sessionId:'self',pendingInputs:[],lastInputTurn:7,useChat:fn=>fn({nodes}),useSessions:fn=>fn(sessions),useChatNode:(key,fn=x=>x)=>fn(nodes.get(key)),useChatGroup:()=>undefined,usePresentation:fn=>fn({foldCompletedTurns:true,stepGrouping:'collapsed'}),NativeFlow:()=>null};
+ const base={sessionId:'self',pendingInputs:[],lastInputTurn:7,useChat:fn=>fn({nodes,timeline:{turns:new Map([[7,closed]])}}),useSessions:fn=>fn(sessions),useChatNode:(key,fn=x=>x)=>fn(nodes.get(key)),useChatGroup:()=>undefined,usePresentation:fn=>fn({foldCompletedTurns:true,stepGrouping:'collapsed'}),NativeFlow:()=>null};
  const tree=mount(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'ctrl'},{kind:'node',key:'r',groupPart:'response'}]}));
  const all=flatten(tree);
  const badge=all.find(n=>n.props?.['data-sl-agent-badges']!==undefined);

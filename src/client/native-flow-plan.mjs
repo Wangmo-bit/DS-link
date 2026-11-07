@@ -80,37 +80,42 @@ export function planNativeFlow(entries, store) {
 export const AGENT_STATE = Object.freeze({ running: 'running', done: 'done', failed: 'failed', idle: 'idle' });
 
 /**
- * Turn windows from the loaded transcript. A turn that never ended keeps its
- * open window so a still-running dispatch can still be attributed to it.
- * @param {Map<string, any>} nodes
+ * Select only the turn-boundary facts that affect agent attribution. Unlike the
+ * stable live ChatNodeStore, the Host publishes a new timeline when a boundary
+ * changes or older history is loaded. Returning a primitive keeps unrelated
+ * step/content changes from re-rendering the entire flow.
+ * @param {{turns?: ReadonlyMap<number, any>} | undefined} timeline
+ * @returns {string} JSON rows: [turn, start, end-or-null, open]
+ */
+export function turnWindowSignature(timeline) {
+  if (!timeline?.turns || typeof timeline.turns.values !== 'function') return '';
+  const rows = [];
+  for (const turn of timeline.turns.values()) {
+    if (typeof turn?.turn !== 'number' || !Number.isFinite(turn.start?.time)) continue;
+    rows.push([turn.turn, turn.start.time, Number.isFinite(turn.end?.time) ? turn.end.time : null, turn.status === 'open']);
+  }
+  return JSON.stringify(rows);
+}
+
+/**
+ * Turn windows from a boundary signature. An open turn remains open-ended,
+ * except when a later turn bounds a stale, crash-orphaned open turn.
+ * @param {string} signature
  * @returns {Array<{turn:number, from:number, to:number}>}
  */
-export function turnWindows(nodes) {
-  const windows = new Map();
-  for (const node of nodes.values()) {
-    const turn = node?.location?.turn;
-    if (!turn || typeof turn.turn !== 'number') continue;
-    let window = windows.get(turn.turn);
-    if (!window) { window = { turn: turn.turn, from: Infinity, to: -Infinity, open: false }; windows.set(turn.turn, window); }
-    const start = turn.start?.time, end = turn.end?.time;
-    if (Number.isFinite(start)) window.from = Math.min(window.from, start);
-    if (Number.isFinite(end)) window.to = Math.max(window.to, end);
-    // An open turn must absorb dispatches that happen after the last seen event,
-    // so its window stays open-ended.
-    if (turn.status === 'open') window.open = true;
-  }
-  const closed = [...windows.values()]
-    .filter(window => Number.isFinite(window.from))
-    .map(window => ({ turn: window.turn, from: window.from, to: window.open ? Infinity : window.to }))
+export function turnWindows(signature) {
+  if (!signature) return [];
+  const windows = JSON.parse(signature)
+    .map(([turn, from, end, open]) => ({ turn, from, to: open ? Infinity : end ?? -Infinity }))
     .sort((a, b) => a.from - b.from);
   // An open turn absorbs only what came after it. If an older turn never closed
   // (crash-orphaned), truncate it at the next turn's start so it cannot capture
   // every later dispatch.
-  for (let index = 0; index < closed.length - 1; index++) {
-    const window = closed[index], next = closed[index + 1];
+  for (let index = 0; index < windows.length - 1; index++) {
+    const window = windows[index], next = windows[index + 1];
     if (!Number.isFinite(window.to) && Number.isFinite(next.from)) window.to = next.from - 1;
   }
-  return closed;
+  return windows;
 }
 
 /**

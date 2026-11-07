@@ -4,25 +4,35 @@
 // nothing, cancelled/unknown is muted rather than "failed".
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AGENT_STATE, agentBadges, agentState, agentStateOf, agentsByTurn, turnWindows } from '../src/client/native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentState, agentStateOf, agentsByTurn, turnWindows, turnWindowSignature } from '../src/client/native-flow-plan.mjs';
 
-const node = (turn, start, end, status = 'closed') => ({ kind: 'assistant-step', location: { kind: 'turn', turn: {
-  turn, status, start: start === undefined ? undefined : { time: start }, end: end === undefined ? undefined : { time: end },
-} } });
+const turn = (number, start, end, status = 'closed') => ({
+  turn: number, status, start: start === undefined ? undefined : { time: start }, end: end === undefined ? undefined : { time: end },
+});
 
-test('turn windows come from the transcript and keep an open turn open-ended', () => {
-  const nodes = new Map([
-    ['a', node(1, 100, 200)],
-    ['b', node(2, 300, undefined, 'open')],
-    ['c', node(3, 500, 600)],
-  ]);
+test('turn windows come from the published timeline and truncate stale open turns', () => {
+  const timeline = { turns: new Map([
+    [1, turn(1, 100, 200)],
+    [2, turn(2, 300, undefined, 'open')],
+    [3, turn(3, 500, 600)],
+  ]) };
   // turn 2 is open and is followed by turn 3, so it ends where turn 3 begins; a
   // crash-orphaned turn must not swallow every later dispatch.
-  assert.deepEqual(turnWindows(nodes), [
+  assert.deepEqual(turnWindows(turnWindowSignature(timeline)), [
     { turn: 1, from: 100, to: 200 },
     { turn: 2, from: 300, to: 499 },
     { turn: 3, from: 500, to: 600 },
   ]);
+});
+
+test('boundary signature changes only when attribution facts change', () => {
+  const state = value => ({ turns: new Map([[7, value]]) });
+  const before = turn(7, 100, undefined, 'open');
+  const sameBoundaries = { ...before, steps: [{ step: 1 }] };
+  const ended = turn(7, 100, 200, 'closed');
+  assert.equal(turnWindowSignature(state(before)), turnWindowSignature(state(sameBoundaries)));
+  assert.notEqual(turnWindowSignature(state(before)), turnWindowSignature(state(ended)));
+  assert.deepEqual(turnWindows(turnWindowSignature(undefined)), []);
 });
 
 test('a dispatch is attributed to the turn that was open when it started', () => {
