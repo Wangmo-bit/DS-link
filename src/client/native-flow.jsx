@@ -146,17 +146,26 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
   const live = running && plan.last;
   const statsOnly = !running && plan.last && !turnHasText;
   if (!hasText && !live && !statsOnly) return null;
+  // A rendered article must hold something. When another bubble of the same turn
+  // already carries the statistics, a text-less shell would show only the author
+  // name, which is exactly the empty block users were seeing.
+  const attentionLine = carrySummary && attention.needsInput;
+  // While running, the moving line belongs to the live bubble only; the frozen
+  // statistics belong to the turn's carrier bubble once it ends.
+  const runningLine = running && live;
+  const endedLine = !running && carrySummary && endedText({ turn, control: controlNode }) !== '';
+  if (!hasText && !runningLine && !attentionLine && !endedLine) return null;
   const key = plan.response?.key ?? plan.groups[0]?.key;
   return <div data-sl-native-message="" data-chat-turn={plan.turn} data-chat-flow-key={key} data-chat-anchor-key={`sl-native:${key}`} data-chat-paging-anchor="">
     {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
-    <MessageBubble author={author} bodyless={!hasText && !running && !(carrySummary && attention.needsInput)} heading={carrySummary
-      ? <SummaryHeading turn={turn} control={controlNode} running={running}/>
-      : null}>
-      {carrySummary && attention.needsInput && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
+    <MessageBubble author={author} bodyless={!hasText && !runningLine && !attentionLine} heading={runningLine
+      ? <RunningHeading turn={turn} control={controlNode}/>
+      : endedLine ? <EndedHeading turn={turn} control={controlNode}/> : null}>
+      {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
         ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
-        : running ? <ThinkingDots/> : null}
+        : runningLine ? <ThinkingDots/> : null}
     </MessageBubble>
   </div>;
 }
@@ -167,10 +176,16 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
   if (!node) return <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.entry)}/>;
   const turn = node.location?.turn;
   const running = turn?.status === 'open';
+  const attentionLine = carrySummary && attention.needsInput;
+  const runningLine = running && carrySummary;
+  const endedLine = !running && carrySummary && endedText({ turn, control: node }) !== '';
+  if (!runningLine && !attentionLine && !endedLine) return null;
   return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}>
-    <MessageBubble author={author} bodyless={!running && !(carrySummary && attention.needsInput)} heading={carrySummary ? <SummaryHeading turn={turn} control={node} running={running}/> : null}>
-      {carrySummary && attention.needsInput && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
-      {running ? <ThinkingDots/> : null}
+    <MessageBubble author={author} bodyless={!runningLine && !attentionLine} heading={runningLine
+      ? <RunningHeading turn={turn} control={node}/>
+      : endedLine ? <EndedHeading turn={turn} control={node}/> : null}>
+      {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
+      {runningLine ? <ThinkingDots/> : null}
     </MessageBubble>
   </div>;
 }

@@ -54,7 +54,7 @@ test('snapshot returns revision, settings, messages, chains, sessions, and total
   assert.equal(typeof body.value.revision, 'number')
   assert.equal(body.value.settings.enabled, true)
   assert.equal(body.value.apiVersion, 3)
-  assert.equal(body.value.version, '0.6.1')
+  assert.equal(body.value.version, '0.6.2')
   assert.equal(typeof body.value.settingsRevision, 'number')
   assert.equal(body.value.storage.health, 'ok')
   assert.equal(body.value.storage.maxQueuedBytes > 0, true)
