@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
-import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, teamDispatchSignature, teamRosterSignature, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, subagentReuseSignature, teamDispatchSignature, teamRosterSignature, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
@@ -151,14 +151,15 @@ function TurnAttention({ turn, groups, flow, onReport }) {
 const EMPTY_TEAM_TOOLS = Object.freeze([]);
 const EMPTY_TEAM_SOURCE = Object.freeze({ subscribe: () => () => {}, getSnapshot: () => EMPTY_TEAM_TOOLS });
 const teamTurnKey = (sessionId, turn) => JSON.stringify([sessionId, turn]);
-function TeamDispatchProbe({ sessionId, turn, nodes, onReport }) {
+function TeamDispatchProbe({ sessionId, turn, nodes, onReport, onReuse }) {
   const source = useMemo(() => nodes?.turnDataSource?.(turn, 'tool-call') ?? EMPTY_TEAM_SOURCE, [nodes, turn]);
   const rows = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot);
-  const signature = teamDispatchSignature(rows);
+  const signature = teamDispatchSignature(rows), reuse = subagentReuseSignature(rows);
   // Publish before paint, so an earlier successful child turn is not briefly
-  // mistaken for completion of a later Team message on history reload.
+  // mistaken for completion of a later message on history reload.
   useLayoutEffect(() => { onReport(sessionId, turn, signature); }, [sessionId, turn, signature, onReport]);
-  useEffect(() => () => { onReport(sessionId, turn, null); }, [sessionId, turn, onReport]);
+  useLayoutEffect(() => { onReuse(sessionId, turn, reuse); }, [sessionId, turn, reuse, onReuse]);
+  useEffect(() => () => { onReport(sessionId, turn, null); onReuse(sessionId, turn, null); }, [sessionId, turn, onReport, onReuse]);
   return null;
 }
 const EMPTY_INPUTS = Object.freeze([]), SINGLETONS = new WeakMap();
@@ -263,17 +264,29 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     const byId = snapshot?.byId ?? {};
     return catalog.map(entry => {
       const child = byId[entry?.id];
+      const timing = child?.projectionValues?.subagentTiming, outline = child?.projectionValues?.turnOutline;
       return [entry?.id ?? '', entry?.label ?? '', entry?.createdAt ?? '',
-        child?.running === true ? 'r' : '',
-        child?.projectionValues?.subagentTiming?.lastTurnCompleted === true ? 'c' : '',
-        child?.projectionValues?.subagentTiming?.lastTurnCompleted === false ? 'f' : ''].join('\u0000');
+        child?.running === true ? 'r' : '', timing?.lastTurnCompleted === true ? 'c' : '',
+        timing?.lastTurnCompleted === false ? 'f' : '', entry?.mode ?? '',
+        Number.isFinite(timing?.active?.since) ? timing.active.since : '',
+        Array.isArray(outline) ? outline.length : ''].join('\u0000');
     }).join('\u0001');
   });
   const teamSignature = flow.useSessions(snapshot => teamRosterSignature(snapshot, flow.sessionId));
   const [teamDispatches, setTeamDispatches] = useState(() => new Map());
+  const [reuseDispatches, setReuseDispatches] = useState(() => new Map());
   const reportTeamDispatches = useCallback((sessionId, turn, signature) => {
     const key = teamTurnKey(sessionId, turn), nextValue = signature && signature !== '[]' ? signature : undefined;
     setTeamDispatches(previous => {
+      if (previous.get(key) === nextValue) return previous;
+      const next = new Map(previous);
+      if (nextValue === undefined) next.delete(key); else next.set(key, nextValue);
+      return next;
+    });
+  }, []);
+  const reportReuse = useCallback((sessionId, turn, signature) => {
+    const key = teamTurnKey(sessionId, turn), nextValue = signature && signature !== '[]' ? signature : undefined;
+    setReuseDispatches(previous => {
       if (previous.get(key) === nextValue) return previous;
       const next = new Map(previous);
       if (nextValue === undefined) next.delete(key); else next.set(key, nextValue);
@@ -289,8 +302,9 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   const agentBadgesByTurn = useMemo(() => {
     const badges = new Map();
     const catalog = agentSignature ? agentSignature.split('\u0001').map(row => {
-      const [id, label, createdAt, running, completed, failed] = row.split('\u0000');
-      return { id, label: label || undefined, createdAt: Number(createdAt), running: running === 'r', completed: completed === 'c', failed: failed === 'f' };
+      const [id, label, createdAt, running, completed, failed, mode, since, turnCount] = row.split('\u0000');
+      return { id, label: label || undefined, createdAt: Number(createdAt), running: running === 'r', completed: completed === 'c', failed: failed === 'f', mode,
+        activeSince: since === '' ? undefined : Number(since), turnCount: turnCount === '' ? undefined : Number(turnCount) };
     }) : [];
     const members = teamSignature ? JSON.parse(teamSignature).map(([id, name, role, phase, running, outcome, activeSince, turnCount]) => ({
       id, name, role, phase, running, activeSince, turnCount, completed: outcome === 'c', failed: outcome === 'f',
@@ -298,19 +312,24 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     const catalogById = new Map(catalog.map(entry => [entry.id, entry]));
     const byId = new Map([...catalog, ...members].map(entry => [entry.id, entry]));
     const teamIds = new Set(members.map(member => member.id));
-    const windows = turnWindows(turnSignature), targetsByTurn = new Map();
+    const windows = turnWindows(turnSignature), targetsByTurn = new Map(), reuseByTurn = new Map();
     if (!windows.length) return badges;
     for (const window of windows) {
-      const signature = teamDispatches.get(teamTurnKey(flow.sessionId, window.turn));
+      const key = teamTurnKey(flow.sessionId, window.turn), signature = teamDispatches.get(key), reuse = reuseDispatches.get(key);
       if (signature) targetsByTurn.set(window.turn, JSON.parse(signature));
+      if (reuse) reuseByTurn.set(window.turn, JSON.parse(reuse));
     }
-    const groups = agentsByTurn(catalog, windows, members, targetsByTurn);
+    const groups = agentsByTurn(catalog, windows, members, targetsByTurn, reuseByTurn);
     const windowsByTurn = new Map(windows.map(window => [window.turn, window]));
+    const reusedIds = new Set();
+    for (const agents of groups.values()) for (const agent of agents) for (const id of agent.sentIds ?? []) reusedIds.add(id);
+    const managed = id => teamIds.has(id) || reusedIds.has(id) ||
+      (catalogById.get(id)?.mode === 'continuable' && catalogById.get(id)?.turnCount > 1);
     const latestTeamTurn = new Map();
     for (const [turn, agents] of groups) {
       const from = windowsByTurn.get(turn)?.from;
       for (const agent of agents) for (const id of agent.ids) {
-        if (!teamIds.has(id)) continue;
+        if (!managed(id)) continue;
         const prior = latestTeamTurn.get(id);
         if (!prior || from > prior.from || (from === prior.from && turn > prior.turn)) latestTeamTurn.set(id, { turn, from });
       }
@@ -322,8 +341,8 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       const states = agents.map(agent => ({
         label: agent.label,
         state: agentStateOf(agent.ids.map(id => {
-          const entry = byId.get(id), sent = agent.sentIds?.includes(id), isTeam = teamIds.has(id);
-          const older = isTeam && latestTeamTurn.get(id)?.turn !== turn;
+          const entry = byId.get(id), sent = agent.sentIds?.includes(id), isManaged = managed(id);
+          const older = isManaged && latestTeamTurn.get(id)?.turn !== turn;
           const activeSince = entry?.activeSince;
           const createdAt = catalogById.get(id)?.createdAt;
           const sentAt = agent.sentTimes?.find(([sentId]) => sentId === id)?.[1];
@@ -333,13 +352,13 @@ function BubbleFlow({ NativeFlow, ...flow }) {
           // activation started strictly after an in-turn creation or accepted
           // send call and before this parent turn ended. Equal millisecond
           // timestamps, missing call heads and earlier activity stay unknown.
-          const runningUnproven = isTeam && entry?.running &&
+          const runningUnproven = isManaged && entry?.running &&
             (!Number.isFinite(activeSince) || !Number.isFinite(firstDispatch) || activeSince <= firstDispatch || activeSince >= window.to);
           const running = entry?.running === true && !runningUnproven;
           // A newly-created Team member's latest completion only proves this
           // parent turn when the Host outline confirms it had exactly one turn.
           // A later reuse may lie outside the loaded parent-history window.
-          const completionUnproven = isTeam && entry?.turnCount !== 1;
+          const completionUnproven = isManaged && entry?.turnCount !== 1;
           const uncertain = sent || older || runningUnproven || completionUnproven;
           return {
             running,
@@ -350,7 +369,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       badges.set(turn, agentBadges(states));
     }
     return badges;
-  }, [agentSignature, teamSignature, turnSignature, teamDispatches, flow.sessionId]);
+  }, [agentSignature, teamSignature, turnSignature, teamDispatches, reuseDispatches, flow.sessionId]);
   // Statistics belong to the turn, not to one segment. Exactly one bubble per
   // turn carries them: the turn's last bubble with text, otherwise its last
   // bubble at all (a turn that produced no text keeps a statistics-only bubble).
@@ -385,12 +404,12 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     }
     return probes;
   }, [plans, reportAttention, flow]);
-  const hasTeamMembers = Boolean(teamSignature && teamSignature !== '[]');
+  const hasDispatchTargets = Boolean(agentSignature || (teamSignature && teamSignature !== '[]'));
   const teamProbes = useMemo(() => {
-    if (!hasTeamMembers) return [];
+    if (!hasDispatchTargets) return [];
     const turns = new Set(plans.map(plan => plan.turn).filter(Number.isSafeInteger));
-    return [...turns].map(turn => <TeamDispatchProbe key={teamTurnKey(flow.sessionId, turn)} sessionId={flow.sessionId} turn={turn} nodes={nodes} onReport={reportTeamDispatches}/>);
-  }, [plans, nodes, flow.sessionId, hasTeamMembers, reportTeamDispatches]);
+    return [...turns].map(turn => <TeamDispatchProbe key={teamTurnKey(flow.sessionId, turn)} sessionId={flow.sessionId} turn={turn} nodes={nodes} onReport={reportTeamDispatches} onReuse={reportReuse}/>);
+  }, [plans, nodes, flow.sessionId, hasDispatchTargets, reportTeamDispatches, reportReuse]);
   const inlinePresentation = useCallback(selector => flow.usePresentation(policy => selector(inlinePolicy(policy))), [flow.usePresentation]);
   let pending = flow.pendingInputs;
   const tail = flow.entries.at(-1), tailNode = tail?.kind === 'node' ? nodes.get(tail.key) : undefined;

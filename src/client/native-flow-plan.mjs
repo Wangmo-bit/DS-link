@@ -108,6 +108,36 @@ export function teamDispatchSignature(toolRows) {
   return JSON.stringify([...targets].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0));
 }
 
+/** Select explicit-id ordinary subagent follow-ups without reading message text.
+ * A started call is provisional; only a successful result confirms delivery.
+ * The target is later checked against this parent's direct child catalog. */
+export function subagentReuseSignature(toolRows) {
+  const targets = new Map(), stack = [];
+  for (const row of toolRows ?? []) if (row?.root) stack.push(row.root);
+  while (stack.length) {
+    const block = stack.pop();
+    if (!block || typeof block !== 'object') continue;
+    if (Array.isArray(block.subCalls)) stack.push(...block.subCalls);
+    if (block.name !== 'ask_agent' && block.name !== 'send_message') continue;
+    let id;
+    try { id = block.args?.text?.('agent_id'); } catch { continue; }
+    if (typeof id !== 'string' || !id.trim()) continue;
+    id = id.trim();
+    const pending = block.phase === 'start';
+    let confirmed = block.kind === 'tool-result' && block.isError === false && block.call?.name === block.name;
+    if (confirmed && block.name === 'send_message') {
+      confirmed = Array.isArray(block.content) && block.content.some(part => part?.type === 'text' && part.text === `message delivered to agent ${id}`);
+    }
+    if (!pending && !confirmed) continue;
+    const rawTime = pending ? block.time : block.callTime;
+    const time = Number.isFinite(rawTime) ? rawTime : null;
+    const prior = targets.get(id);
+    targets.set(id, [prior?.[0] === null || prior?.[0] === undefined ? time : time === null ? prior[0] : Math.min(prior[0], time),
+      Boolean(confirmed || prior?.[1])]);
+  }
+  return JSON.stringify([...targets].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([id, [time, confirmed]]) => [id, time, confirmed]));
+}
+
 /**
  * Select the parent Team roster and only the child status facts used by badges.
  * The primitive signature changes when a roster member or status changes but
@@ -185,9 +215,10 @@ export function turnWindows(signature) {
  * @param {Array<{turn:number, from:number, to:number}>} windows
  * @param {Array<{id:string, name:string, role:string, phase:string}>} teamMembers
  * @param {Map<number, Array<string|[string,number|null]>>} targetsByTurn
+ * @param {Map<number, Array<[string,number|null,boolean]>>} reuseByTurn
  * @returns {Map<number, Array<{label:string, ids:string[], sentIds?:string[], sentTimes?:Array<[string,number]>, count:number}>>}
  */
-export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn = new Map()) {
+export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn = new Map(), reuseByTurn = new Map()) {
   const byTurn = new Map();
   if (!Array.isArray(windows) || !windows.length) return byTurn;
   const teamById = new Map(), teamByName = new Map();
@@ -226,6 +257,19 @@ export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn =
       const [name, sentAt] = Array.isArray(target) ? target : [target, null];
       const member = typeof name === 'string' ? teamByName.get(name.trim()) : undefined;
       if (member) add(turn, member.name.trim(), member.id, true, sentAt);
+    }
+  }
+  const catalogById = new Map((Array.isArray(catalog) ? catalog : []).filter(entry => typeof entry?.id === 'string').map(entry => [entry.id, entry]));
+  for (const [turn, targets] of reuseByTurn ?? []) {
+    if (!loadedTurns.has(turn) || !Array.isArray(targets)) continue;
+    for (const target of targets) {
+      if (!Array.isArray(target)) continue;
+      const [id, sentAt, confirmed] = target, entry = catalogById.get(id);
+      // Unsettled attempts are only shown for a known continuable child; an
+      // accepted call is authoritative even when catalog mode is unavailable.
+      if (!entry || (confirmed !== true && entry.mode !== 'continuable')) continue;
+      const label = teamById.get(id) ?? (typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : '子智能体');
+      add(turn, label, id, true, sentAt);
     }
   }
   for (const [turn, labels] of owners) {
