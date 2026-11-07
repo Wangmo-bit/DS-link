@@ -33,7 +33,10 @@ test('a running turn without text still shows its bubble and thinking dots',()=>
  assert.ok(!all.some(node=>node.props?.['data-sl-bodyless']!==undefined),'a running turn must NOT be bodyless');
  const dots=all.find(node=>String(node.props?.className||'').includes('sl-chat-thinking-dots'));
  assert.ok(dots,'the thinking dots must stay visible while the turn runs');
- assert.match(text(tree),/思考中/);
+ // The dots are the "working" signal; the line above reports only elapsed time
+ // and the real counts, so it must not repeat the word 思考中.
+ assert.doesNotMatch(text(tree),/思考中/);
+ assert.match(text(tree),/\d+ 秒/);
 });
 
 test('a finished turn that produced no text keeps a bodyless statistics line',()=>{

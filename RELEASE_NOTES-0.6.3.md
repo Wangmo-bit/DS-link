@@ -1,8 +1,12 @@
-# Session Link 0.6.2 — private pre-release candidate / 私有预发布候选
+# Session Link 0.6.3 — private pre-release candidate / 私有预发布候选
 
 **状态 / Status:** 仅本地候选，未发布 GitHub Release、未 npm publish。/ Local candidate only; no GitHub Release or npm publish yet.
 
 ## 中文
+
+## 0.6.3 调整（2026-11-07）
+
+- **去掉重复的“思考中”**：运行中的气泡下方已有三个点表示正在工作，上面那行再写“思考中”是重复信息。现在该行只报三个点表达不了的内容：已用时间、思考次数、工具次数。
 
 ## 0.6.2 修复（2026-11-07）
 
@@ -34,7 +38,7 @@
 安装（本地 tgz）：
 
 ```bash
-VERSION=0.6.2
+VERSION=0.6.3
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 
@@ -49,7 +53,7 @@ Compatibility: DSH 0.2.1-rc.5, Node 24.21.0, Linux Web. Other versions untested.
 Install (local tarball):
 
 ```bash
-VERSION=0.6.2
+VERSION=0.6.3
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 

@@ -42,9 +42,11 @@ function clockText(start, now) {
   const seconds = Math.max(0, Math.floor((now - start) / 1000));
   return seconds >= 60 ? `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒` : `${seconds} 秒`;
 }
-// Real elapsed time plus the real counts, while the turn is still open.
+// Real elapsed time plus the real counts, while the turn is still open. The
+// bubble right below already shows the working dots, so the line does not repeat
+// "思考中" — it only reports what the dots cannot: how long and how much.
 function runningText({ turn, control, now }) {
-  const parts = ['思考中'];
+  const parts = [];
   const elapsed = clockText(turn?.start?.time, now);
   if (elapsed) parts.push(elapsed);
   const counts = formatTurnSummary({ thinkingCount: thinkingCountOf(turn), toolCount: control?.data?.toolCallCount, status: statusOf(turn) });

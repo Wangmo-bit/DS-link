@@ -22,9 +22,10 @@ test('bubble mode keeps node and paging anchors without any process container',(
  assert.ok(outer);assert.equal(outer.node.props['data-chat-paging-anchor'],'');
  for(const key of ['ctrl','reason'])assert.ok(all.some(x=>!x.hidden&&x.node.props?.['data-chat-node-key']===key&&typeof x.node.props?.['data-chat-anchor-key']==='string'),`missing visible ${key} anchor`);
  assert.ok(!all.some(x=>x.node.props?.['data-sl-native-process']!==undefined),'no process container may be rendered');
- // The running turn still announces itself in the bubble's own heading.
+ // The running turn still announces itself: the real elapsed clock plus dots,
+ // without repeating the word the dots already convey.
  const text=JSON.stringify(tree);
- assert.match(text,/思考中/);
+ assert.match(text,/\d+ 秒/);
 });
 test('opening turn control retains node identity without becoming a paging anchor',()=>{
  const tree=render(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'ctrl'}]}));const all=flatten(tree),row=all.find(x=>x.node.props?.['data-chat-flow-kind']==='turn-process');

@@ -1,6 +1,6 @@
 {
   "name": "@wangmo/dsh-session-link",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "description": "让已有 DSH 会话在工作中可靠协作",
   "icon": "assets/icon.svg",
@@ -11,8 +11,8 @@
     "dsh": "0.2.1-rc.5"
   },
   "exports": {
-    ".": "./src/host/entry-0.6.2.js",
-    "./runtime-0.6.2": "./src/host/entry-0.6.2.js",
+    ".": "./src/host/entry-0.6.3.js",
+    "./runtime-0.6.3": "./src/host/entry-0.6.3.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },
