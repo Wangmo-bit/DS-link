@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
-import { AGENT_STATE, agentBadges, agentState, agentsByTurn, planNativeFlow, processNeedsInput, turnWindows } from './native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, turnWindows } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
@@ -77,7 +77,7 @@ function SummaryHeading({ turn, control, running, agents }) {
 function EndedHeading({ turn, control, agents }) {
   const text = endedText({ turn, control });
   if (!text && !agents?.length) return null;
-  return <span className="sl-chat-summary sl-heading-process">{text}{agents?.length ? <><span className="sl-summary-divider" aria-hidden="true">·</span><AgentBadges badges={agents}/></> : null}</span>;
+  return <span className="sl-chat-summary sl-heading-process">{text}{agents?.length ? <>{text ? <span className="sl-summary-divider" aria-hidden="true">·</span> : null}<AgentBadges badges={agents}/></> : null}</span>;
 }
 // One inline SVG per state. The silhouette is the same for every state; only the
 // colour changes, so a glance reads "how many are still working" without having
@@ -264,16 +264,17 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     const windows = turnWindows(nodes);
     if (!windows.length) return badges;
     for (const [turn, agents] of agentsByTurn(catalog, windows)) {
-      const states = agents.map(agent => {
-        const entry = catalog.find(item => item.id === agent.id);
-        return {
-          label: agent.label,
-          state: agentState({
+      // One badge per agent label, folded over every instance that label ran.
+      const states = agents.map(agent => ({
+        label: agent.label,
+        state: agentStateOf(agent.ids.map(id => {
+          const entry = catalog.find(item => item.id === id);
+          return {
             running: entry?.running,
             lastTurnCompleted: entry?.completed === true ? true : entry?.failed === true ? false : undefined,
-          }),
-        };
-      });
+          };
+        })),
+      }));
       badges.set(turn, agentBadges(states));
     }
     return badges;

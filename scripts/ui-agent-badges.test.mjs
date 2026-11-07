@@ -4,7 +4,7 @@
 // nothing, cancelled/unknown is muted rather than "failed".
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AGENT_STATE, agentBadges, agentState, agentsByTurn, turnWindows } from '../src/client/native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentState, agentStateOf, agentsByTurn, turnWindows } from '../src/client/native-flow-plan.mjs';
 
 const node = (turn, start, end, status = 'closed') => ({ kind: 'assistant-step', location: { kind: 'turn', turn: {
   turn, status, start: start === undefined ? undefined : { time: start }, end: end === undefined ? undefined : { time: end },
@@ -16,9 +16,11 @@ test('turn windows come from the transcript and keep an open turn open-ended', (
     ['b', node(2, 300, undefined, 'open')],
     ['c', node(3, 500, 600)],
   ]);
+  // turn 2 is open and is followed by turn 3, so it ends where turn 3 begins; a
+  // crash-orphaned turn must not swallow every later dispatch.
   assert.deepEqual(turnWindows(nodes), [
     { turn: 1, from: 100, to: 200 },
-    { turn: 2, from: 300, to: Infinity },
+    { turn: 2, from: 300, to: 499 },
     { turn: 3, from: 500, to: 600 },
   ]);
 });
@@ -47,11 +49,30 @@ test('the same agent dispatched repeatedly in one turn is still one agent', () =
   const agents = agentsByTurn(catalog, windows).get(7);
   assert.equal(agents.length, 2, '100 dispatches of one agent collapse to one badge');
   assert.deepEqual(agents.map(agent => agent.label).sort(), ['冷审', '开发']);
+  // Every instance id must survive dedupe: otherwise the third run's failure is lost.
+  assert.deepEqual(agents.find(agent => agent.label === '开发').ids, ['a1', 'a2', 'a3']);
+});
+
+test('a failing instance of a repeated agent is not hidden by an earlier success', () => {
+  // Real case from this session (turn 281): probe ran three times; the third
+  // ended with an error. Keeping only the first instance would have shown green.
+  const windows = [{ turn: 281, from: 100, to: 900 }];
+  const catalog = [
+    { id: 'p1', createdAt: 120, label: '摸底' },
+    { id: 'p2', createdAt: 300, label: '摸底' },
+    { id: 'p3', createdAt: 500, label: '摸底' },
+  ];
+  const [agent] = agentsByTurn(catalog, windows).get(281);
+  const facts = { p1: { lastTurnCompleted: true }, p2: { lastTurnCompleted: true }, p3: { lastTurnCompleted: false } };
+  assert.equal(agentStateOf(agent.ids.map(id => facts[id])), 'idle', 'one unfinished instance must not read as all done');
+  assert.equal(agentStateOf([{ lastTurnCompleted: true }, { lastTurnCompleted: true }]), 'done');
+  assert.equal(agentStateOf([{ lastTurnCompleted: true }, { running: true }]), 'running');
+  assert.equal(agentStateOf([]), 'idle');
 });
 
 test('a child without a label still counts as one agent', () => {
   const agents = agentsByTurn([{ id: 'x', createdAt: 100 }], [{ turn: 1, from: 100, to: 200 }]).get(1);
-  assert.deepEqual(agents, [{ label: '子智能体', id: 'x', count: 1 }]);
+  assert.deepEqual(agents, [{ label: '子智能体', ids: ['x'], count: 1 }]);
 });
 
 test('state folds from running then the latest-turn outcome', () => {

@@ -99,10 +99,18 @@ export function turnWindows(nodes) {
     // so its window stays open-ended.
     if (turn.status === 'open') window.open = true;
   }
-  return [...windows.values()]
+  const closed = [...windows.values()]
     .filter(window => Number.isFinite(window.from))
     .map(window => ({ turn: window.turn, from: window.from, to: window.open ? Infinity : window.to }))
     .sort((a, b) => a.from - b.from);
+  // An open turn absorbs only what came after it. If an older turn never closed
+  // (crash-orphaned), truncate it at the next turn's start so it cannot capture
+  // every later dispatch.
+  for (let index = 0; index < closed.length - 1; index++) {
+    const window = closed[index], next = closed[index + 1];
+    if (!Number.isFinite(window.to) && Number.isFinite(next.from)) window.to = next.from - 1;
+  }
+  return closed;
 }
 
 /**
@@ -115,19 +123,46 @@ export function turnWindows(nodes) {
 export function agentsByTurn(catalog, windows) {
   const byTurn = new Map();
   if (!Array.isArray(catalog) || !catalog.length || !windows.length) return byTurn;
-  const owners = new Map(); // turn -> Map(label -> representative child id)
+  // turn -> label -> every child id that ran under that label. Keeping all ids is
+  // what makes the badge honest: dispatching the same agent three times and
+  // having the third one fail must not read as "all done".
+  const owners = new Map();
   for (const entry of catalog) {
     if (!entry || typeof entry.id !== 'string' || !Number.isFinite(entry.createdAt)) continue;
-    // The first window that contains the dispatch wins; windows never overlap.
     const owner = windows.find(window => entry.createdAt >= window.from && entry.createdAt <= window.to);
     if (!owner) continue;
     const label = typeof entry.label === 'string' && entry.label.trim() !== '' ? entry.label.trim() : '子智能体';
     let labels = owners.get(owner.turn);
     if (!labels) { labels = new Map(); owners.set(owner.turn, labels); }
-    if (!labels.has(label)) labels.set(label, entry.id);
+    const ids = labels.get(label);
+    if (ids) ids.push(entry.id); else labels.set(label, [entry.id]);
   }
-  for (const [turn, labels] of owners) byTurn.set(turn, [...labels.entries()].map(([label, id]) => ({ label, id, count: 1 })));
+  for (const [turn, labels] of owners) {
+    byTurn.set(turn, [...labels.entries()].map(([label, ids]) => ({ label, ids, count: 1 })));
+  }
   return byTurn;
+}
+
+/**
+ * Fold every instance of one agent label into a single badge state. The Host
+ * cannot tell a real error from a user cancellation (both arrive as
+ * `lastTurnCompleted === false`), so an unfinished instance makes the agent
+ * "unconfirmed" rather than "failed" — reporting a cancelled agent as a failure
+ * would be worse than admitting uncertainty.
+ * @param {Array<{running?:boolean, lastTurnCompleted?:boolean}>} instances
+ * @returns {string} one of AGENT_STATE
+ */
+export function agentStateOf(instances) {
+  const list = Array.isArray(instances) ? instances : [];
+  if (!list.length) return AGENT_STATE.idle;
+  if (list.some(facts => facts?.running === true)) return AGENT_STATE.running;
+  // `failed` is only reachable if a caller supplies a real failure fact. The Host
+  // does not expose one today (it folds errors and cancellations into the same
+  // `lastTurnCompleted: false`), so in production this branch stays unused and an
+  // unfinished instance is reported as unconfirmed instead of failed.
+  if (list.some(facts => facts?.failed === true)) return AGENT_STATE.failed;
+  if (list.every(facts => facts?.lastTurnCompleted === true)) return AGENT_STATE.done;
+  return AGENT_STATE.idle;
 }
 
 /**
