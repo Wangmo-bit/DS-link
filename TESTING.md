@@ -4,7 +4,7 @@
 
 ## 开发/测试需要源码仓
 
-`npm ci`、`npm test`、`npm run build`、`npm pack --dry-run` 是**源码仓开发命令**；通过 tgz 安装的插件包不包含 `test/` 或 `scripts/`，不能在这些命令下运行测试。请从源码仓执行。
+`npm ci`、`npm test`、`npm run build`、`npm pack --dry-run` 是**源码仓开发命令**；通过 tgz 安装的插件包不包含 `test/` 或 `scripts/`，不能在这些命令下运行测试。请从源码仓执行。运行 `npm test` 前必须满足下文的独立 `/tmp` 隔离前提；仅设置 `TMPDIR` 不够。
 
 ```bash
 npm ci
@@ -13,11 +13,11 @@ npm run build
 npm pack --dry-run
 ```
 
-## 实测结果（候选自检，未由外部复验）
+## 测试结果与环境
 
-- `npm test`：305 total / 301 pass / 0 fail / **4 skipped**
-- 4 个 skipped 用例仅在环境变量 `DSH_CLIENT_CONVERSATION` 指向已安装的 DSH client bundle 时运行；未设置即跳过（即使本机已安装但未提供路径也一样）。公开/干净环境通常没有该私有路径。
-- `npm ci`、`npm run build`、`npm pack --dry-run` 均 exit 0。
+- 测试数量和结果以目标提交的本次运行记录为准；旧版候选的统计不代表当前版本。
+- 宿主集成用例需显式提供对应的 client bundle 环境变量；未提供时会跳过，不能把跳过当作通过。
+- 运行完整测试套件前，必须满足本文件下方的隔离前提；仅设置 `TMPDIR` 不够。
 
 ## 与上游测试的差异（面向用户）
 

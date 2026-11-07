@@ -11,15 +11,15 @@
 ## B. GitHub Release 制品
 
 1. 从**目标 commit** 构建：`npm ci && npm run build`。
-2. 打包：`npm pack --pack-destination release/` → `wangmo-dsh-session-link-0.7.1.tgz`。
+2. 打包：`npm pack --pack-destination release/` → `wangmo-dsh-session-link-0.8.0.tgz`。
 3. 校验：`sha256sum release/*.tgz` 写入 `release/SHA256SUMS.txt`；记录 release notes 中对应的 commit SHA（构建时 `git rev-parse HEAD`）。
-4. Release notes 用 `RELEASE_NOTES-0.7.1.md`（中英）；附 tgz 与 SHA256；标注已测/未测、升级/回滚边界。
+4. Release notes 用 `RELEASE_NOTES-0.8.0.md`（中英）；附 tgz 与 SHA256；标注已测/未测、升级/回滚边界。
 5. 由所有者创建 tag/Release 并上传；本仓不推送 tag。
 
 安装验证（隔离 profile，非生产）：
 
 ```bash
-dsh plugin --profile <isolated-profile> add /path/to/wangmo-dsh-session-link-0.7.1.tgz --offline
+dsh plugin --profile <isolated-profile> add /path/to/wangmo-dsh-session-link-0.8.0.tgz --offline
 ```
 
 回退：保留旧 tgz；但账本/队列跨版本兼容**未验证**，需先做备份/恢复与 downgrade 演练。

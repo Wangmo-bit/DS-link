@@ -62,22 +62,75 @@ export function planNativeFlow(entries, store) {
 // ---------------------------------------------------------------------------
 // Subagent badges
 //
-// The Host records every direct child of a session as a `subagent/catalog`
-// event, folded into the parent's `subagentCatalog` projection as
-// `{id, createdAt, mode, label}`. Counting per turn therefore needs no guessing:
-// a child belongs to the turn whose [start, end] window contains its
-// `createdAt`, and `label` is the agent name the user picked.
+// The Host's `subagentCatalog` records direct children as
+// `{id, createdAt, mode, label}`; their creation is attributed to the parent
+// turn containing `createdAt`. The label of a Team child is its description,
+// so Team identity must instead come from the `agentTeam` roster. A successful
+// Team send is attributed directly to its own tool-call turn.
 //
-// Status comes from two Host facts only:
-//   running            — the session's own running flag
-//   lastTurnCompleted  — whether the child's latest closed turn ended normally
-// A child that is neither running nor "completed" is NOT reported as a failure:
-// the Host folds `aborted`/`interrupted` into the same `false`, and calling a
-// user-cancelled agent "failed" would be a lie. Those become `idle`.
+// The Host provides the child's running flag, latest closed-turn outcome and
+// optional timing/turn outline. A send acknowledgement is not completion, and
+// an inactive Team member is not automatically done. Unknown stays `idle`:
+// the Host folds `aborted`/`interrupted` into the same `false` as errors.
 // ---------------------------------------------------------------------------
 
 /** One agent a turn dispatched, already deduplicated by label. */
 export const AGENT_STATE = Object.freeze({ running: 'running', done: 'done', failed: 'failed', idle: 'idle' });
+
+/**
+ * Select only confirmed Team sends from one turn's Host tool-call projection.
+ * Read the top-level `target` field lazily: never read or parse the message body.
+ * A send acknowledgement establishes admission, not execution or completion.
+ * @param {readonly {root?: any}[]} toolRows
+ * @returns {string} JSON-encoded, sorted distinct target names.
+ */
+export function teamDispatchSignature(toolRows) {
+  const targets = new Set(), stack = [];
+  for (const row of toolRows ?? []) if (row?.root) stack.push(row.root);
+  while (stack.length) {
+    const block = stack.pop();
+    if (!block || typeof block !== 'object') continue;
+    if (Array.isArray(block.subCalls)) stack.push(...block.subCalls);
+    if (block.kind !== 'tool-result' || block.name !== 'send_message' || block.isError !== false || block.call?.name !== 'send_message') continue;
+    let target;
+    try { target = block.args?.text?.('target'); } catch { continue; }
+    if (typeof target !== 'string' || !target.trim() || !Array.isArray(block.content)) continue;
+    const accepted = block.content.some(part => {
+      if (part?.type !== 'text' || typeof part.text !== 'string') return false;
+      try { return JSON.parse(part.text)?.sent === true; } catch { return false; }
+    });
+    if (accepted) targets.add(target.trim());
+  }
+  return JSON.stringify([...targets].sort());
+}
+
+/**
+ * Select the parent Team roster and only the child status facts used by badges.
+ * The primitive signature changes when a roster member or status changes but
+ * does not subscribe the flow to unrelated session-list updates.
+ */
+export function teamRosterSignature(snapshot, sessionId) {
+  const own = snapshot?.projectionsBySession?.[sessionId]?.values?.agentTeam?.members;
+  const parentId = snapshot?.byId?.[sessionId]?.parentId;
+  const parent = parentId ? snapshot?.projectionsBySession?.[parentId]?.values?.agentTeam?.members : undefined;
+  // A teammate's roster is stored on the Lead, not on that teammate's own
+  // Session. Only use the parent roster when it proves this exact membership;
+  // ordinary subagents must never inherit an unrelated Team.
+  const isTeammate = Array.isArray(parent) && parent.some(member => member?.id === sessionId && member.role === 'teammate' && member.phase === 'active');
+  const members = isTeammate ? parent : own;
+  if (!Array.isArray(members)) return '';
+  const rows = [];
+  for (const member of members) {
+    if (member?.role !== 'teammate' || member.phase !== 'active' || typeof member.id !== 'string' || typeof member.name !== 'string') continue;
+    const child = snapshot.byId?.[member.id], timing = child?.projectionValues?.subagentTiming;
+    const outcome = timing?.lastTurnCompleted, activeSince = timing?.active?.since;
+    const outline = child?.projectionValues?.turnOutline;
+    rows.push([member.id, member.name, member.role, member.phase, child?.running === true,
+      outcome === true ? 'c' : outcome === false ? 'f' : '', Number.isFinite(activeSince) ? activeSince : null,
+      Array.isArray(outline) ? outline.length : null]);
+  }
+  return JSON.stringify(rows);
+}
 
 /**
  * Select only the turn-boundary facts that affect agent attribution. Unlike the
@@ -119,31 +172,56 @@ export function turnWindows(signature) {
 }
 
 /**
- * Attribute catalog entries to turns and collapse them to one badge per agent
- * label. Calling the same agent repeatedly in one turn is still one agent.
+ * Attribute newly created children and acknowledged Team sends to their turns.
+ * Team members use the roster name, not the catalog's task-description label,
+ * so creation plus later sends to the same member still count only once.
+ * A sentIds entry records admission only; it is not evidence of completion.
  * @param {Array<{id:string, createdAt:number, label?:string, mode?:string}>} catalog
  * @param {Array<{turn:number, from:number, to:number}>} windows
- * @returns {Map<number, Array<{label:string, state:string, count:number}>>}
+ * @param {Array<{id:string, name:string, role:string, phase:string}>} teamMembers
+ * @param {Map<number, string[]>} targetsByTurn
+ * @returns {Map<number, Array<{label:string, ids:string[], sentIds?:string[], count:number}>>}
  */
-export function agentsByTurn(catalog, windows) {
+export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn = new Map()) {
   const byTurn = new Map();
-  if (!Array.isArray(catalog) || !catalog.length || !windows.length) return byTurn;
-  // turn -> label -> every child id that ran under that label. Keeping all ids is
-  // what makes the badge honest: dispatching the same agent three times and
-  // having the third one fail must not read as "all done".
+  if (!Array.isArray(windows) || !windows.length) return byTurn;
+  const teamById = new Map(), teamByName = new Map();
+  for (const member of teamMembers ?? []) {
+    if (member?.role !== 'teammate' || member.phase !== 'active' || typeof member.id !== 'string' || !member.id || typeof member.name !== 'string' || !member.name.trim()) continue;
+    const name = member.name.trim(), prior = teamByName.get(name);
+    teamById.set(member.id, name);
+    // Host names are unique. If malformed data is ambiguous, never guess a target.
+    teamByName.set(name, prior === undefined ? member : prior?.id === member.id ? prior : null);
+  }
+  // turn -> label -> every child id and the subset explicitly sent work.
   const owners = new Map();
-  for (const entry of catalog) {
+  const add = (turn, label, id, sent) => {
+    let labels = owners.get(turn);
+    if (!labels) { labels = new Map(); owners.set(turn, labels); }
+    let group = labels.get(label);
+    if (!group) { group = { ids: [], sentIds: [] }; labels.set(label, group); }
+    if (!group.ids.includes(id)) group.ids.push(id);
+    if (sent && !group.sentIds.includes(id)) group.sentIds.push(id);
+  };
+  for (const entry of Array.isArray(catalog) ? catalog : []) {
     if (!entry || typeof entry.id !== 'string' || !Number.isFinite(entry.createdAt)) continue;
     const owner = windows.find(window => entry.createdAt >= window.from && entry.createdAt <= window.to);
     if (!owner) continue;
-    const label = typeof entry.label === 'string' && entry.label.trim() !== '' ? entry.label.trim() : '子智能体';
-    let labels = owners.get(owner.turn);
-    if (!labels) { labels = new Map(); owners.set(owner.turn, labels); }
-    const ids = labels.get(label);
-    if (ids) ids.push(entry.id); else labels.set(label, [entry.id]);
+    const label = teamById.get(entry.id) ?? (typeof entry.label === 'string' && entry.label.trim() !== '' ? entry.label.trim() : '子智能体');
+    add(owner.turn, label, entry.id, false);
+  }
+  const loadedTurns = new Set(windows.map(window => window.turn));
+  for (const [turn, targets] of targetsByTurn ?? []) {
+    if (!loadedTurns.has(turn) || !Array.isArray(targets)) continue;
+    for (const name of targets) {
+      const member = typeof name === 'string' ? teamByName.get(name.trim()) : undefined;
+      if (member) add(turn, member.name.trim(), member.id, true);
+    }
   }
   for (const [turn, labels] of owners) {
-    byTurn.set(turn, [...labels.entries()].map(([label, ids]) => ({ label, ids, count: 1 })));
+    byTurn.set(turn, [...labels.entries()].map(([label, group]) => ({
+      label, ids: group.ids, count: 1, ...(group.sentIds.length ? { sentIds: group.sentIds } : {}),
+    })));
   }
   return byTurn;
 }

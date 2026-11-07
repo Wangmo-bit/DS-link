@@ -12,10 +12,10 @@
 // - Internal mechanism rows (model retries) never draw in the timeline.
 //
 // Card mode is untouched: the adapter hands the native flow straight through.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
-import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, teamDispatchSignature, teamRosterSignature, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
@@ -146,6 +146,21 @@ function TurnAttention({ turn, groups, flow, onReport }) {
   return groups.filter(group => group.kind === 'group').map(group =>
     <AttentionGroup key={group.key} groupKey={group.key} useChatGroup={flow.useChatGroup} useChatNode={flow.useChatNode} report={report}/>);
 }
+// Observe only this turn's tool-call data, including hidden tool rows. A Team
+// send contributes only after the Host records a successful acknowledgement.
+const EMPTY_TEAM_TOOLS = Object.freeze([]);
+const EMPTY_TEAM_SOURCE = Object.freeze({ subscribe: () => () => {}, getSnapshot: () => EMPTY_TEAM_TOOLS });
+const teamTurnKey = (sessionId, turn) => JSON.stringify([sessionId, turn]);
+function TeamDispatchProbe({ sessionId, turn, nodes, onReport }) {
+  const source = useMemo(() => nodes?.turnDataSource?.(turn, 'tool-call') ?? EMPTY_TEAM_SOURCE, [nodes, turn]);
+  const rows = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot);
+  const signature = teamDispatchSignature(rows);
+  // Publish before paint, so an earlier successful child turn is not briefly
+  // mistaken for completion of a later Team message on history reload.
+  useLayoutEffect(() => { onReport(sessionId, turn, signature); }, [sessionId, turn, signature, onReport]);
+  useEffect(() => () => { onReport(sessionId, turn, null); }, [sessionId, turn, onReport]);
+  return null;
+}
 const EMPTY_INPUTS = Object.freeze([]), SINGLETONS = new WeakMap();
 function singleton(entry) { let value = SINGLETONS.get(entry); if (!value) { value = [entry]; SINGLETONS.set(entry, value); } return value; }
 function entryKey(entry) { return JSON.stringify([entry.kind,entry.key,entry.groupPart ?? null]); }
@@ -254,6 +269,17 @@ function BubbleFlow({ NativeFlow, ...flow }) {
         child?.projectionValues?.subagentTiming?.lastTurnCompleted === false ? 'f' : ''].join('\u0000');
     }).join('\u0001');
   });
+  const teamSignature = flow.useSessions(snapshot => teamRosterSignature(snapshot, flow.sessionId));
+  const [teamDispatches, setTeamDispatches] = useState(() => new Map());
+  const reportTeamDispatches = useCallback((sessionId, turn, signature) => {
+    const key = teamTurnKey(sessionId, turn), nextValue = signature && signature !== '[]' ? signature : undefined;
+    setTeamDispatches(previous => {
+      if (previous.get(key) === nextValue) return previous;
+      const next = new Map(previous);
+      if (nextValue === undefined) next.delete(key); else next.set(key, nextValue);
+      return next;
+    });
+  }, []);
   const identity = session?.projectionValues?.subagent;
   const author = session?.origin === 'subagent' || identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
   const plans = useMemo(() => planNativeFlow(flow.entries, nodes), [flow.entries, nodes]);
@@ -262,29 +288,60 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   // latest-turn outcome the Host folds (subagentTiming.lastTurnCompleted).
   const agentBadgesByTurn = useMemo(() => {
     const badges = new Map();
-    if (!agentSignature) return badges;
-    const catalog = agentSignature.split('\u0001').map(row => {
+    const catalog = agentSignature ? agentSignature.split('\u0001').map(row => {
       const [id, label, createdAt, running, completed, failed] = row.split('\u0000');
       return { id, label: label || undefined, createdAt: Number(createdAt), running: running === 'r', completed: completed === 'c', failed: failed === 'f' };
-    });
-    const windows = turnWindows(turnSignature);
+    }) : [];
+    const members = teamSignature ? JSON.parse(teamSignature).map(([id, name, role, phase, running, outcome, activeSince, turnCount]) => ({
+      id, name, role, phase, running, activeSince, turnCount, completed: outcome === 'c', failed: outcome === 'f',
+    })) : [];
+    const byId = new Map([...catalog, ...members].map(entry => [entry.id, entry]));
+    const teamIds = new Set(members.map(member => member.id));
+    const windows = turnWindows(turnSignature), targetsByTurn = new Map();
     if (!windows.length) return badges;
-    for (const [turn, agents] of agentsByTurn(catalog, windows)) {
-      // One badge per agent label, folded over every instance that label ran.
+    for (const window of windows) {
+      const signature = teamDispatches.get(teamTurnKey(flow.sessionId, window.turn));
+      if (signature) targetsByTurn.set(window.turn, JSON.parse(signature));
+    }
+    const groups = agentsByTurn(catalog, windows, members, targetsByTurn);
+    const windowsByTurn = new Map(windows.map(window => [window.turn, window]));
+    const latestTeamTurn = new Map();
+    for (const [turn, agents] of groups) {
+      const from = windowsByTurn.get(turn)?.from;
+      for (const agent of agents) for (const id of agent.ids) {
+        if (!teamIds.has(id)) continue;
+        const prior = latestTeamTurn.get(id);
+        if (!prior || from > prior.from || (from === prior.from && turn > prior.turn)) latestTeamTurn.set(id, { turn, from });
+      }
+    }
+    for (const [turn, agents] of groups) {
+      // A Team acknowledgement is not completion. Also, a member working in a
+      // later turn must not make its historical bubbles look active or finished.
+      const window = windowsByTurn.get(turn);
       const states = agents.map(agent => ({
         label: agent.label,
         state: agentStateOf(agent.ids.map(id => {
-          const entry = catalog.find(item => item.id === id);
+          const entry = byId.get(id), sent = agent.sentIds?.includes(id), isTeam = teamIds.has(id);
+          const older = isTeam && latestTeamTurn.get(id)?.turn !== turn;
+          const activeSince = entry?.activeSince;
+          const startedLater = isTeam && entry?.running && Number.isFinite(activeSince) && activeSince > window.to;
+          const runningUnproven = isTeam && entry?.running && window.to !== Infinity && !Number.isFinite(activeSince);
+          const running = entry?.running === true && !older && !startedLater && !runningUnproven;
+          // A newly-created Team member's latest completion only proves this
+          // parent turn when the Host outline confirms it had exactly one turn.
+          // A later reuse may lie outside the loaded parent-history window.
+          const completionUnproven = isTeam && entry?.turnCount !== 1;
+          const uncertain = sent || older || startedLater || runningUnproven || completionUnproven;
           return {
-            running: entry?.running,
-            lastTurnCompleted: entry?.completed === true ? true : entry?.failed === true ? false : undefined,
+            running,
+            lastTurnCompleted: uncertain ? undefined : entry?.completed === true ? true : entry?.failed === true ? false : undefined,
           };
         })),
       }));
       badges.set(turn, agentBadges(states));
     }
     return badges;
-  }, [agentSignature, turnSignature]);
+  }, [agentSignature, teamSignature, turnSignature, teamDispatches, flow.sessionId]);
   // Statistics belong to the turn, not to one segment. Exactly one bubble per
   // turn carries them: the turn's last bubble with text, otherwise its last
   // bubble at all (a turn that produced no text keeps a statistics-only bubble).
@@ -319,6 +376,12 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     }
     return probes;
   }, [plans, reportAttention, flow]);
+  const hasTeamMembers = Boolean(teamSignature && teamSignature !== '[]');
+  const teamProbes = useMemo(() => {
+    if (!hasTeamMembers) return [];
+    const turns = new Set(plans.map(plan => plan.turn).filter(Number.isSafeInteger));
+    return [...turns].map(turn => <TeamDispatchProbe key={teamTurnKey(flow.sessionId, turn)} sessionId={flow.sessionId} turn={turn} nodes={nodes} onReport={reportTeamDispatches}/>);
+  }, [plans, nodes, flow.sessionId, hasTeamMembers, reportTeamDispatches]);
   const inlinePresentation = useCallback(selector => flow.usePresentation(policy => selector(inlinePolicy(policy))), [flow.usePresentation]);
   let pending = flow.pendingInputs;
   const tail = flow.entries.at(-1), tailNode = tail?.kind === 'node' ? nodes.get(tail.key) : undefined;
@@ -352,7 +415,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   // If an unexpected projection removed the opening controller, show its echo
   // at the tail rather than silently losing it.
   if (early && !plans.some(plan => plan.kind === 'control' && plan.entry.key === tail?.key)) pending = [early, ...pending];
-  return <>{probes}{rows}<NativeFlow {...flow} entries={EMPTY_INPUTS} pendingInputs={pending}/></>;
+  return <>{probes}{teamProbes}{rows}<NativeFlow {...flow} entries={EMPTY_INPUTS} pendingInputs={pending}/></>;
 }
 export function NativeFlowAdapter({ NativeFlow, ...flow }) {
   const mode = useDisplayMode();

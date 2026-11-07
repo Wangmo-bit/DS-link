@@ -170,7 +170,7 @@ test('snapshot exposes v2 contract, computed storage, and no active budget field
   })
   const snapshot = await engine.snapshot({})
   assert.equal(snapshot.apiVersion, 3)
-  assert.equal(snapshot.version, '0.7.1')
+  assert.equal(snapshot.version, '0.8.0')
   assert.deepEqual(Object.keys(snapshot.settings).sort(), ['enabled', 'maxConcurrent', 'paused', 'requestTimeoutMs', 'retentionDays'])
   assert.equal(snapshot.budget, undefined)
   assert.deepEqual(snapshot.budgetLatches, [])

@@ -170,6 +170,27 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-chat-event-target { display: inline-flex; align-items: center; gap: 4px; }
 .sl-chat-event .sl-exchange-link { background: color-mix(in srgb, var(--sl-chat-muted) 12%, transparent); border-radius: 999px; }
 .sl-chat-event .sl-exchange-link:hover { background: color-mix(in srgb, var(--sl-chat-muted) 20%, transparent); }
+/* Only timeline notices in bubble mode: the ordinary outgoing notice has a
+   card id rather than data-session-link-notice. Card exchange links stay intact. */
+:root:not([data-sl-card-mode]) :is([data-session-link-notice], .sl-chat-event[data-session-link-card][data-session-link-direction="sent"]) .sl-exchange-link {
+  --sl-notice-surface: #dce6df;
+  --sl-notice-hover: #ccdcd0;
+  --sl-notice-ink: #344a3b;
+  background: var(--sl-notice-surface);
+  color: var(--sl-notice-ink);
+}
+:root:not([data-sl-card-mode])[data-ds-dark-theme] :is([data-session-link-notice], .sl-chat-event[data-session-link-card][data-session-link-direction="sent"]) .sl-exchange-link,
+:root:not([data-sl-card-mode]) body[data-ds-dark-theme] :is([data-session-link-notice], .sl-chat-event[data-session-link-card][data-session-link-direction="sent"]) .sl-exchange-link {
+  --sl-notice-surface: #3b4942;
+  --sl-notice-hover: #495b50;
+  --sl-notice-ink: #dce8dd;
+}
+:root:not([data-sl-card-mode]) :is([data-session-link-notice], .sl-chat-event[data-session-link-card][data-session-link-direction="sent"]) .sl-exchange-link:hover {
+  background: var(--sl-notice-hover);
+  color: var(--sl-notice-ink);
+}
+:root:not([data-sl-card-mode]) :is([data-session-link-notice], .sl-chat-event[data-session-link-card][data-session-link-direction="sent"]) .sl-exchange-link:focus-visible { outline-color: var(--sl-notice-ink); }
+:root:not([data-sl-card-mode]) :is([data-session-link-notice], .sl-chat-event[data-session-link-card][data-session-link-direction="sent"]) .sl-delivery-indicator:not(.sl-delivery-indicator--warning):not(.sl-delivery-indicator--failed) { color: var(--sl-notice-ink); }
 .sl-chat-event-status { font-size: 11px; color: var(--dsw-alias-state-error-primary, #d56868); }
 .sl-delivery-indicator { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; color:var(--sl-chat-muted); font-size:13px; line-height:1; }
 .sl-delivery-indicator--warning,.sl-delivery-indicator--failed { color:var(--dsw-alias-state-error-primary,#d56868); }

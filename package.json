@@ -1,6 +1,6 @@
 {
   "name": "@wangmo/dsh-session-link",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "private": true,
   "description": "让已有 DSH 会话在工作中可靠协作",
   "icon": "assets/icon.svg",
@@ -11,8 +11,8 @@
     "dsh": "0.2.1-rc.5"
   },
   "exports": {
-    ".": "./src/host/entry-0.7.1.js",
-    "./runtime-0.7.1": "./src/host/entry-0.7.1.js",
+    ".": "./src/host/entry-0.8.0.js",
+    "./runtime-0.8.0": "./src/host/entry-0.8.0.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },
@@ -26,7 +26,7 @@
     "assets/icon.svg"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js scripts/dsh-web-scroll-patch.test.mjs scripts/dsh-web-flow-bridge.test.mjs scripts/ui-model.test.mjs scripts/ui-chat-skin-model.test.mjs scripts/ui-chat-skin.test.mjs scripts/ui-image-skin.test.mjs scripts/ui-display-mode.test.mjs scripts/ui-native-flow-plan.test.mjs scripts/ui-native-flow-anchors.test.mjs scripts/ui-native-flow-summary.test.mjs scripts/ui-native-flow-attention.test.mjs scripts/ui-native-flow-silent-rows.test.mjs scripts/ui-native-flow-running.test.mjs scripts/ui-native-flow-empty-block.test.mjs scripts/ui-agent-badges-render.test.mjs scripts/ui-agent-badges.test.mjs scripts/ui-agent-badges-live.test.mjs scripts/ui-thinking-dots.test.mjs scripts/ui-subagent-history.test.mjs scripts/ui-subagent-message.test.mjs scripts/ui-subagent-outgoing.test.mjs scripts/ui-exchange-page.test.mjs scripts/ui-sender-event.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-incoming-body.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",
+    "test": "node --test test/*.test.js scripts/dsh-web-scroll-patch.test.mjs scripts/dsh-web-flow-bridge.test.mjs scripts/ui-model.test.mjs scripts/ui-chat-skin-model.test.mjs scripts/ui-chat-skin.test.mjs scripts/ui-image-skin.test.mjs scripts/ui-display-mode.test.mjs scripts/ui-native-flow-plan.test.mjs scripts/ui-native-flow-anchors.test.mjs scripts/ui-native-flow-summary.test.mjs scripts/ui-native-flow-attention.test.mjs scripts/ui-native-flow-silent-rows.test.mjs scripts/ui-native-flow-running.test.mjs scripts/ui-native-flow-empty-block.test.mjs scripts/ui-agent-badges-render.test.mjs scripts/ui-agent-badges.test.mjs scripts/ui-agent-badges-live.test.mjs scripts/ui-team-dispatch.test.mjs scripts/ui-team-dispatch-live.test.mjs scripts/ui-capsule-color.test.mjs scripts/ui-thinking-dots.test.mjs scripts/ui-subagent-history.test.mjs scripts/ui-subagent-message.test.mjs scripts/ui-subagent-outgoing.test.mjs scripts/ui-exchange-page.test.mjs scripts/ui-sender-event.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-incoming-body.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",
     "build": "node scripts/build.mjs",
     "check": "npm run build && npm test",
     "prepack": "node scripts/build.mjs"
