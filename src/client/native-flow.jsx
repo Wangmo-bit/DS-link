@@ -95,10 +95,12 @@ function AgentBadges({ badges }) {
   if (!badges?.length) return null;
   const total = badges.reduce((sum, badge) => sum + badge.count, 0);
   const spoken = badges.map(badge => `${AGENT_STATE_LABEL[badge.state]} ${badge.count} 个`).join('，');
-  // One agent needs no count: the single icon already says "one".
+  // One agent needs no count: the single icon already says "one", and the spoken
+  // form drops the count too so it matches what is on screen.
   if (total === 1) {
     const only = badges[0];
-    return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={`本轮 ${total} 个 agent，${spoken}`} title={`本轮 ${total} 个 agent，${spoken}`}>
+    const single = `本轮 1 个 agent，${AGENT_STATE_LABEL[only.state]}`;
+    return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={single} title={single}>
       <AgentIcon state={only.state}/>
     </span>;
   }
