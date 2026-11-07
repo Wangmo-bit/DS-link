@@ -1,8 +1,22 @@
-# Session Link 0.6.3 — private pre-release candidate / 私有预发布候选
+# Session Link 0.7.0 — private pre-release candidate / 私有预发布候选
 
 **状态 / Status:** 仅本地候选，未发布 GitHub Release、未 npm publish。/ Local candidate only; no GitHub Release or npm publish yet.
 
 ## 中文
+
+## 0.7.0 新增（2026-11-07）
+
+**气泡里显示本轮派出的 agent。**
+
+- 位置：该轮气泡的统计行末尾，用一条淡分隔符隔开。
+- 形式：每个状态一个 SVG 小人图标 + 数量，同状态归组，最多三组；只有 1 个 agent 时不显示数字。
+- 颜色：蓝 = 运行中，绿 = 正常完成，红 = 失败，灰 = 中断或未知。
+- **按 agent 去重**：同一轮里同一个 agent 派 100 次也只算 1 个。
+- **本轮没派 agent 就完全不显示**，不占位。
+- 数据来源：父会话的 `subagent/catalog` 投影（每个直接子会话的 label 与创建时间）+ 子会话自身的 `running` 与 `subagentTiming.lastTurnCompleted`，与宿主自己的子智能体 UI 同源。
+- 归属规则：子会话的创建时间落在哪一轮的时间窗内，就属于哪一轮；落不进任何轮的（会话间隙）不猜测、不显示。
+
+已知限制：宿主只提供"最近一轮是否正常完成"，无法区分"真错误"与"用户中断"，两者都归为灰色，避免把中断误标成失败。
 
 ## 0.6.3 调整（2026-11-07）
 
@@ -38,7 +52,7 @@
 安装（本地 tgz）：
 
 ```bash
-VERSION=0.6.3
+VERSION=0.7.0
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 
@@ -53,7 +67,7 @@ Compatibility: DSH 0.2.1-rc.5, Node 24.21.0, Linux Web. Other versions untested.
 Install (local tarball):
 
 ```bash
-VERSION=0.6.3
+VERSION=0.7.0
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 

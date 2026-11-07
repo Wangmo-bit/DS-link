@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 0.7.0 candidate
+
+- 气泡统计行显示本轮派出过的 agent：SVG 小人 + 同状态数量（蓝运行中/绿完成/红失败/灰中断或未知），按 agent 去重，本轮没派就不显示。数据取自宿主 `subagent/catalog` 投影与子会话状态。
+
 ## Unreleased — 0.6.3 candidate
 
 - 去掉运行中气泡标题里重复的“思考中”：该行只保留已用时间与真实次数，正在工作由气泡内的三点表达。

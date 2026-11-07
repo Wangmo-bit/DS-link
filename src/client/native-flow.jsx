@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
-import { planNativeFlow, processNeedsInput } from './native-flow-plan.mjs';
+import { AGENT_STATE, agentBadges, agentState, agentsByTurn, planNativeFlow, processNeedsInput, turnWindows } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
@@ -60,7 +60,7 @@ function endedText({ turn, control }) {
   return base;
 }
 // Re-renders once a second so a running summary keeps moving, then stops.
-function RunningHeading({ turn, control }) {
+function RunningHeading({ turn, control, agents }) {
   const start = turn?.start?.time;
   const [now,setNow] = useState(Date.now);
   useEffect(() => {
@@ -69,14 +69,44 @@ function RunningHeading({ turn, control }) {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [start]);
-  return <span className="sl-chat-summary sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}</span>;
+  return <span className="sl-chat-summary sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}{agents?.length ? <><span className="sl-summary-divider" aria-hidden="true">·</span><AgentBadges badges={agents}/></> : null}</span>;
 }
-function SummaryHeading({ turn, control, running }) {
-  return running ? <RunningHeading turn={turn} control={control}/> : <EndedHeading turn={turn} control={control}/>;
+function SummaryHeading({ turn, control, running, agents }) {
+  return running ? <RunningHeading turn={turn} control={control} agents={agents}/> : <EndedHeading turn={turn} control={control} agents={agents}/>;
 }
-function EndedHeading({ turn, control }) {
+function EndedHeading({ turn, control, agents }) {
   const text = endedText({ turn, control });
-  return text ? <span className="sl-chat-summary sl-heading-process">{text}</span> : null;
+  if (!text && !agents?.length) return null;
+  return <span className="sl-chat-summary sl-heading-process">{text}{agents?.length ? <><span className="sl-summary-divider" aria-hidden="true">·</span><AgentBadges badges={agents}/></> : null}</span>;
+}
+// One inline SVG per state. The silhouette is the same for every state; only the
+// colour changes, so a glance reads "how many are still working" without having
+// to parse labels.
+const AGENT_GLYPH = 'M2.9 13.3c0-2.45 2.25-4 5.1-4s5.1 1.55 5.1 4';
+function AgentIcon({ state }) {
+  return <svg className={`sl-agent-icon sl-agent-icon--${state}`} width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <circle cx="8" cy="4.7" r="2.55"/>
+    <path d={AGENT_GLYPH}/>
+  </svg>;
+}
+const AGENT_STATE_LABEL = { running: '运行中', done: '已完成', failed: '失败', idle: '未确认' };
+// A turn with no dispatched agent renders nothing at all — no placeholder.
+function AgentBadges({ badges }) {
+  if (!badges?.length) return null;
+  const total = badges.reduce((sum, badge) => sum + badge.count, 0);
+  const spoken = badges.map(badge => `${AGENT_STATE_LABEL[badge.state]} ${badge.count} 个`).join('，');
+  // One agent needs no count: the single icon already says "one".
+  if (total === 1) {
+    const only = badges[0];
+    return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={`本轮 ${total} 个 agent，${spoken}`} title={`本轮 ${total} 个 agent，${spoken}`}>
+      <AgentIcon state={only.state}/>
+    </span>;
+  }
+  return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={`本轮 ${total} 个 agent，${spoken}`} title={`本轮 ${total} 个 agent，${spoken}`}>
+    {badges.map(badge => <span className="sl-agent-badge" key={badge.state} data-state={badge.state}>
+      <AgentIcon state={badge.state}/><span className="sl-agent-count">{badge.count}</span>
+    </span>)}
+  </span>;
 }
 // Subscribes to real process state only to classify it; nothing it reads is
 // rendered. Both selectors return primitives so the Host snapshot stays stable.
@@ -127,7 +157,7 @@ function AnchorOnly({ entry }) {
 // A process segment plus its own response. Segments are grouped by the Host, so
 // the text that finishes a turn may arrive in a later segment: `turnHasText`
 // keeps earlier text-less segments from drawing an empty bubble.
-function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention }) {
+function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention, agents }) {
   const firstEntry = plan.groups[0], groupKey = firstEntry?.kind === 'group' ? firstEntry.key : '';
   const groupTurn = flow.useChatGroup(groupKey, group => group?.data.turn);
   const memberKey = flow.useChatGroup(groupKey, group => group?.members?.[0]?.key);
@@ -155,15 +185,15 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
   // While running, the moving line belongs to the live bubble only; the frozen
   // statistics belong to the turn's carrier bubble once it ends.
   const runningLine = running && live;
-  const endedLine = !running && carrySummary && endedText({ turn, control: controlNode }) !== '';
+  const endedLine = !running && carrySummary && (endedText({ turn, control: controlNode }) !== '' || Boolean(agents?.length));
   if (!hasText && !runningLine && !attentionLine && !endedLine) return null;
   const key = plan.response?.key ?? plan.groups[0]?.key;
   return <div data-sl-native-message="" data-chat-turn={plan.turn} data-chat-flow-key={key} data-chat-anchor-key={`sl-native:${key}`} data-chat-paging-anchor="">
     {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
     <MessageBubble author={author} bodyless={!hasText && !runningLine && !attentionLine} heading={runningLine
-      ? <RunningHeading turn={turn} control={controlNode}/>
-      : endedLine ? <EndedHeading turn={turn} control={controlNode}/> : null}>
+      ? <RunningHeading turn={turn} control={controlNode} agents={agents}/>
+      : endedLine ? <EndedHeading turn={turn} control={controlNode} agents={agents}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
         ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
@@ -173,19 +203,19 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
 }
 // A turn whose loaded window holds no other material: the live bubble while it
 // runs, or a statistics-only bubble once it ended without producing text.
-function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention }) {
+function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention, agents }) {
   const node = flow.useChatNode(plan.entry.key);
   if (!node) return <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.entry)}/>;
   const turn = node.location?.turn;
   const running = turn?.status === 'open';
   const attentionLine = carrySummary && attention.needsInput;
   const runningLine = running && carrySummary;
-  const endedLine = !running && carrySummary && endedText({ turn, control: node }) !== '';
+  const endedLine = !running && carrySummary && (endedText({ turn, control: node }) !== '' || Boolean(agents?.length));
   if (!runningLine && !attentionLine && !endedLine) return null;
   return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}>
     <MessageBubble author={author} bodyless={!runningLine && !attentionLine} heading={runningLine
-      ? <RunningHeading turn={turn} control={node}/>
-      : endedLine ? <EndedHeading turn={turn} control={node}/> : null}>
+      ? <RunningHeading turn={turn} control={node} agents={agents}/>
+      : endedLine ? <EndedHeading turn={turn} control={node} agents={agents}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {runningLine ? <ThinkingDots/> : null}
     </MessageBubble>
@@ -201,10 +231,36 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
 const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger']);
 function BubbleFlow({ NativeFlow, ...flow }) {
   const nodes = flow.useChat(snapshot => snapshot.nodes);
-  const session = flow.useSessions(snapshot => snapshot.byId?.[flow.sessionId]);
+  // One subscription for the whole session list: the parent catalog and every
+  // child's status live in the same snapshot, so a single selector keeps both
+  // consistent and re-renders once per change instead of twice.
+  const sessionsSnapshot = flow.useSessions(snapshot => snapshot);
+  const session = sessionsSnapshot?.byId?.[flow.sessionId];
   const identity = session?.projectionValues?.subagent;
   const author = session?.origin === 'subagent' || identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
   const plans = useMemo(() => planNativeFlow(flow.entries, nodes), [flow.entries, nodes]);
+  // Agent badges: the parent's catalog projection lists every direct child with
+  // its creation time and label; each child's own summary carries running and the
+  // latest-turn outcome the Host folds (subagentTiming.lastTurnCompleted).
+  const agentBadgesByTurn = useMemo(() => {
+    const catalog = sessionsSnapshot?.projectionsBySession?.[flow.sessionId]?.values?.subagentCatalog;
+    if (!Array.isArray(catalog) || !catalog.length) return new Map();
+    const windows = turnWindows(nodes);
+    if (!windows.length) return new Map();
+    const byId = sessionsSnapshot?.byId ?? {};
+    const badges = new Map();
+    for (const [turn, agents] of agentsByTurn(catalog, windows)) {
+      const states = agents.map(agent => ({
+        label: agent.label,
+        state: agentState({
+          running: byId[agent.id]?.running,
+          lastTurnCompleted: byId[agent.id]?.projectionValues?.subagentTiming?.lastTurnCompleted,
+        }),
+      }));
+      badges.set(turn, agentBadges(states));
+    }
+    return badges;
+  }, [sessionsSnapshot, nodes, flow.sessionId]);
   // Statistics belong to the turn, not to one segment. Exactly one bubble per
   // turn carries them: the turn's last bubble with text, otherwise its last
   // bubble at all (a turn that produced no text keeps a statistics-only bubble).
@@ -266,8 +322,8 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     if (early && plan.kind === 'control' && plan.entry.key === tail?.key) rows.push(<NoRunningFlow key={`echo:${early.requestId}`} NativeFlow={NativeFlow} flow={flow} entries={EMPTY_INPUTS} pendingInputs={[early]}/>);
     const attention = attentionOf(plan.turn);
     rows.push(plan.kind === 'control'
-      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention}/>
-      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention}/>);
+      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)}/>
+      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)}/>);
   }
   // If an unexpected projection removed the opening controller, show its echo
   // at the tail rather than silently losing it.

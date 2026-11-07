@@ -58,3 +58,103 @@ export function planNativeFlow(entries, store) {
   for (const plan of plans) if (plan.kind === 'message' || plan.kind === 'control') { plan.first=first.get(plan.turn)===plan; plan.last=last.get(plan.turn)===plan; }
   return plans;
 }
+
+// ---------------------------------------------------------------------------
+// Subagent badges
+//
+// The Host records every direct child of a session as a `subagent/catalog`
+// event, folded into the parent's `subagentCatalog` projection as
+// `{id, createdAt, mode, label}`. Counting per turn therefore needs no guessing:
+// a child belongs to the turn whose [start, end] window contains its
+// `createdAt`, and `label` is the agent name the user picked.
+//
+// Status comes from two Host facts only:
+//   running            — the session's own running flag
+//   lastTurnCompleted  — whether the child's latest closed turn ended normally
+// A child that is neither running nor "completed" is NOT reported as a failure:
+// the Host folds `aborted`/`interrupted` into the same `false`, and calling a
+// user-cancelled agent "failed" would be a lie. Those become `idle`.
+// ---------------------------------------------------------------------------
+
+/** One agent a turn dispatched, already deduplicated by label. */
+export const AGENT_STATE = Object.freeze({ running: 'running', done: 'done', failed: 'failed', idle: 'idle' });
+
+/**
+ * Turn windows from the loaded transcript. A turn that never ended keeps its
+ * open window so a still-running dispatch can still be attributed to it.
+ * @param {Map<string, any>} nodes
+ * @returns {Array<{turn:number, from:number, to:number}>}
+ */
+export function turnWindows(nodes) {
+  const windows = new Map();
+  for (const node of nodes.values()) {
+    const turn = node?.location?.turn;
+    if (!turn || typeof turn.turn !== 'number') continue;
+    let window = windows.get(turn.turn);
+    if (!window) { window = { turn: turn.turn, from: Infinity, to: -Infinity, open: false }; windows.set(turn.turn, window); }
+    const start = turn.start?.time, end = turn.end?.time;
+    if (Number.isFinite(start)) window.from = Math.min(window.from, start);
+    if (Number.isFinite(end)) window.to = Math.max(window.to, end);
+    // An open turn must absorb dispatches that happen after the last seen event,
+    // so its window stays open-ended.
+    if (turn.status === 'open') window.open = true;
+  }
+  return [...windows.values()]
+    .filter(window => Number.isFinite(window.from))
+    .map(window => ({ turn: window.turn, from: window.from, to: window.open ? Infinity : window.to }))
+    .sort((a, b) => a.from - b.from);
+}
+
+/**
+ * Attribute catalog entries to turns and collapse them to one badge per agent
+ * label. Calling the same agent repeatedly in one turn is still one agent.
+ * @param {Array<{id:string, createdAt:number, label?:string, mode?:string}>} catalog
+ * @param {Array<{turn:number, from:number, to:number}>} windows
+ * @returns {Map<number, Array<{label:string, state:string, count:number}>>}
+ */
+export function agentsByTurn(catalog, windows) {
+  const byTurn = new Map();
+  if (!Array.isArray(catalog) || !catalog.length || !windows.length) return byTurn;
+  const owners = new Map(); // turn -> Map(label -> representative child id)
+  for (const entry of catalog) {
+    if (!entry || typeof entry.id !== 'string' || !Number.isFinite(entry.createdAt)) continue;
+    // The first window that contains the dispatch wins; windows never overlap.
+    const owner = windows.find(window => entry.createdAt >= window.from && entry.createdAt <= window.to);
+    if (!owner) continue;
+    const label = typeof entry.label === 'string' && entry.label.trim() !== '' ? entry.label.trim() : '子智能体';
+    let labels = owners.get(owner.turn);
+    if (!labels) { labels = new Map(); owners.set(owner.turn, labels); }
+    if (!labels.has(label)) labels.set(label, entry.id);
+  }
+  for (const [turn, labels] of owners) byTurn.set(turn, [...labels.entries()].map(([label, id]) => ({ label, id, count: 1 })));
+  return byTurn;
+}
+
+/**
+ * Fold one agent's Host status facts into a badge state.
+ * @param {{running?:boolean, lastTurnCompleted?:boolean, failed?:boolean}} facts
+ * @returns {string} one of AGENT_STATE
+ */
+export function agentState(facts = {}) {
+  if (facts.running === true) return AGENT_STATE.running;
+  if (facts.failed === true) return AGENT_STATE.failed;
+  if (facts.lastTurnCompleted === true) return AGENT_STATE.done;
+  return AGENT_STATE.idle;
+}
+
+/**
+ * Collapse a turn's agents to at most one badge per state, ordered running →
+ * done → failed → idle so the live state always comes first. A single-agent
+ * turn returns its one badge, which the renderer shows without a count.
+ * @param {Array<{label:string, state:string}>} agents
+ * @returns {Array<{state:string, count:number}>}
+ */
+export function agentBadges(agents) {
+  const order = [AGENT_STATE.running, AGENT_STATE.done, AGENT_STATE.failed, AGENT_STATE.idle];
+  const counts = new Map();
+  for (const agent of agents ?? []) {
+    const state = order.includes(agent?.state) ? agent.state : AGENT_STATE.idle;
+    counts.set(state, (counts.get(state) ?? 0) + 1);
+  }
+  return order.filter(state => counts.has(state)).map(state => ({ state, count: counts.get(state) }));
+}

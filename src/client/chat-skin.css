@@ -129,6 +129,21 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-process-chevron { display: inline-flex; flex: none; align-items: center; justify-content: center; line-height: 1; }
 [data-sl-native-message] { position:relative; }
 .sl-native-anchor { position:absolute; top:0; left:0; width:1px; height:1px; pointer-events:none; }
+/* Agent badges: one silhouette per state, grouped with a count. Colour is the
+   only difference between states, so a glance reads how many are still working. */
+.sl-agent-badges { display: inline-flex; align-items: center; gap: 8px; }
+.sl-agent-badge { display: inline-flex; align-items: center; gap: 2px; }
+.sl-agent-icon { display: block; width: 13px; height: 13px; flex: none; }
+.sl-agent-icon--running { color: #6aa8ff; }
+.sl-agent-icon--done { color: #4fb87b; }
+.sl-agent-icon--failed { color: #d95f5f; }
+.sl-agent-icon--idle { color: var(--sl-chat-muted); }
+.sl-agent-count { font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.sl-agent-badge[data-state="running"] .sl-agent-count { color: #6aa8ff; }
+.sl-agent-badge[data-state="done"] .sl-agent-count { color: #4fb87b; }
+.sl-agent-badge[data-state="failed"] .sl-agent-count { color: #d95f5f; }
+.sl-agent-badge[data-state="idle"] .sl-agent-count { color: var(--sl-chat-muted); }
+.sl-summary-divider { margin: 0 1px; color: var(--sl-chat-muted); opacity: .55; }
 /* A pending user action is the one thing that must stay visible in bubble mode. */
 .sl-bubble-attention { margin:0 0 .6em; color:var(--sl-chat-ink); font-size:12px; }
 .sl-inline-process { display: flex; flex-direction: column; gap: 5px; padding: 0 0 10px; margin-bottom: 10px; border-bottom: 1px solid var(--sl-chat-border); color: var(--sl-chat-muted); font-size: 12px; }
