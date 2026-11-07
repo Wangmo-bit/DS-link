@@ -231,11 +231,23 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
 const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger']);
 function BubbleFlow({ NativeFlow, ...flow }) {
   const nodes = flow.useChat(snapshot => snapshot.nodes);
-  // One subscription for the whole session list: the parent catalog and every
-  // child's status live in the same snapshot, so a single selector keeps both
-  // consistent and re-renders once per change instead of twice.
-  const sessionsSnapshot = flow.useSessions(snapshot => snapshot);
-  const session = sessionsSnapshot?.byId?.[flow.sessionId];
+  const session = flow.useSessions(snapshot => snapshot?.byId?.[flow.sessionId]);
+  // Agent badges need the parent's catalog plus every child's status, which all
+  // live in the same list snapshot. The selector returns one primitive signature
+  // so the flow re-renders only when an agent appears or changes state — not on
+  // every unrelated list rebuild.
+  const agentSignature = flow.useSessions(snapshot => {
+    const catalog = snapshot?.projectionsBySession?.[flow.sessionId]?.values?.subagentCatalog;
+    if (!Array.isArray(catalog) || !catalog.length) return '';
+    const byId = snapshot?.byId ?? {};
+    return catalog.map(entry => {
+      const child = byId[entry?.id];
+      return [entry?.id ?? '', entry?.label ?? '', entry?.createdAt ?? '',
+        child?.running === true ? 'r' : '',
+        child?.projectionValues?.subagentTiming?.lastTurnCompleted === true ? 'c' : '',
+        child?.projectionValues?.subagentTiming?.lastTurnCompleted === false ? 'f' : ''].join('\u0000');
+    }).join('\u0001');
+  });
   const identity = session?.projectionValues?.subagent;
   const author = session?.origin === 'subagent' || identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
   const plans = useMemo(() => planNativeFlow(flow.entries, nodes), [flow.entries, nodes]);
@@ -243,24 +255,29 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   // its creation time and label; each child's own summary carries running and the
   // latest-turn outcome the Host folds (subagentTiming.lastTurnCompleted).
   const agentBadgesByTurn = useMemo(() => {
-    const catalog = sessionsSnapshot?.projectionsBySession?.[flow.sessionId]?.values?.subagentCatalog;
-    if (!Array.isArray(catalog) || !catalog.length) return new Map();
-    const windows = turnWindows(nodes);
-    if (!windows.length) return new Map();
-    const byId = sessionsSnapshot?.byId ?? {};
     const badges = new Map();
+    if (!agentSignature) return badges;
+    const catalog = agentSignature.split('\u0001').map(row => {
+      const [id, label, createdAt, running, completed, failed] = row.split('\u0000');
+      return { id, label: label || undefined, createdAt: Number(createdAt), running: running === 'r', completed: completed === 'c', failed: failed === 'f' };
+    });
+    const windows = turnWindows(nodes);
+    if (!windows.length) return badges;
     for (const [turn, agents] of agentsByTurn(catalog, windows)) {
-      const states = agents.map(agent => ({
-        label: agent.label,
-        state: agentState({
-          running: byId[agent.id]?.running,
-          lastTurnCompleted: byId[agent.id]?.projectionValues?.subagentTiming?.lastTurnCompleted,
-        }),
-      }));
+      const states = agents.map(agent => {
+        const entry = catalog.find(item => item.id === agent.id);
+        return {
+          label: agent.label,
+          state: agentState({
+            running: entry?.running,
+            lastTurnCompleted: entry?.completed === true ? true : entry?.failed === true ? false : undefined,
+          }),
+        };
+      });
       badges.set(turn, agentBadges(states));
     }
     return badges;
-  }, [sessionsSnapshot, nodes, flow.sessionId]);
+  }, [agentSignature, nodes]);
   // Statistics belong to the turn, not to one segment. Exactly one bubble per
   // turn carries them: the turn's last bubble with text, otherwise its last
   // bubble at all (a turn that produced no text keeps a statistics-only bubble).
