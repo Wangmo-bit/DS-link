@@ -1,10 +1,14 @@
-# Session Link 0.6.0 — private pre-release candidate / 私有预发布候选
+# Session Link 0.6.1 — private pre-release candidate / 私有预发布候选
 
 **状态 / Status:** 仅本地候选，未发布 GitHub Release、未 npm publish。/ Local candidate only; no GitHub Release or npm publish yet.
 
 ## 中文
 
-## 本轮 0.6.0 变更（2026-11-06）
+## 0.6.1 修复（2026-11-07）
+
+- **修复：运行中的思考气泡会消失。** 0.6.0 里“整轮没有正文时不留空泡壳”的规则误伤运行中的轮次：一旦出现过程片段，气泡连同里面的思考三点一起不渲染，只剩作者名和“思考中 · 耗时 · 次数”。现在运行中的轮次始终保留气泡；只有**已经结束**且确实没有正文的轮次才省略泡壳。
+
+## 0.6.0 变更（2026-11-06）
 
 气泡模式按用户当天逐条拍板的方案重定信息架构：
 
@@ -29,7 +33,7 @@
 安装（本地 tgz）：
 
 ```bash
-VERSION=0.6.0
+VERSION=0.6.1
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 
@@ -44,7 +48,7 @@ Compatibility: DSH 0.2.1-rc.5, Node 24.21.0, Linux Web. Other versions untested.
 Install (local tarball):
 
 ```bash
-VERSION=0.6.0
+VERSION=0.6.1
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 

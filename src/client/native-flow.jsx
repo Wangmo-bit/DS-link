@@ -150,7 +150,7 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
   return <div data-sl-native-message="" data-chat-turn={plan.turn} data-chat-flow-key={key} data-chat-anchor-key={`sl-native:${key}`} data-chat-paging-anchor="">
     {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
-    <MessageBubble author={author} bodyless={!hasText && !(carrySummary && attention.needsInput)} heading={carrySummary
+    <MessageBubble author={author} bodyless={!hasText && !running && !(carrySummary && attention.needsInput)} heading={carrySummary
       ? <SummaryHeading turn={turn} control={controlNode} running={running}/>
       : null}>
       {carrySummary && attention.needsInput && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}

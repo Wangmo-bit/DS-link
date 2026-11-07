@@ -7,7 +7,7 @@
  */
 
 export const PLUGIN_NAME = 'session-link'
-export const PLUGIN_VERSION = '0.6.0'
+export const PLUGIN_VERSION = '0.6.1'
 export const API_VERSION = 3
 export const SOURCE_KIND = 'agent-message'
 export const SOURCE_FORM = 'relay'
