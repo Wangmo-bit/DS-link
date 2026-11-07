@@ -82,10 +82,10 @@ export const AGENT_STATE = Object.freeze({ running: 'running', done: 'done', fai
  * Read the top-level `target` field lazily: never read or parse the message body.
  * A send acknowledgement establishes admission, not execution or completion.
  * @param {readonly {root?: any}[]} toolRows
- * @returns {string} JSON-encoded, sorted distinct target names.
+ * @returns {string} JSON-encoded sorted [target, earliest known call time] pairs.
  */
 export function teamDispatchSignature(toolRows) {
-  const targets = new Set(), stack = [];
+  const targets = new Map(), stack = [];
   for (const row of toolRows ?? []) if (row?.root) stack.push(row.root);
   while (stack.length) {
     const block = stack.pop();
@@ -99,9 +99,13 @@ export function teamDispatchSignature(toolRows) {
       if (part?.type !== 'text' || typeof part.text !== 'string') return false;
       try { return JSON.parse(part.text)?.sent === true; } catch { return false; }
     });
-    if (accepted) targets.add(target.trim());
+    if (accepted) {
+      const name = target.trim(), time = Number.isFinite(block.callTime) ? block.callTime : null;
+      const prior = targets.get(name);
+      if (!targets.has(name) || (time !== null && (prior === null || time < prior))) targets.set(name, time);
+    }
   }
-  return JSON.stringify([...targets].sort());
+  return JSON.stringify([...targets].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0));
 }
 
 /**
@@ -176,11 +180,12 @@ export function turnWindows(signature) {
  * Team members use the roster name, not the catalog's task-description label,
  * so creation plus later sends to the same member still count only once.
  * A sentIds entry records admission only; it is not evidence of completion.
+ * sentTimes retains the earliest known call time for each sent teammate.
  * @param {Array<{id:string, createdAt:number, label?:string, mode?:string}>} catalog
  * @param {Array<{turn:number, from:number, to:number}>} windows
  * @param {Array<{id:string, name:string, role:string, phase:string}>} teamMembers
- * @param {Map<number, string[]>} targetsByTurn
- * @returns {Map<number, Array<{label:string, ids:string[], sentIds?:string[], count:number}>>}
+ * @param {Map<number, Array<string|[string,number|null]>>} targetsByTurn
+ * @returns {Map<number, Array<{label:string, ids:string[], sentIds?:string[], sentTimes?:Array<[string,number]>, count:number}>>}
  */
 export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn = new Map()) {
   const byTurn = new Map();
@@ -195,13 +200,17 @@ export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn =
   }
   // turn -> label -> every child id and the subset explicitly sent work.
   const owners = new Map();
-  const add = (turn, label, id, sent) => {
+  const add = (turn, label, id, sent, sentAt) => {
     let labels = owners.get(turn);
     if (!labels) { labels = new Map(); owners.set(turn, labels); }
     let group = labels.get(label);
-    if (!group) { group = { ids: [], sentIds: [] }; labels.set(label, group); }
+    if (!group) { group = { ids: [], sentIds: [], sentTimes: new Map() }; labels.set(label, group); }
     if (!group.ids.includes(id)) group.ids.push(id);
     if (sent && !group.sentIds.includes(id)) group.sentIds.push(id);
+    if (sent && Number.isFinite(sentAt)) {
+      const previous = group.sentTimes.get(id);
+      if (previous === undefined || sentAt < previous) group.sentTimes.set(id, sentAt);
+    }
   };
   for (const entry of Array.isArray(catalog) ? catalog : []) {
     if (!entry || typeof entry.id !== 'string' || !Number.isFinite(entry.createdAt)) continue;
@@ -213,14 +222,16 @@ export function agentsByTurn(catalog, windows, teamMembers = [], targetsByTurn =
   const loadedTurns = new Set(windows.map(window => window.turn));
   for (const [turn, targets] of targetsByTurn ?? []) {
     if (!loadedTurns.has(turn) || !Array.isArray(targets)) continue;
-    for (const name of targets) {
+    for (const target of targets) {
+      const [name, sentAt] = Array.isArray(target) ? target : [target, null];
       const member = typeof name === 'string' ? teamByName.get(name.trim()) : undefined;
-      if (member) add(turn, member.name.trim(), member.id, true);
+      if (member) add(turn, member.name.trim(), member.id, true, sentAt);
     }
   }
   for (const [turn, labels] of owners) {
     byTurn.set(turn, [...labels.entries()].map(([label, group]) => ({
       label, ids: group.ids, count: 1, ...(group.sentIds.length ? { sentIds: group.sentIds } : {}),
+      ...(group.sentTimes.size ? { sentTimes: [...group.sentTimes] } : {}),
     })));
   }
   return byTurn;

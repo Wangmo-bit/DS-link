@@ -295,6 +295,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     const members = teamSignature ? JSON.parse(teamSignature).map(([id, name, role, phase, running, outcome, activeSince, turnCount]) => ({
       id, name, role, phase, running, activeSince, turnCount, completed: outcome === 'c', failed: outcome === 'f',
     })) : [];
+    const catalogById = new Map(catalog.map(entry => [entry.id, entry]));
     const byId = new Map([...catalog, ...members].map(entry => [entry.id, entry]));
     const teamIds = new Set(members.map(member => member.id));
     const windows = turnWindows(turnSignature), targetsByTurn = new Map();
@@ -324,14 +325,22 @@ function BubbleFlow({ NativeFlow, ...flow }) {
           const entry = byId.get(id), sent = agent.sentIds?.includes(id), isTeam = teamIds.has(id);
           const older = isTeam && latestTeamTurn.get(id)?.turn !== turn;
           const activeSince = entry?.activeSince;
-          const startedLater = isTeam && entry?.running && Number.isFinite(activeSince) && activeSince > window.to;
-          const runningUnproven = isTeam && entry?.running && window.to !== Infinity && !Number.isFinite(activeSince);
-          const running = entry?.running === true && !older && !startedLater && !runningUnproven;
+          const createdAt = catalogById.get(id)?.createdAt;
+          const sentAt = agent.sentTimes?.find(([sentId]) => sentId === id)?.[1];
+          const cutoffs = [createdAt, sentAt].filter(time => Number.isFinite(time) && time >= window.from && time <= window.to);
+          const firstDispatch = cutoffs.length ? Math.min(...cutoffs) : undefined;
+          // Running is only associated with this turn when the child's current
+          // activation started strictly after an in-turn creation or accepted
+          // send call and before this parent turn ended. Equal millisecond
+          // timestamps, missing call heads and earlier activity stay unknown.
+          const runningUnproven = isTeam && entry?.running &&
+            (!Number.isFinite(activeSince) || !Number.isFinite(firstDispatch) || activeSince <= firstDispatch || activeSince >= window.to);
+          const running = entry?.running === true && !runningUnproven;
           // A newly-created Team member's latest completion only proves this
           // parent turn when the Host outline confirms it had exactly one turn.
           // A later reuse may lie outside the loaded parent-history window.
           const completionUnproven = isTeam && entry?.turnCount !== 1;
-          const uncertain = sent || older || startedLater || runningUnproven || completionUnproven;
+          const uncertain = sent || older || runningUnproven || completionUnproven;
           return {
             running,
             lastTurnCompleted: uncertain ? undefined : entry?.completed === true ? true : entry?.failed === true ? false : undefined,

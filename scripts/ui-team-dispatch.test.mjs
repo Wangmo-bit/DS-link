@@ -21,7 +21,7 @@ function result(target, overrides = {}) {
   };
 }
 const row = root => ({root});
-const parse = rows => JSON.parse(teamDispatchSignature(rows));
+const parse = rows => JSON.parse(teamDispatchSignature(rows)).map(([name])=>name);
 const windows = [{turn:1,from:100,to:199},{turn:2,from:200,to:299}];
 const roster = [
   {id:'lead-id',name:'lead',role:'lead',phase:'active'},
@@ -40,9 +40,20 @@ test('signature counts successful results once, sorted, including nested tool re
   const inputs = [row(result('beta')),row(parent),row(result('alpha')),
     row(result('gamma',{content:[{type:'text',text:'unrelated'}, {type:'text',text:'{"sent":true}'}]}))];
   assert.deepEqual(parse(inputs), ['alpha','beta','gamma']);
-  assert.equal(teamDispatchSignature(inputs), JSON.stringify(['alpha','beta','gamma']));
+  assert.equal(teamDispatchSignature(inputs), JSON.stringify([['alpha',100],['beta',100],['gamma',100]]));
   assert.equal(teamDispatchSignature([...inputs].reverse()), teamDispatchSignature(inputs));
   assert.deepEqual(parse([]), []);
+});
+
+test('the signature preserves the earliest known accepted send time per teammate', () => {
+  const rows=[row(result('alpha',{callTime:210})),row(result('alpha',{callTime:240})),row(result('alpha',{callTime:null})),row(result('beta',{callTime:null}))];
+  assert.deepEqual(JSON.parse(teamDispatchSignature(rows)),[['alpha',210],['beta',null]]);
+  assert.equal(teamDispatchSignature(rows),teamDispatchSignature([...rows].reverse()));
+  const mapped=agentsByTurn([],windows,roster,new Map([[2,JSON.parse(teamDispatchSignature(rows))]]));
+  assert.deepEqual(sorted(mapped.get(2)),[
+    {label:'alpha',ids:['alpha-id'],count:1,sentIds:['alpha-id'],sentTimes:[['alpha-id',210]]},
+    {label:'beta',ids:['beta-id'],count:1,sentIds:['beta-id']},
+  ]);
 });
 
 test('only a complete, unambiguously successful send_message target is counted', () => {

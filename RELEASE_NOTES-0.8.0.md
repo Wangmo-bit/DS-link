@@ -6,7 +6,7 @@
 
 - 气泡模式的已发送和收到消息胶囊统一使用灰绿色底色，深浅主题分别适配；形状、布局、文案、点击行为及投递标记语义不变。卡片模式保持原样。
 - 本轮成功向既有团队成员发送消息时，该成员按团队名册身份计入本轮 agent 小人；同轮新建后发送、或多次发送同一成员只计一次。主会话 lead、失败或未确认的发送不计入。
-- 发送成功仅表示宿主接收，不保证成员处理或完成；本轮被发送消息的团队成员有可关联的当前运行证据时显示蓝色，停止运行后如果没有可绑定到这次工作的可靠完成证据，显示灰色“未确认”，不沿用上一轮成功记录冒充完成。新建团队成员的完成状态需要宿主轮次摘要能够证明只有一次运行；摘要缺失或存在后续运行时保守显示未确认。任务板重新分配不会唤醒成员，不单独视为一次调用。
+- 发送成功仅表示宿主接收，不保证成员处理或完成；蓝色只表示成员在本轮派发后启动且当前仍在运行，并不证明那条消息已被处理。停止运行后如果没有可绑定到这次工作的可靠完成证据，显示灰色“未确认”，不沿用上一轮成功记录冒充完成。新建团队成员的完成状态需要宿主轮次摘要能够证明只有一次运行；摘要缺失或存在后续运行时保守显示未确认。任务板重新分配不会唤醒成员，不单独视为一次调用。
 - 历史页面若只加载到 tool/result 而对应 tool/call 还在窗口之外，目标名字尚不能还原；加载到该调用后才能统计，不凭正文猜测。
 - Bubble-mode sent/received message capsules share a muted green treatment; card mode is unchanged. A successfully admitted Team send includes the existing teammate in the current turn's deduplicated agent count. Acknowledgement is not task completion; inactive members without evidence tied to the current work remain unconfirmed.
 

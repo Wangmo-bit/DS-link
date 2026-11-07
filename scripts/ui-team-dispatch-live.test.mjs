@@ -76,7 +76,7 @@ function source() {
     get listeners(){return listeners.size;}};
 }
 const closed=(turn,start,end)=>({turn,status:'closed',start:{time:start},end:{time:end},steps:[],data:{}});
-const send=(target,isError=false)=>({root:{kind:'tool-result',name:'send_message',call:{name:'send_message',argsRaw:JSON.stringify({target})},args:{text:key=>key==='target'?target:undefined},isError,content:[{type:'text',text:'{"sent":true}'}],subCalls:[]}});
+const send=(target,isError=false,callTime=210)=>({root:{kind:'tool-result',name:'send_message',call:{name:'send_message',argsRaw:JSON.stringify({target})},callTime,args:{text:key=>key==='target'?target:undefined},isError,content:[{type:'text',text:'{"sent":true}'}],subCalls:[]}});
 function flatten(value,out=[]) {
   if(!value||typeof value!=='object')return out;
   if(Array.isArray(value)){value.forEach(v=>flatten(v,out));return out;}
@@ -113,6 +113,7 @@ function fixture() {
     chats,
     roster(id,items=members){const prev=sessions.projectionsBySession[id]?.values ?? {};sessions={...sessions,projectionsBySession:{...sessions.projectionsBySession,[id]:{values:{...prev,agentTeam:{members:items}}}}};renderer.invalidate();},
     catalog(id,items){const prev=sessions.projectionsBySession[id]?.values ?? {};sessions={...sessions,projectionsBySession:{...sessions.projectionsBySession,[id]:{values:{...prev,subagentCatalog:items}}}};renderer.invalidate();},
+    open(id,turn){const prior=chats[id].timeline,updated={...prior.turns.get(turn),status:'open',end:undefined};chats[id].timeline={...prior,turns:new Map([...prior.turns].map(([n,value])=>[n,n===turn?updated:value]))};renderer.invalidate();},
     status(running,since=220,turnCount=1){sessions={...sessions,byId:{...sessions.byId,'member-a':{running,projectionValues:{subagentTiming:{lastTurnCompleted:true,...(running&&since!==null?{active:{since,through:since}}:{})},...(turnCount===null?{}:{turnOutline:Array.from({length:turnCount},(_,i)=>({turn:i+1}))})}}}};renderer.invalidate();},
     switchTo(id){sessionId=id;renderer.invalidate();},
     refresh(){renderer.unmount();renderer=createRenderer(root);},
@@ -188,6 +189,56 @@ test('later team reuse cannot make an earlier turn appear to be running',()=>{
     result=f.view();
     assert.ok(result.get(1).icons[0].includes('--idle'),'the latest child completion is not proof for the earlier turn');
     assert.ok(result.get(2).icons[0].includes('--idle'),'an acknowledgement alone does not prove the later work completed');
+  } finally {f.close();}
+});
+
+test('a prior activation cannot prove a later accepted message has begun',()=>{
+  const f=fixture();
+  try {
+    f.roster('one');
+    f.chats.one.sources.get(2).publish([send('worker')]);
+    f.status(true,150,1); // running since the previous parent turn
+    single(f.view(),2,'idle');
+    f.open('one',2);
+    single(f.view(),2,'idle'); // the same uncertainty applies to an open parent turn
+    f.status(true,null,1);
+    single(f.view(),2,'idle'); // running without a start time is also unproven
+    f.status(true,200,1);
+    single(f.view(),2,'idle'); // same-millisecond boundary cannot establish ordering
+    f.status(true,205,1);
+    single(f.view(),2,'idle'); // started within parent turn, but before the send at 210
+    f.status(true,210,1);
+    single(f.view(),2,'idle'); // same-millisecond send/start cannot establish order
+    f.status(true,220,2);
+    single(f.view(),2,'running'); // a child turn demonstrably started after the send
+    f.chats.one.sources.get(2).publish([send('worker',false,null)]);
+    single(f.view(),2,'idle'); // accepted and counted, but no call time to associate the run
+    f.chats.one.sources.get(2).publish([send('worker',false,210)]);
+    single(f.view(),2,'running'); // history backfill restores the timestamp evidence
+  } finally {f.close();}
+});
+
+test('a child start at or after a closed parent end cannot prove in-turn activity',()=>{
+  const f=fixture();
+  try {
+    f.roster('one');f.chats.one.sources.get(2).publish([send('worker')]);
+    f.status(true,289,2);single(f.view(),2,'running');
+    f.status(true,290,2);single(f.view(),2,'idle');
+    f.status(true,300,2);single(f.view(),2,'idle');
+  } finally {f.close();}
+});
+
+test('a previous child turn may still run while a later accepted send is unconfirmed',()=>{
+  const f=fixture();
+  try {
+    f.roster('one');
+    f.catalog('one',[{id:'member-a',label:'original task',createdAt:120}]);
+    f.chats.one.sources.get(2).publish([send('worker')]);
+    f.status(true,150,1);
+    const result=f.view();
+    assert.deepEqual([...result.keys()],[1,2]);
+    assert.ok(result.get(1).icons[0].includes('--running'),'the active child turn started within the earlier parent turn');
+    assert.ok(result.get(2).icons[0].includes('--idle'),'the later message has no proven matching activation');
   } finally {f.close();}
 });
 
