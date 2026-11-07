@@ -2,7 +2,7 @@
 
 [English](README_EN.md) | 简体中文
 
-![DSH 0.2.1-rc.5](https://img.shields.io/badge/dsh-0.2.1--rc.5-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License MIT](https://img.shields.io/badge/license-MIT-2f6f4f?style=flat-square)
+![DSH 0.2.1-rc.5 / 0.2.2-rc.1](https://img.shields.io/badge/dsh-0.2.1--rc.5%20%7C%200.2.2--rc.1-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License MIT](https://img.shields.io/badge/license-MIT-2f6f4f?style=flat-square)
 
 让**已有 DSH 普通会话**之间直接互发消息、请求协作、收取明确回复——不需要新建 Bot 团队，也不用在聊天框里手工转发。
 
@@ -51,16 +51,16 @@
 
 ## 安装
 
-兼容：**DSH 0.2.1-rc.5 / Node 24（实测 v24.21.0）/ Linux Web**。其他版本未验证。
+兼容：**DSH 0.2.1-rc.5 与 0.2.2-rc.1 / Node 24（实测 v24.21.0）/ Linux Web**。其他版本未验证。
 
-从源码构建并本地安装（当前未发布到 registry、未提供 Release tarball；需要 Node 24 + DSH 0.2.1-rc.5）：
+从源码构建并本地安装（当前未发布到 registry、未提供 Release tarball；需要 Node 24 + DSH 0.2.2-rc.1 或 0.2.1-rc.5）：
 
 ```bash
 npm ci
 npm run build
 npm pack
 # 得到 wangmo-dsh-session-link-<version>.tgz
-VERSION=0.8.2
+VERSION=0.8.3
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 

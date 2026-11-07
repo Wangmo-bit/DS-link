@@ -1,6 +1,6 @@
 {
   "name": "@wangmo/dsh-session-link",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "private": true,
   "description": "让已有 DSH 会话在工作中可靠协作",
   "icon": "assets/icon.svg",
@@ -8,11 +8,11 @@
   "license": "MIT",
   "engines": {
     "node": ">=24",
-    "dsh": "0.2.1-rc.5"
+    "dsh": "0.2.1-rc.5 || 0.2.2-rc.1"
   },
   "exports": {
-    ".": "./src/host/entry-0.8.2.js",
-    "./runtime-0.8.2": "./src/host/entry-0.8.2.js",
+    ".": "./src/host/entry-0.8.3.js",
+    "./runtime-0.8.3": "./src/host/entry-0.8.3.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },
@@ -53,10 +53,10 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.5",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.5",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.5",
-    "@deepseek-ai/schemastery": "~3.18.5",
+    "@deepseek-ai/cordis": "~4.0.5 || ~4.1.0",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.5 || 0.2.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.5 || 0.2.2-rc.1",
+    "@deepseek-ai/schemastery": "~3.18.5 || ~3.19.0",
     "react": "^18.2.0"
   },
   "peerDependenciesMeta": {

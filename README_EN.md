@@ -12,7 +12,7 @@ Let **existing ordinary DSH sessions** message each other directly: send a reque
 
 ## Compatibility
 
-- DeepSeek Harness **0.2.1-rc.5**
+- DeepSeek Harness **0.2.1-rc.5** or **0.2.2-rc.1** (both tested)
 - **Node.js 24** (tested v24.21.0; `engines >=24` is a floor declaration, not a claim that every newer version was tested)
 - **Linux Web**
 - Windows/macOS, other DSH/Node versions and other deployment forms are not promised or verified.
@@ -39,7 +39,7 @@ npm ci
 npm run build
 npm pack
 # produces wangmo-dsh-session-link-<version>.tgz
-VERSION=0.8.2
+VERSION=0.8.3
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 

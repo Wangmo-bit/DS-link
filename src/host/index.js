@@ -21,7 +21,7 @@ async function createUserMessageBuilder() {
     module = await import('@deepseek-ai/dsh-llm')
   } catch (error) {
     throw new Error(
-      '@wangmo/dsh-session-link: @deepseek-ai/dsh-llm must be resolvable from this package (peer 0.2.1-rc.5)',
+      '@wangmo/dsh-session-link: @deepseek-ai/dsh-llm must be resolvable from this package (peer 0.2.1-rc.5 || 0.2.2-rc.1)',
       { cause: error },
     )
   }

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 0.8.3 candidate
+
+- 适配 DSH 0.2.2-rc.1（Cordis 4.1）：逐项核对配置读取、工具注册与分步准入、提示词组装、Session 查询/创建与投递、`session/event` 监听释放、`createUserMessage` 导出；两版声明同为已验证范围，`engines.dsh` 与相关 peer 改为 `0.2.1-rc.5 || 0.2.2-rc.1`。未重写、未加功能；统一图标保留。
+
 ## Unreleased — 0.8.2 candidate
 
 - 图标按 2026-11-07 自制插件图标规范统一：64×64 圆角底板 `#e9edf9`、单色线条 `#33499f`（stroke 3.4、圆头），符号为两个圆角对话气泡相扣；替换 `assets/icon.svg`，包内仍只放矢量图。功能、配置、数据与安装格式均不变。
