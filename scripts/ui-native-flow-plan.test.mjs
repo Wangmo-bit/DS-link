@@ -27,6 +27,17 @@ test('a pending question stays discoverable without any process rendering',()=>{
  assert.equal(processNeedsInput({kind:'tool-call',data:{root:{kind:'tool-result',isError:true,error:{code:'EACCES'}}}}),false);
  assert.equal(processNeedsInput({kind:'assistant-step',data:{}}),false);
 });
+test('question and terminal error rows stay native and in order between bubbles',()=>{
+ const local=new Map(store);
+ local.set('question',{kind:'question-reply',location:{kind:'turn',turn:{turn:1}}});
+ local.set('error',{kind:'turn-error',location:{kind:'turn',turn:{turn:1}}});
+ const rows=[entry('c1'),group('g1',1),entry('question'),response('answer'),entry('error')];
+ const plan=planNativeFlow(rows,local);
+ const native=plan.filter(p=>p.kind==='native').flatMap(p=>p.entries.map(e=>e.key));
+ assert.deepEqual(native,['question','error']);
+ assert.equal(plan.findIndex(p=>p.kind==='native'&&p.entries[0].key==='question') < plan.findIndex(p=>p.response?.key==='answer'),true);
+ assert.equal(plan.findIndex(p=>p.kind==='native'&&p.entries[0].key==='error') > plan.findIndex(p=>p.response?.key==='answer'),true);
+});
 test('standalone native reasoning remains in the same process bubble',()=>{
  const rows=[entry('c1'),{kind:'node',key:'answer',groupPart:'reasoning'},response('answer')];
  const plan=planNativeFlow(rows,store);
