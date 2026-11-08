@@ -20,7 +20,7 @@
 
 后续方向包括**团队内 link**，以及 **Agent 邮箱式的全网 link**。先做哪一条仍可探索；它们不是当前已支持的功能，也没有发布日期。见[路线图](docs/roadmap.md)。
 
-DS-link 是对外品牌；现有 `session_link_*` 工具名、包名和数据标识暂留兼容，避免改名打断你的使用。
+名称统一为 **DS-link**，仓库是 **`Wangmo-bit/DS-link`**，npm 包名是 **`@wangmo-bit/ds-link`**（尚未发布）。旧 `session_link_*` 工具接口和数据标识保留兼容，改名不另建账本。旧包升级见[安装与迁移](docs/installation.md#旧包改名迁移)。
 
 ## 会话自己交流，你不用反复传话
 
@@ -97,14 +97,14 @@ DS-link 是对外品牌；现有 `session_link_*` 工具名、包名和数据标
 当前提供**源码构建路径**，尚无公开 npm 包或 Release 下载可承诺。需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。
 
 ```sh
-git clone https://github.com/Wangmo-bit/dsh-session-link.git
-cd dsh-session-link
+git clone https://github.com/Wangmo-bit/DS-link.git
+cd DS-link
 npm ci
 npm run build
 mkdir -p output
 npm pack --pack-destination ./output
 # 安装前备份对应 profile；把下面路径换成实际生成的 tgz：
-dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.tgz
+dsh plugin --profile web add /absolute/path/to/wangmo-bit-ds-link-VERSION.tgz
 ```
 
 仓库尚未公开时，clone 需要所有者授权。**安装插件与修改宿主是两件事**，上述命令不会自动给 DSH 打桥接补丁；不要用在线日用 profile 做试验。
@@ -128,7 +128,7 @@ dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.t
 | 开始使用 / 调整设置 | [快速开始](docs/quickstart.md) · [设置](docs/settings.md) |
 | 安装 / 排查 / 了解限制 | [安装](docs/installation.md) · [已知问题](docs/known-issues.md) |
 | 了解设计取舍 | [产品思路](docs/philosophy.md) · [产品规范](PRD.md) · [架构](docs/architecture.md) |
-| 反馈问题 / 参与开发 | [Issue](https://github.com/Wangmo-bit/dsh-session-link/issues/new/choose) · [贡献说明](CONTRIBUTING.md) · [测试](TESTING.md) |
+| 反馈问题 / 参与开发 | [Issue](https://github.com/Wangmo-bit/DS-link/issues/new/choose) · [贡献说明](CONTRIBUTING.md) · [测试](TESTING.md) |
 | 核对版本 / 发布准备 | [变更记录](CHANGELOG.md) · [发布说明](RELEASING.md) · [准备验收清单](docs/open-source-readiness.md) |
 
 欢迎具体使用场景和问题反馈。仓库开放前，GitHub 反馈入口可能不可访问；不需要为报告问题提供真实聊天记录或完整配置。

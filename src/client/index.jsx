@@ -44,7 +44,7 @@ import { useDisplayMode, setDisplayMode } from './display-mode.mjs';
 import { installSubagentMessages } from './subagent-message.jsx';
 import { useUserLabel, setUserLabel } from './user-label.mjs';
 
-export const name = '@wangmo/dsh-session-link';
+export const name = '@wangmo-bit/ds-link';
 export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale', 'remote.session'];
 const PANEL = 'session-link';
 const TAB_ORDER = ['settings', 'records'];

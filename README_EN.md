@@ -20,7 +20,7 @@ You already have development, product and research sessions. DS-link lets those 
 
 Future directions include **team links** and **global links through Agent mailbox-style communication**. Their order is open to exploration; neither is implemented or scheduled. See the [roadmap](docs/roadmap.md).
 
-DS-link is the public-facing brand. Existing `session_link_*` tools, package name and data identifiers stay compatible so rebranding does not break current use.
+The product is **DS-link**, the repository is **`Wangmo-bit/DS-link`**, and the npm package is **`@wangmo-bit/ds-link`** (not published yet). Existing `session_link_*` tools and data identifiers remain compatible; renaming does not create a second ledger. See [package migration](docs/installation.en.md#renaming-an-existing-installation).
 
 ## Let sessions exchange the question and answer
 
@@ -97,14 +97,14 @@ Display mode and your bubble display name are separate browser-local preferences
 The currently available path is **build from source**; no public npm package or Release download is promised yet. Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web.
 
 ```sh
-git clone https://github.com/Wangmo-bit/dsh-session-link.git
-cd dsh-session-link
+git clone https://github.com/Wangmo-bit/DS-link.git
+cd DS-link
 npm ci
 npm run build
 mkdir -p output
 npm pack --pack-destination ./output
 # Back up the selected profile first; use the actual generated tgz path:
-dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.tgz
+dsh plugin --profile web add /absolute/path/to/wangmo-bit-ds-link-VERSION.tgz
 ```
 
 Until the repository is public, cloning requires owner-granted access. **Installing the plugin and modifying the Host are separate actions.** These commands do not automatically apply the bridge. Do not experiment in a daily-use profile.
@@ -128,7 +128,7 @@ See the [security model](docs/security-model.md) and report vulnerabilities priv
 | Start or adjust settings | [First use](docs/quickstart.en.md) · [Settings](docs/settings.en.md) |
 | Install or troubleshoot | [Installation](docs/installation.en.md) · [Known issues](docs/known-issues.en.md) |
 | Understand the design | [Philosophy](docs/philosophy.md) · [Product contract](PRD.md) · [Architecture](docs/architecture.md) |
-| Report a problem or contribute | [Issues](https://github.com/Wangmo-bit/dsh-session-link/issues/new/choose) · [Contributing](CONTRIBUTING.en.md) · [Testing](TESTING.md) |
+| Report a problem or contribute | [Issues](https://github.com/Wangmo-bit/DS-link/issues/new/choose) · [Contributing](CONTRIBUTING.en.md) · [Testing](TESTING.md) |
 | Check changes or release preparation | [Changelog](CHANGELOG.md) · [Releasing](RELEASING.md) · [Readiness](docs/open-source-readiness.md) |
 
 Concrete scenarios and problem reports are welcome. GitHub issue links may be unavailable before the repository opens. You never need to provide private conversations or full configuration files to report an issue.

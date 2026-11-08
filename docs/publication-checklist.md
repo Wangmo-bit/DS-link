@@ -8,7 +8,7 @@
 
 - 所有者已授权将准备分支合入 `main`；采用快进合并，不重写旧提交。
 - 私有 GitHub runner 只有 2 核，已把 CI 容器配额从 4 调为 2，保留断网、非 root、只读根及独立 tmpfs 的隔离条件。
-- [准备分支实际 CI](https://github.com/Wangmo-bit/dsh-session-link/actions/runs/42470100506) 与 [main 实际 CI](https://github.com/Wangmo-bit/dsh-session-link/actions/runs/42470323291) 均已通过：491 tests / 491 pass / 0 fail / 0 skipped，包白名单 38 文件。
+- [准备分支实际 CI](https://github.com/Wangmo-bit/DS-link/actions/runs/42470100506) 与 [main 实际 CI](https://github.com/Wangmo-bit/DS-link/actions/runs/42470323291) 均已通过：491 tests / 491 pass / 0 fail / 0 skipped，包白名单 38 文件。
 - GitHub Release 的请求草案、候选包和校验和已在维护者本地准备；**未创建远端 Release、未打 tag、未上传制品**。
 - npm 使用独立临时副本完成 `publish --dry-run --ignore-scripts --access public --tag next`，38 文件通过。只在临时副本移除 private 门做预演，仓库仍为 `private:true`；模拟包不是正式制品。
 - 所有者后续独立授权后，同一已验收候选已升级日用安装；新客户端真实加载，气泡/卡片/原生引用 smoke 通过，未重启、未公开。详细安装及运行态范围见[升级记录](open-source-readiness.md#日用升级同日后续授权)。
@@ -25,13 +25,13 @@
 ### 2. npm 身份与 scope
 
 - 所有者已注册并通过官方网页登录，CLI `npm whoami` 核验账号为 `wangmo-bit`；仅登录，未发布任何包。
-- `@wangmo-bit/dsh-session-link` 查询未找到公开包；源码及当前自用包仍是 `@wangmo/dsh-session-link`。绑定 GitHub 与 CLI 登录不等于已经配置自动发布或验证了写入权限。
+- 所有者决定进一步统一名称：GitHub 仓库为 `Wangmo-bit/DS-link`，源码包名为 `@wangmo-bit/ds-link`；旧 `@wangmo/dsh-session-link` 日用安装按迁移规则处理。绑定 GitHub 与 CLI 登录不等于已配置自动发布或验证写入权限。
 - 正式发布前仍需确认包名/scope、升级迁移和安全验证方式；不要把密码、OTP、token 或完整配置发到聊天、Issue 或代码里。
 - 未经决定不擅自改包名。若需换 scope，先同步工具/安装/升级文档并复验。
 
 ### 3. 冻结首发版本与包
 
-当前源码是 DS-link 品牌调整候选 `0.8.16-pre.2`，日用仍为已获授权安装的 `0.8.16-pre.1`；均未对外发版。正式发布前确认目标版本和安装策略，从最终提交重新构建与核 SHA，不能把临时更改 private 字段的模拟包当成权威包，也不能覆盖旧版产物冒充同一包。
+当前源码是 DS-link 统一包名候选 `0.8.16-pre.3`，日用仍为已获授权安装的 `0.8.16-pre.1`；均未对外发版。正式发布前确认目标版本和安装策略，从最终提交重新构建与核 SHA，不能把临时更改 private 字段的模拟包当成权威包，也不能覆盖旧版产物冒充同一包。
 
 ### 4. 等所有者扣扳机
 

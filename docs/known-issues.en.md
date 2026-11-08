@@ -18,6 +18,6 @@
 
 ## Report installation trouble
 
-Include plugin, DSH and Node versions; OS/browser; display mode; whether the separate bridge was installed; minimal steps; and redacted logs. Use the [installation template](https://github.com/Wangmo-bit/dsh-session-link/issues/new?template=install.yml). Never include login URLs, tokens, private conversations or full config files.
+Include plugin, DSH and Node versions; OS/browser; display mode; whether the separate bridge was installed; minimal steps; and redacted logs. Use the [installation template](https://github.com/Wangmo-bit/DS-link/issues/new?template=install.yml). Never include login URLs, tokens, private conversations or full config files.
 
 Do not hide an issue with repeated resends or manual edits to installed files. Model-provider and tool-execution delays are not plugin delivery latency.

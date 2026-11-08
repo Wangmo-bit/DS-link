@@ -14,12 +14,12 @@ export function removeManagedEntry(text){
  if(body.some(line=>!allowed.some(re=>re.test(line))))throw Error('Managed block was customized; refuse to discard content');
  if(body.filter(x=>/^\s*name:/.test(x)).length!==1)throw Error('Unexpected managed host rows');
  const outside=text.slice(0,start)+text.slice(end);
- if(/^\s*(?:-\s*)?id:\s*['\"]?session-link(?:-runtime-|-hot-|['\"]?\s*$)/m.test(outside)||/^\s*name:.*node_modules\/(?:@wangmo\/)?dsh-session-link\//m.test(outside))throw Error('Plugin host row remains outside managed block; refuse partial deactivation');
+ if(/^\s*(?:-\s*)?id:\s*['\"]?session-link(?:-runtime-|-hot-|['\"]?\s*$)/m.test(outside)||/^\s*name:.*node_modules\/(?:(?:@wangmo\/)?dsh-session-link|@wangmo-bit\/ds-link)\//m.test(outside))throw Error('Plugin host row remains outside managed block; refuse partial deactivation');
  return outside;
 }
 export async function deactivate(profileDir,{apply=false,allowProduction=false}={}){
  const dir=await fs.realpath(profileDir),manifest=JSON.parse(await fs.readFile(path.join(dir,'package.json'),'utf8'));
- const names=['dsh-session-link','@wangmo/dsh-session-link'];
+ const names=['dsh-session-link','@wangmo/dsh-session-link','@wangmo-bit/ds-link'];
  const selected=(manifest.dsh?.profile?.bundles??[]).map(item=>{if(typeof item==='string')return item;if(item&&typeof item.name==='string')return item.name;throw Error('Unsupported bundle shape; refuse managed host removal')});
  if(selected.some(n=>names.includes(n)))throw Error('Deselect legacy/new bundles before managed host removal');
  const file=path.join(dir,'cordis.patch.yml'),before=await fs.readFile(file,'utf8'),after=removeManagedEntry(before);

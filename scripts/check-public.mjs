@@ -11,7 +11,8 @@ const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const lock = JSON.parse(await readFile(join(root, 'package-lock.json'), 'utf8'));
 if (pkg.version !== lock.version || pkg.version !== lock.packages[''].version) errors.push('package/lock version mismatch');
 if (pkg.private !== true) errors.push('Preparation branch must keep private:true; publishing requires separate approval');
-if (pkg.license !== 'MIT' || pkg.repository?.url !== 'git+https://github.com/Wangmo-bit/dsh-session-link.git') errors.push('Package license/repository metadata missing');
+if (pkg.name !== '@wangmo-bit/ds-link' || lock.name !== pkg.name || lock.packages[''].name !== pkg.name) errors.push('DS-link package/lock identity mismatch');
+if (pkg.license !== 'MIT' || pkg.repository?.url !== 'git+https://github.com/Wangmo-bit/DS-link.git') errors.push('Package license/repository metadata missing');
 for (const name of required) {
   try { await stat(join(root, name)); }
   catch { errors.push(`Required public file missing: ${name}`); }

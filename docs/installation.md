@@ -5,7 +5,7 @@
 ## 先说清楚：现在有什么、没有什么
 
 - 当前支持**从源码构建并安装**；构建、测试和打包都在源码仓进行。
-- **没有公开的 npm 包，也没有公开的 GitHub Release 下载。** 不要用 `npx @wangmo/dsh-session-link`、猜的 registry 地址或假想 Release 链接来安装。
+- **没有公开的 npm 包，也没有公开的 GitHub Release 下载。** 不要用 `npx @wangmo-bit/ds-link`、猜的 registry 地址或假想 Release 链接来安装。
 - 仓库的 `package.json` 仍保留 `private: true`，因此 `npm publish` 会被拒绝。这是有意的发布门，不是安装故障。
 - 插件安装走 DSH 官方 `dsh plugin` 入口；本仓库不会自动安装、自动修改 Host 或自动重启服务。
 
@@ -31,14 +31,14 @@
 - 源码构建使用 `npm`；不需要登录 npm registry。`npm ci` 只装构建/测试用的开发依赖，不会安装插件，也不会修改 DSH profile 或 Host 文件。
 
 ```sh
-git clone https://github.com/Wangmo-bit/dsh-session-link.git
-cd dsh-session-link
+git clone https://github.com/Wangmo-bit/DS-link.git
+cd DS-link
 npm ci
 npm run build
 mkdir -p output
 npm pack --pack-destination ./output
 VERSION=$(node -p "require('./package.json').version")
-TGZ="$(pwd)/output/wangmo-dsh-session-link-${VERSION}.tgz"
+TGZ="$(pwd)/output/wangmo-bit-ds-link-${VERSION}.tgz"
 dsh plugin --profile sl-test add "$TGZ"
 ```
 
@@ -85,6 +85,15 @@ node scripts/install-host-flow-bridge-rc1.mjs \
 ### 桥接回退
 
 工具会在私有备份目录保留 `client.js.original`、候选文件和收据。回退必须作为另一项受控操作执行：先核对备份的版本、哈希、owner 与目标，再按实际文件恢复；没有自动回退，也不要用未知来源的备份覆盖 Host。
+
+## 旧包改名迁移
+
+外部名称已统一：**DS-link** / **`Wangmo-bit/DS-link`** / **`@wangmo-bit/ds-link`**。旧包 `@wangmo/dsh-session-link` 是同一产品的旧名称，不是另一个需要并行安装的版本。
+
+- 先保存 profile、旧 tgz 和当前安装备份，在隔离 profile 验证迁移。
+- 通过官方插件管理入口停用旧包，再安装并启用新包；不得让两个包同时提供相同服务、工具或客户端插槽。验证新包正常后再移除旧依赖，保留旧 tgz；不能直接删除账本或改写全部 profile。
+- 既有 `session_link_*` 工具、`/api/session-link/api` 接口、`session-link` 服务/面板以及 `state/dsh-session-link` 和浏览器偏好 key 保留兼容，不复制出一套空记录。
+- 改仓库名不等于发布。新包当前仍是私有候选；是否需要刷新或重启，按官方管理入口的实际结果和获准范围判断，不擅自启动新服务。
 
 ## 升级与回退
 

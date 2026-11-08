@@ -21,6 +21,6 @@
 
 ## 安装报告需要什么
 
-插件版本、DSH 版本、Node、OS/浏览器、显示模式、是否单独安装桥接、最小复现。只提交脱敏日志。用[安装问题模板](https://github.com/Wangmo-bit/dsh-session-link/issues/new?template=install.yml)，不要贴登录地址、token 或私人会话。
+插件版本、DSH 版本、Node、OS/浏览器、显示模式、是否单独安装桥接、最小复现。只提交脱敏日志。用[安装问题模板](https://github.com/Wangmo-bit/DS-link/issues/new?template=install.yml)，不要贴登录地址、token 或私人会话。
 
 未复现的现象不要通过自动刷新、反复重发、手工编辑已装包来掩盖。模型服务延迟与工具执行耗时也不等于插件消息转发延迟。

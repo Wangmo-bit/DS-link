@@ -10,6 +10,7 @@ Detailed notes live here. They are records, not proof of a public release, downl
 
 ## 准备候选 / Preparation candidate
 
+- [0.8.16-pre.3 — DS-link 统一仓库与包名，未公开发布](RELEASE_NOTES-0.8.16-pre.3.md)
 - [0.8.16-pre.2 — DS-link 品牌与本机 link 定位，未安装/未发布](RELEASE_NOTES-0.8.16-pre.2.md)
 - [0.8.16-pre.1 — 开放准备候选，未公开发布](RELEASE_NOTES-0.8.16-pre.1.md)
 

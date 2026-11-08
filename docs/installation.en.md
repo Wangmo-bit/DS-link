@@ -5,7 +5,7 @@
 ## What exists, and what does not
 
 - The current supported path is **build from source and install locally**. Building, testing and packaging happen in the source repository.
-- **There is no public npm package and no public GitHub Release download.** Do not install through `npx @wangmo/dsh-session-link`, a guessed registry URL or an imagined Release link.
+- **There is no public npm package and no public GitHub Release download.** Do not install through `npx @wangmo-bit/ds-link`, a guessed registry URL or an imagined Release link.
 - The repository's `package.json` still has `private: true`, so `npm publish` is refused by design. That is a release gate, not an installation failure.
 - Install through DSH's official `dsh plugin` entry point. This repository does not auto-install, auto-patch the Host or auto-restart anything.
 
@@ -31,14 +31,14 @@ Before starting:
 - The source build uses `npm`; no npm registry login is needed. `npm ci` installs development dependencies for build/test only. It does not install the plugin or modify a DSH profile or Host file.
 
 ```sh
-git clone https://github.com/Wangmo-bit/dsh-session-link.git
-cd dsh-session-link
+git clone https://github.com/Wangmo-bit/DS-link.git
+cd DS-link
 npm ci
 npm run build
 mkdir -p output
 npm pack --pack-destination ./output
 VERSION=$(node -p "require('./package.json').version")
-TGZ="$(pwd)/output/wangmo-dsh-session-link-${VERSION}.tgz"
+TGZ="$(pwd)/output/wangmo-bit-ds-link-${VERSION}.tgz"
 dsh plugin --profile sl-test add "$TGZ"
 ```
 
@@ -85,6 +85,15 @@ node scripts/install-host-flow-bridge-rc1.mjs \
 ### Bridge rollback
 
 The tool keeps `client.js.original`, the candidate and receipts in the private backup directory. Rollback is a separate controlled operation: verify the backup's version, hashes, owner and target, then restore from the actual files. There is no automatic rollback, and never overwrite the Host from an unknown backup.
+
+## Renaming an existing installation
+
+The external names are **DS-link**, **`Wangmo-bit/DS-link`** and **`@wangmo-bit/ds-link`**. The legacy `@wangmo/dsh-session-link` package is the same product, not a second edition to run beside it.
+
+- Back up the profile, previous tarball and installation; rehearse in an isolated profile first.
+- Use the official plugin manager to disable the old bundle, then install/enable the new one. Never activate both copies of the same service, tools or client slots. Verify before removing the old dependency, and retain its tarball; never delete the ledger or restore a whole stale profile.
+- The `session_link_*` tools, `/api/session-link/api`, `session-link` service/panel, `state/dsh-session-link` and browser preference keys stay compatible. No second empty ledger is created.
+- A repository rename is not publication. The package remains a private candidate; refresh/restart requirements follow the actual official-manager result and owner authorization, not an automatic server restart.
 
 ## Upgrading and rolling back
 

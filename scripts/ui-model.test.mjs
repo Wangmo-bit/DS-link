@@ -315,7 +315,7 @@ test('error wording distinguishes CAS, policy removal and storage failure', () =
 
 test('global panel page is the only entry and registers the left sidebar row', async () => {
   const source = await readFile(new URL('../src/client/index.jsx', import.meta.url), 'utf8');
-  assert.match(source, /export const name = '@wangmo\/dsh-session-link'/);
+  assert.match(source, /export const name = '@wangmo-bit\/ds-link'/);
   assert.match(source, /style\.dataset\.plugin = name/);
   assert.doesNotMatch(source, /export const name = 'dsh-session-link'/);
   assert.doesNotMatch(source, /settings\.section/);

@@ -23,7 +23,7 @@
 
 ## A. GitHub 源码
 
-- 仓库：`https://github.com/Wangmo-bit/dsh-session-link`（当前私有；公开可见性由所有者操作）。
+- 仓库：`https://github.com/Wangmo-bit/DS-link`（当前私有；公开可见性由所有者操作）。
 - 目标 commit 上确认：README 中英、安装说明中英、LICENSE、THIRD_PARTY_NOTICES、`package.json`/lock 的版本与许可证一致。
 - 在目标 commit 跑源码检查，确认没有真实会话、凭据、个人路径或私有运维材料；公开前提交历史和远端设置仍需人工复核。
 - 不把公开可见性、分支保护或私密漏洞报告的启用说成“已完成”，这些都要实际核验；见 [SECURITY.md](SECURITY.md)。
@@ -39,7 +39,7 @@
    npm pack --dry-run --json --ignore-scripts
    npm pack --pack-destination ./output
    VERSION=$(node -p "require('./package.json').version")
-   sha256sum "./output/wangmo-dsh-session-link-${VERSION}.tgz"
+   sha256sum "./output/wangmo-bit-ds-link-${VERSION}.tgz"
    git rev-parse HEAD
    ```
 
@@ -63,7 +63,7 @@
    ```sh
    PROFILE=sl-test
    VERSION=$(node -p "require('./package.json').version")
-   TGZ="$(pwd)/output/wangmo-dsh-session-link-${VERSION}.tgz"
+   TGZ="$(pwd)/output/wangmo-bit-ds-link-${VERSION}.tgz"
    dsh plugin --profile "$PROFILE" add "$TGZ"
    ```
 

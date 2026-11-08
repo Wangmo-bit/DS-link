@@ -10,7 +10,7 @@
 
 **现在（仓库未公开）**：通过你已有的私有仓库协作渠道（例如仅仓库成员可见的 Issue 或讨论）私密联系项目所有者，或使用所有者另行指定的私密渠道。不要在公开 Issue 里描述漏洞或贴利用细节。
 
-**仓库公开后（所有者动作，不是贡献者动作）**：所有者需要确认 GitHub 私密漏洞报告已启用，并实际打开 [Security Advisories](https://github.com/Wangmo-bit/dsh-session-link/security/advisories) 页面，验收 **Report a vulnerability** 入口可用；验收通过后，才能把该入口写成本项目承诺的报告渠道。本文不承诺尚未启用的入口，也不承诺邮箱或其他未公布的联系方式。
+**仓库公开后（所有者动作，不是贡献者动作）**：所有者需要确认 GitHub 私密漏洞报告已启用，并实际打开 [Security Advisories](https://github.com/Wangmo-bit/DS-link/security/advisories) 页面，验收 **Report a vulnerability** 入口可用；验收通过后，才能把该入口写成本项目承诺的报告渠道。本文不承诺尚未启用的入口，也不承诺邮箱或其他未公布的联系方式。
 
 **仓库公开后（报告者）**：如果 Security Advisories 页面有 **Report a vulnerability** 入口，请使用该入口私密提交。如果入口不可用，请只开一个**询问如何私密联系维护者**的 Issue，等待私密联系方式；不要在该 Issue 中描述漏洞、附复现数据或公开受影响的部署地址。
 

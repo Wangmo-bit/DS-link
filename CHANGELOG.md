@@ -4,6 +4,14 @@
 
 > 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；新的 `0.8.16-pre.1` 是开源准备候选，已获后续独立授权安装到日用环境、未公开发布。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
 
+## 0.8.16-pre.3 — 未发布 / Unreleased
+
+- 统一外部名称：**DS-link** / **`Wangmo-bit/DS-link`** / **`@wangmo-bit/ds-link`**；不是只改首页品牌。
+- 当前包元数据、客户端模块身份、安装与问题模板改用新名称；旧工具、API、服务/面板和存储/偏好标识留作兼容。
+- 同仓改名，不复制新仓、不改写历史；旧日用包按单一启用包规则迁移，不删除旧数据或擅自重启。
+- Unified repository/package identity with compatible tool and data namespaces. No npm/Release publication or visibility change.
+- [本版说明](docs/releases/RELEASE_NOTES-0.8.16-pre.3.md)。
+
 ## 0.8.16-pre.2 — 未发布 / Unreleased
 
 - 对外品牌统一为 **DS-link**，界面、双语首页和合成素材同步更新。

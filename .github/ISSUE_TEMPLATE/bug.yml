@@ -7,7 +7,7 @@ body:
       value: |
         先搜一下已有 Issue。**不要贴真实会话内容、凭据、token、私钥、Cookie 或未脱敏日志**；截图请先遮盖会话名、账号和个人路径。
 
-        安装失败请改用“安装问题”模板。安全问题不要开公开 Issue，按 [SECURITY.md](https://github.com/Wangmo-bit/dsh-session-link/blob/main/SECURITY.md) 走私密渠道。
+        安装失败请改用“安装问题”模板。安全问题不要开公开 Issue，按 [SECURITY.md](https://github.com/Wangmo-bit/DS-link/blob/main/SECURITY.md) 走私密渠道。
 
   - type: input
     id: plugin-version
