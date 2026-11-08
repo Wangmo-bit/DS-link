@@ -37,3 +37,26 @@ test('verified direct child message switches to old card visual',()=>{
 test('unknown relation or unsupported original blocks always fall back to Host',()=>{
  const restore=storage('bubble');try{const fake={...props,sessionId:'unrelated'};assert.match(renderToStaticMarkup(React.createElement(Skin,fake)),/data-native/);const extra={...props,node:{data:{...props.node.data,content:[...props.node.data.content,{type:'image'}]}}};assert.match(renderToStaticMarkup(React.createElement(Skin,extra)),/data-native/);}finally{restore();}
 });
+
+test('sender capsule starts with a spinner and settles to a check or a cross',()=>{
+ const restore=storage('bubble');try{
+  const SenderView=mod.exports.createSubagentSenderView(deps);
+  const pair={parent:'P',child:'C',address};
+  const render=state=>renderToStaticMarkup(React.createElement(SenderView,{sessionId:'P',node:{data:{from:'P',to:'C',text:'hello',time:1000,state,pair}},useSessions:selector=>selector({byId:list})}));
+  const sending=render('sending');
+  assert.match(sending,/data-delivery-state=sending/);assert.doesNotMatch(sending,/✓|×/);
+  const sent=render('sent');
+  assert.match(sent,/data-delivery-state=sent/);assert.match(sent,/✓/);
+  const failed=render('failed');
+  assert.match(failed,/data-delivery-state=failed/);assert.match(failed,/×/);assert.doesNotMatch(failed,/✓/);
+  const unknown=render('unknown');
+  assert.match(unknown,/data-delivery-state=unknown/);assert.match(unknown,/\?/);
+ }finally{restore();}
+});
+
+test('received capsule never shows a check mark',()=>{
+ const restore=storage('bubble');try{
+  const html=renderToStaticMarkup(React.createElement(Skin,props));
+  assert.doesNotMatch(html,/✓|×/);
+ }finally{restore();}
+});

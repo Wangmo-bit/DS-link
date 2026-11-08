@@ -6,6 +6,7 @@ const result = await build({ entryPoints:['src/client/outgoing-cards.jsx'],bundl
 const module={exports:{}};
 new Function('require','module','exports',result.outputFiles[0].text)(name => name === 'react' ? React : {MarkdownText:()=>null},module,module.exports);
 const render = module.exports.createSenderCardView();
+const { receiverHint } = await import('../src/client/delivery-indicator.mjs');
 function text(value) {
   if (value == null || typeof value === 'boolean') return '';
   if (Array.isArray(value)) return value.map(text).join('');
@@ -36,8 +37,12 @@ test('a failed, uncertain or stale destination still has a visible status', () =
   assert.equal(module.exports.senderIndicator('失败').kind,'failed');
   assert.equal(module.exports.senderIndicator('已取消').kind,'failed');
   assert.equal(module.exports.senderIndicator('宿主已接收·进入上下文未确认').kind,'warning');
-  assert.deepEqual(module.exports.senderIndicator('宿主已接收·待进入上下文'),{kind:'pending',title:'已送达宿主，等待进入对方上下文'});
-  assert.deepEqual(module.exports.senderIndicator('已进入上下文'),{kind:'received',title:'已进入对方上下文'});
+  // User decision 2026-11-08: the check means the other Host confirmed receiving.
+  assert.deepEqual(module.exports.senderIndicator('宿主已接收·待进入上下文'),{kind:'received',title:'对方宿主已确认收到，尚未确认进入上下文'});
+  assert.deepEqual(module.exports.senderIndicator('已进入上下文'),{kind:'received',title:'对方宿主已接收，已进入对方上下文'});
+  assert.equal(receiverHint('已进入上下文'),null,'received capsules never carry a check');
+  assert.equal(receiverHint('明确回复'),null);
+  assert.deepEqual(receiverHint('宿主已接收·待进入上下文'),{kind:'pending',title:'已收到，等待进入上下文'});
   assert.equal(module.exports.senderIndicator('已进入上下文 · 等待回复超时').kind,'warning');
   assert.equal(roles(tree).filter(role=>role==='status').length,2);
 });

@@ -70,8 +70,12 @@ test('card link defaults, capsule geometry, focus and receipt semantics remain u
   assert.deepEqual(rule('.sl-chat-event .sl-exchange-link:hover'), { background: 'color-mix(in srgb, var(--sl-chat-muted) 20%, transparent)' });
   assert.deepEqual(rule('.sl-chat-message button:focus-visible, .sl-chat-process summary:focus-visible, .sl-chat-event button:focus-visible, .sl-exchange-dialog button:focus-visible'), { outline: '2px solid #829aff', 'outline-offset': '3px' });
   assert.match(outgoing, /indicator\.kind === 'received' \? '✓'/);
-  assert.match(incoming, /marker\.kind === 'received' \? '✓'/);
-  assert.match(subagent, /aria-label="宿主已确认投递，不代表已读或已回复"[^>]*>✓/);
+  // User decision 2026-11-08: received capsules never render a check; they only
+  // show the real "waiting to enter context" spinner while that is true.
+  assert.doesNotMatch(incoming, /'✓'/);
+  assert.match(incoming, /receiverHint\(/);
+  assert.match(subagent, /data-delivery-state=\{state\}/);
+  assert.match(subagent, /glyph:'✓'/);
   // Any new notice declarations are strictly bubble-scoped and colour-only.
   const added = rules.filter(item => item.body.includes('--sl-notice-'));
   assert.equal(added.length, 5);

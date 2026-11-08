@@ -122,14 +122,24 @@ export function createSubagentSenderView({sessions,remote,workspace}) {
     if(!data || data.from!==props.sessionId)return null;
     const pair=directPair(sessions,data.from,data.to);if(!pair)return null;
     const from=titleOf(sender,'当前会话'),to=titleOf(target,data.to===pair.parent?'父会话':'子智能体');
-    // Bubble mode carries the receipt inside the capsule (user decision 2026-11-06);
-    // card mode keeps the untouched original capsule so nothing changes there.
+    // Bubble mode carries the delivery state inside the capsule (user decision
+    // 2026-11-06); the glyph vocabulary was confirmed on 2026-11-08: spinner
+    // while sending, ✓ once the other Host confirmed receiving, × on failure,
+    // ? when a historical call never settled. Card mode keeps its original
+    // post-confirmation card and shows nothing early.
+    const state=data.state??'sent';
     const capsule = extra => <SubagentLink pair={pair} selfId={data.from} selfName={from} peerName={to} sessions={sessions} remote={remote} workspace={workspace}>已发消息给 {to}{extra}</SubagentLink>;
     const link=capsule(null);
-    if(mode==='card')return <div className={cardClass('sent')} data-session-link-subagent-sender-card="" {...directionAttribute('sent')}><button type="button" className="sl-card__toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><span className="sl-card__party"><span className="sl-card__party-label">发送者</span><span className="sl-card__party-name">{from}</span><span className="sl-card__toggle-text">{open?'收起':'展开'}</span></span><span className="sl-card__party"><span className="sl-card__party-label">接收者</span><span className="sl-card__party-name">{to}</span></span><span className="sl-card__party"><span className="sl-card__party-label">主题</span><span className="sl-card__subject">{data.text.split('\n').find(line=>line.trim())?.slice(0,120)||'会话消息'}</span></span></button>{open && <div className="sl-card__expanded"><div className="sl-card__body" data-i18n-skip="">{data.text}</div><div className="sl-chat-meta"><CopyMessage text={data.text}/></div><div className="sl-chat-event">{link}</div></div>}</div>;
-    // ✓ stays a real receipt, never a claim of "read" or "answered". The icon is
-    // presentational only: keyboard focus is not added inside the capsule button.
-    return <div className="sl-chat-event" data-session-link-subagent-sent="" data-session-link-notice="">{capsule(<span className="sl-delivery-indicator sl-delivery-indicator--received" role="status" aria-label="宿主已确认投递，不代表已读或已回复" title="宿主已确认投递，不代表已读或已回复">✓</span>)}</div>;
+    if(mode==='card')return state==='sent' ? <div className={cardClass('sent')} data-session-link-subagent-sender-card="" {...directionAttribute('sent')}><button type="button" className="sl-card__toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><span className="sl-card__party"><span className="sl-card__party-label">发送者</span><span className="sl-card__party-name">{from}</span><span className="sl-card__toggle-text">{open?'收起':'展开'}</span></span><span className="sl-card__party"><span className="sl-card__party-label">接收者</span><span className="sl-card__party-name">{to}</span></span><span className="sl-card__party"><span className="sl-card__party-label">主题</span><span className="sl-card__subject">{data.text.split('\n').find(line=>line.trim())?.slice(0,120)||'会话消息'}</span></span></button>{open && <div className="sl-card__expanded"><div className="sl-card__body" data-i18n-skip="">{data.text}</div><div className="sl-chat-meta"><CopyMessage text={data.text}/></div><div className="sl-chat-event">{link}</div></div>}</div> : null;
+    // The glyph is presentational only: keyboard focus is not added inside the
+    // capsule button and its meaning is in the label. ✓ is a real receipt, never
+    // a claim of "read" or "answered".
+    const marker = state==='sending'
+      ? {kind:'pending', title:`正在发送给 ${to}`, glyph:<span className="sl-delivery-spinner" aria-hidden="true"/>}
+      : state==='failed' ? {kind:'failed', title:'发送失败', glyph:'×'}
+      : state==='unknown' ? {kind:'', title:'发送结果未确认', glyph:'?'}
+      : {kind:'received', title:'对方宿主已确认收到，不代表已读或已回复', glyph:'✓'};
+    return <div className="sl-chat-event" data-session-link-subagent-sent="" data-session-link-notice="">{capsule(<span className={`sl-delivery-indicator${marker.kind?` sl-delivery-indicator--${marker.kind}`:''}`} data-delivery-state={state} role="status" aria-label={marker.title} title={marker.title}>{marker.glyph}</span>)}</div>;
   };
 }
 export function installSubagentMessages(ctx) {

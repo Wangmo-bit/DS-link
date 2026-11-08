@@ -75,7 +75,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 import { ExchangeLink } from './chat-ui.jsx';
-import { senderIndicator as receiverIndicator } from './delivery-indicator.mjs';
+import { receiverHint } from './delivery-indicator.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
 const KIND = 'session-link-card';
@@ -467,9 +467,12 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     // unstyled text that escapes the "capsule only" rule. The glyph follows the
     // same vocabulary as the sender side: ✓ confirmed, spinner waiting, × failed,
     // ? stale/unknown. Its meaning is in the label, so the glyph is decorative.
-    const marker = status ? receiverIndicator(status) : null;
+    // Received capsules never show a check (user decision 2026-11-08). The one
+    // real waiting state is a recorded message still waiting to enter context;
+    // every other state is already "received" and stays glyph-free.
+    const marker = status ? receiverHint(status) : null;
     return <div className="sl-chat-event" data-session-link-i18n-root="" data-session-link-direction="received" data-session-link-notice="">
-      <ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from} title={marker?.title}>收到消息，来自 {from}{marker ? <span className={`sl-delivery-indicator sl-delivery-indicator--${marker.kind}`} role="status" aria-label={marker.title} title={marker.title}>{marker.kind === 'pending' ? <span className="sl-delivery-spinner" aria-hidden="true"/> : <span aria-hidden="true">{marker.kind === 'received' ? '✓' : marker.kind === 'failed' ? '×' : '?'}</span>}</span> : null}</ExchangeLink>
+      <ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from} title={marker?.title}>收到消息，来自 {from}{marker ? <span className={`sl-delivery-indicator sl-delivery-indicator--${marker.kind}`} role="status" aria-label={marker.title} title={marker.title}><span className="sl-delivery-spinner" aria-hidden="true"/></span> : null}</ExchangeLink>
     </div>;
   }
   return SessionLinkCardView;
