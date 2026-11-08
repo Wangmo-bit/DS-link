@@ -70,8 +70,13 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
    Keep the Host's own scrolling wrapper inside the bubble and restore the
    native table sizing inside it; the block fallback remains for a table that
    arrives without that wrapper. */
-.sl-chat-bubble [class*="_tableScroll"] { max-width: 100% !important; overflow-x: auto; }
-.sl-chat-bubble [class*="_tableScroll"] > table { display: table; max-width: max-content; overflow-x: visible; }
+.sl-chat-bubble [class*="_tableScroll"], .sl-user-bubble [class*="_tableScroll"] { max-width: 100% !important; overflow-x: auto; }
+/* The Host gives a wide table a "full-bleed" offset (negative start margin plus
+   equal padding) that aligns it to the page column. Inside a bubble that offset
+   pushes the scroll viewport outside the surface and clips the table; cancel it
+   so the table scrolls inside the bubble instead. */
+.sl-chat-bubble [class*="_tableScroll"].md-table-wide, .sl-user-bubble [class*="_tableScroll"].md-table-wide { margin-left: 0 !important; padding-left: 0 !important; }
+.sl-chat-bubble [class*="_tableScroll"] > table, .sl-user-bubble [class*="_tableScroll"] > table { display: table; max-width: max-content; overflow-x: visible; }
 .sl-chat-bubble table { display: block; max-width: 100%; overflow-x: auto; }
 .sl-chat-text { min-width: 0; white-space: normal; }
 .sl-chat-bubble [data-markdown-variant] { color: var(--sl-chat-ink) !important; font-size: inherit; line-height: 1.7; }
