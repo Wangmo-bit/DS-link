@@ -210,12 +210,13 @@ const hasAncestor = (node, predicate) => {
 
 function nativeEntry(key, priority, inject, locale = 'chat', children) {
   return {
-    options: { key, priority, ...(children === undefined ? {} : { children }) },
+    options: { key, priority },
     component: function NativeMarker() {
       return React.createElement('div', { 'data-native-marker': key });
     },
     inject,
     locale,
+    ...(children === undefined ? {} : { children }),
   };
 }
 
@@ -430,6 +431,8 @@ test('install registers keyed wrappers with native key, priority-5 and no invent
     assert.equal(typeof component, 'function');
     assert.equal(Object.hasOwn(options, 'children'), false, `${options.key} must not invent a children declaration rc.5 does not have`);
   }
+  const rc5UserProps = fixture.registers.find(({ options }) => options.key === 'user').options.inject('sess-1');
+  assert.equal(Object.hasOwn(rc5UserProps, 'renderSlotChain'), false, 'rc.5 entries declare no child chain, so no injection is added');
 
   const userComponent = fixture.registers.find(({ options }) => options.key === 'user').component;
   const nativeView = mount(userComponent, {
@@ -442,16 +445,21 @@ test('install registers keyed wrappers with native key, priority-5 and no invent
   assert.deepEqual(fixture.stops, ['turn-process', 'assistant-step', 'steering', 'user']);
 });
 
-test('rc.1 user seat keeps the native child-chain declaration so renderSlotChain is supplied', () => {
+test('rc.1 user seat injects the empty child-chain renderer without redeclaring the slot', () => {
   const children = { 'conversation.chat.user.before': { kind: 'chain', scope: 'session' } };
+  const steeringInject = () => ({ renderSlotChain: () => null });
   const fixture = installFixture([
     nativeEntry('user', 10, undefined, 'chat', children),
-    nativeEntry('steering', 7),
+    nativeEntry('steering', 7, steeringInject),
   ]);
   const user = fixture.registers.find(({ options }) => options.key === 'user');
   const steering = fixture.registers.find(({ options }) => options.key === 'steering');
-  assert.deepEqual(user.options.children, children, 'the official user child chain must survive re-registration');
-  assert.equal(Object.hasOwn(steering.options, 'children'), false, 'the steering seat declares no child chain');
+  assert.equal(Object.hasOwn(user.options, 'children'), false, 'the child slot is declared once by the official entry');
+  const userProps = user.options.inject('sess-1');
+  assert.equal(typeof userProps.renderSlotChain, 'function', 'rc.1 UserStyleBubble requires an injected chain renderer');
+  assert.equal(userProps.renderSlotChain('conversation.chat.user.before', {}, { fallback: null }), null);
+  const steeringProps = steering.options.inject('sess-1');
+  assert.equal(typeof steeringProps.renderSlotChain, 'function', 'the official steering injection survives the merge');
   fixture.injections.find(item => item.name === 'conversation.chat.flow').cleanup();
 });
 

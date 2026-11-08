@@ -215,13 +215,15 @@ export function installChatSkin(ctx) {
         const native = (official.length ? official : matching).sort((a, b) => (a.options.priority ?? 0) - (b.options.priority ?? 0))[0];
         if (!native) continue;
         const originalInject = native.inject;
+        // Real slot entries keep declarations outside `options` (the core
+        // normalizes options to key/id/order/label/priority). rc.1's official
+        // `user` seat owns the session-scoped `conversation.chat.user.before`
+        // child chain and gets renderSlotChain from that declaration; a second
+        // declaration would throw "already declared", so the wrapper supplies
+        // the same empty-chain renderer the official `steering` seat uses.
+        const nativeChildren = native.children ?? native.options.children;
         const options = {
           name: 'conversation.chat.node', key, priority: (native.options.priority ?? 0) - 5, locale: native.locale || 'chat',
-          // rc.1 declares the `conversation.chat.user.before` child chain on the
-          // official `user` registration; the slot host derives renderSlotChain
-          // from that declaration. Keep it when re-registering, or the official
-          // renderer receives undefined and crashes. rc.5 has no such field.
-          ...(native.options.children === undefined ? {} : { children: native.options.children }),
           inject: (...args) => {
             const base = typeof originalInject === 'function' ? originalInject(...args) : {};
             const id = args[0];
@@ -232,7 +234,14 @@ export function installChatSkin(ctx) {
               : session?.title || '助手';
             let binding;
             try { binding = ctx.sessions.binding?.(id); } catch { /* Session may not be retained yet. */ }
-            if (key !== 'assistant-step' && key !== 'turn-process') return { ...base, skinAuthor: title, slImageSession: binding?.session };
+            if (key !== 'assistant-step' && key !== 'turn-process') {
+              return {
+                ...base,
+                skinAuthor: title,
+                slImageSession: binding?.session,
+                ...(nativeChildren === undefined ? {} : { renderSlotChain: () => null }),
+              };
+            }
             let chat;
             try { if (binding) chat = ctx.uiConversation?.binding(binding).target('chat'); } catch { /* No current chat binding: keep original fallback. */ }
             const source = kind => turnId => chat?.getSnapshot()?.nodes?.turnDataSource(Number(turnId), kind) ?? EMPTY_SOURCE;

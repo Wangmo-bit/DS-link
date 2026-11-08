@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased — 0.8.4 candidate
+## Unreleased — 0.8.5 candidate
 
-- 修复 rc.1 气泡模式用户消息渲染崩溃：rc.1 官方 `user` 插槽新增 `conversation.chat.user.before` 子链声明，宿主据此注入 `renderSlotChain`；插件重注册该插槽时未保留 `children`，导致 `UserStyleBubble` 收到 undefined。现在仅在原生注册带声明时原样保留；rc.5 路径不变。补充定向回归测试。未改变宿主侧接口、功能或数据格式。
+- 修复 rc.1 气泡模式用户消息渲染崩溃：rc.1 官方 `user` 座位的 `children` 声明（`conversation.chat.user.before` 子链）由宿主提升到 entry 顶层，且子槽只能由官方声明一次；插件重注册该座位时既不能读取 `options.children`，也不能复制声明。现在包装器在原生 entry 带子链时通过 `inject` 提供与官方 `steering` 相同的空链渲染器，rc.5（无子链）不注入；不重声明子槽，避免宿主抛错。
+- 定向测试改用真实 registry 形状（children 在 entry 顶层），覆盖 rc.1 注入与 rc.5 不注入两条路径。未改变宿主侧接口、功能或数据格式。
+- 说明：0.8.4 为内部草案（复制 `children` 的方案会在宿主重声明校验处失败），未落标准目录、未安装，作废。
 
 ## Unreleased — 0.8.3 candidate
 
