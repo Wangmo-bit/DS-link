@@ -1,10 +1,16 @@
 # Changelog
 
-## Unreleased — 0.8.5 candidate
+> 版本口径：0.5.0 起的条目曾标 “Unreleased — X candidate”，表示**私有预发布**，不代表未安装；这些版本均已按官方入口安装到本机 web profile。当前产品要求见 [PRD.md](PRD.md)，本文件只记变更历史。
+
+## 0.8.5 — 2026-11-08
 
 - 修复 rc.1 气泡模式用户消息渲染崩溃：rc.1 官方 `user` 座位的 `children` 声明（`conversation.chat.user.before` 子链）由宿主提升到 entry 顶层，且子槽只能由官方声明一次；插件重注册该座位时既不能读取 `options.children`，也不能复制声明。现在包装器在原生 entry 带子链时通过 `inject` 提供与官方 `steering` 相同的空链渲染器，rc.5（无子链）不注入；不重声明子槽，避免宿主抛错。
 - 定向测试改用真实 registry 形状（children 在 entry 顶层），覆盖 rc.1 注入与 rc.5 不注入两条路径。未改变宿主侧接口、功能或数据格式。
-- 说明：0.8.4 为内部草案（复制 `children` 的方案会在宿主重声明校验处失败），未落标准目录、未安装，作废。
+- 说明：0.8.4 为内部草案（复制 `children` 的方案会在宿主重声明校验处失败），未落标准目录、未安装、无 release notes，作废。
+
+### 同批的宿主侧变更（不属于本插件包）
+
+- rc.1 上完整气泡流与每轮 agent 小人依赖 Host 的 `conversation.chat.flow.adapter`；该接缝由版本绑定的私有 Host Web 客户端桥接提供，**不随本 tgz 发布**，单独受控安装、备份并记录收据。只装本包时气泡退回旧节点皮肤。宿主升级后需重新适配与授权。详见 PRD 第 8 节。
 
 ## Unreleased — 0.8.3 candidate
 
@@ -39,6 +45,10 @@
 ## Unreleased — 0.6.2 candidate
 
 - 修复 0.6.0 的两个气泡问题：运行中的轮次始终保留气泡与思考三点；只有已结束且无正文的轮次才不渲染泡壳。另修复“只有作者名的空块”——现在消息块只在确实有内容时渲染。
+
+## Unreleased — 0.6.1 candidate
+
+- 修复 0.6.0 运行中气泡消失：`bodyless` 判定未排除运行中，一旦出现过程组就只剩 header；运行中的轮次现在始终保留气泡与思考三点。后由 0.6.2 补齐“只有作者名的空块”问题。
 
 ## Unreleased — 0.6.0 candidate
 

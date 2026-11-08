@@ -21,12 +21,23 @@ Let **existing ordinary DSH sessions** message each other directly: send a reque
 
 Chinese and English are supported (only these two): the plugin UI follows the host locale, and main card/settings paths were verified in an isolated browser. User message bodies, subjects, identities and raw technical values are explicitly not translated. There are no separate `locale/*.json` resources; dynamic errors and very long copy are still being covered. See [LANGUAGES.md](LANGUAGES.md).
 
+## Read the PRD first
+
+Product requirements, the difference between the two display modes, confirmed boundaries and known gaps live in [PRD.md](PRD.md). This README covers install and usage only; where they differ, the PRD and the user's newer explicit decision win.
+
 ## What it does
 
 - Ordinary sessions participate; no fixed IDs or pre-created teams required.
 - Explicit states: persisted (`accepted`) vs delivered into the target context (`receipt`) vs explicit reply. `accepted` is not "read".
-- Direction-colored cards; expanding one card shows body, technical details and the native trace entry.
-- Settings can pause delivery, limit concurrency, adjust reply waiting; the ledger page exposes status, cancellation and chain controls.
+- Bubble mode by default, card mode preserved: bubbles show the message body plus one truthful line of elapsed time / reasoning count / tool count, while card mode keeps the original send/receive cards and native process view. Switching modes changes presentation only, never data or delivery.
+- Settings can pause delivery, limit concurrency and adjust reply waiting; the records page exposes status, cancellation, legacy held release and unknown re-checks. **Chain pause/resume/close currently exists only in model tools and the owner control plane — the records page has no buttons for it** (known gap, see PRD §8).
+
+## Display modes: bubble and card
+
+- **Bubble mode (default)**: no reasoning or tool-process body, only the message body and one summary line (elapsed time · reasoning count · tool count, no tokens); empty process fragments do not become their own bubbles; prompts that need your action still appear.
+- **Card mode**: keeps the original send/receive cards, relay tool-call cards and native process view for when you want details.
+- The choice is stored in this browser only (plugin settings) and survives refresh; bubble is the default. Switching never touches messages, records, permissions or delivery.
+- **Full bubble behavior needs a Host-side seam**: the complete bubble flow and the per-turn agent badges rely on the Host's `conversation.chat.flow.adapter`. On this machine's DSH `0.2.2-rc.1` that seam is provided by a **version-pinned private Host web-client bridge**, which is not part of the plugin tgz and not official upstream DSH. Installing only this plugin package leaves the older per-seat skin: message bodies are still bubbles, but process fragments and per-turn agent badges may be incomplete. A Host upgrade can overwrite the bridge; re-adapt and re-authorize instead of reusing old hashes.
 
 ## Get the source (private)
 
@@ -76,6 +87,8 @@ Ledger/pending-delivery/migration compatibility across versions is **not verifie
 ## Testing and limits
 
 See [TESTING.md](TESTING.md) for scope, skipped cases and the isolation requirements for tests that use fixed `/tmp` paths. Real model/provider latency is outside this plugin; busy-target latency has no public benchmark yet.
+
+Known limits: full bubble mode and agent badges depend on the Host bridge described above; the records page has no chain pause/resume/close buttons; name-only reuse or automatic resume of subagents has no reliable persistent-id correlation and is not counted or guessed; cross-version ledger/rollback compatibility is not verified.
 
 ## License
 
