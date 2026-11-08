@@ -20,11 +20,13 @@ jobs:
           persist-credentials: false
       - name: Prepare disposable dependency image
         run: docker build -f scripts/test.Dockerfile -t session-link-check .
+      # Private-repository hosted runners provide 2 CPUs. A quota above the
+      # runner capacity makes Docker refuse startup before any test can run.
       - name: Run without network, as non-root, on a private tmpfs
         run: >-
           docker run --rm --network=none --read-only --user=node
           --cap-drop=ALL --security-opt=no-new-privileges
-          --pids-limit=512 --memory=3g --cpus=4
+          --pids-limit=512 --memory=3g --cpus=2
           --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g,mode=1777
           session-link-check
   result:
