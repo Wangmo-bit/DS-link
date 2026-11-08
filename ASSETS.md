@@ -43,8 +43,8 @@ python3 scripts/docs/make-flow.py
 
 ## 权利与边界
 
-- 演示中的插件组件和文案为本项目所有，按 MIT 覆盖；宿主 shell 是 mock，不是 DSH 官方截图或官方素材。
-- 没有引入第三方美术、字体、头像或品牌素材；如未来加入，必须同步 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 和许可信息。
+- 自有组件与文案适用项目 MIT；画面中出现的 Lucide / Feather 图标保留各自许可，见[第三方声明](THIRD_PARTY_NOTICES.md)。宿主 shell 是 mock，不是 DSH 官方截图或官方素材。
+- 没有引入参考项目的美术、字体、头像或品牌素材；如未来加入，必须同步第三方声明和许可信息。
 - 本仓库没有托管演示站、官网或“在线试用”站点；素材是仓库内本地文件。没有实际 npm 发布或 Release 下载操作。
 
 ## English summary
