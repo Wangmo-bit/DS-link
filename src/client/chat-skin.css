@@ -64,6 +64,14 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-chat-bubble blockquote { margin: .5em 0; }
 .sl-chat-bubble pre { max-width: 100%; overflow-x: auto; }
 .sl-chat-bubble img, .sl-chat-bubble video { display: block; max-width: 100%; height: auto; border-radius: 10px; }
+/* Wide Markdown tables must scroll inside the bubble. The Host wraps a 4+
+   column table in a scroll container whose max-width:100% can resolve to none
+   inside a shrink-to-fit bubble, which let the table paint outside the surface.
+   Keep the Host's own scrolling wrapper inside the bubble and restore the
+   native table sizing inside it; the block fallback remains for a table that
+   arrives without that wrapper. */
+.sl-chat-bubble [class*="_tableScroll"] { max-width: 100% !important; overflow-x: auto; }
+.sl-chat-bubble [class*="_tableScroll"] > table { display: table; max-width: max-content; overflow-x: visible; }
 .sl-chat-bubble table { display: block; max-width: 100%; overflow-x: auto; }
 .sl-chat-text { min-width: 0; white-space: normal; }
 .sl-chat-bubble [data-markdown-variant] { color: var(--sl-chat-ink) !important; font-size: inherit; line-height: 1.7; }
