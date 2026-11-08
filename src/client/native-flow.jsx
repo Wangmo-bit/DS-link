@@ -262,7 +262,10 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
 // Terminal failure rows are handled by the turn's own bubble instead of a stray
 // row outside it (user decision 2026-11-08): the summary line names the failure
 // and an in-bubble disclosure reveals the original Host block on demand.
-const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger']);
+// `turn-tail` is deliberately NOT silent: it carries the Host's real message
+// actions (copy / rating / branch / usage info) that belong under the bubble.
+// Silencing it removed every assistant action button (fixed 2026-11-08).
+const SILENT_ROWS = new Set(['model-retry', 'turn-trigger']);
 const TERMINAL_ROWS = new Set(['turn-error', 'turn-max-tokens']);
 function BubbleFlow({ NativeFlow, ...flow }) {
   const nodes = flow.useChat(snapshot => snapshot.nodes);

@@ -32,9 +32,15 @@ function mount(element){const ref0=React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WI
 
 test('mechanism rows draw nothing while remaining resolvable',()=>{
  drawn.length=0;
- const entries=['retry','tail','trigger'].map(key=>({kind:'node',key}));
+ const entries=['retry','trigger'].map(key=>({kind:'node',key}));
  mount(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries}));
- assert.deepEqual(drawn,[],'model-retry / turn-tail / turn-trigger must not reach the renderer');
+ assert.deepEqual(drawn,[],'model-retry / turn-trigger must not reach the renderer');
+});
+
+test('the turn tail still reaches the renderer so message actions stay available',()=>{
+ drawn.length=0;
+ mount(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'tail'}]}));
+ assert.deepEqual(drawn,['tail'],'copy / rating / branch / usage live in turn-tail and must never be silenced');
 });
 
 test('terminal failure and token-limit rows stay out of the timeline itself',()=>{
