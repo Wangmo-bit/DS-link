@@ -11,6 +11,7 @@
 - [准备分支实际 CI](https://github.com/Wangmo-bit/dsh-session-link/actions/runs/42470100506) 与 [main 实际 CI](https://github.com/Wangmo-bit/dsh-session-link/actions/runs/42470323291) 均已通过：491 tests / 491 pass / 0 fail / 0 skipped，包白名单 38 文件。
 - GitHub Release 的请求草案、候选包和校验和已在维护者本地准备；**未创建远端 Release、未打 tag、未上传制品**。
 - npm 使用独立临时副本完成 `publish --dry-run --ignore-scripts --access public --tag next`，38 文件通过。只在临时副本移除 private 门做预演，仓库仍为 `private:true`；模拟包不是正式制品。
+- 所有者后续独立授权后，同一已验收候选已升级日用安装；新客户端真实加载，气泡/卡片/原生引用 smoke 通过，未重启、未公开。详细安装及运行态范围见[升级记录](open-source-readiness.md#日用升级同日后续授权)。
 
 ## 仍需决定或提供的条件
 
@@ -23,9 +24,9 @@
 
 ### 2. npm 身份与 scope
 
-- 本机只读身份核对返回 `ENEEDAUTH`：尚未登录 npm。
-- 当前包名查询未找到公开包，但这**不证明** `@wangmo` scope 归所有者所有，也不证明有发布权限。
-- 所有者需选择/登录 npm 发布账号，确认包 scope 权限和安全验证方式。不要把密码、OTP、token 或完整配置发到聊天、Issue 或代码里。
+- 所有者已注册并通过官方网页登录，CLI `npm whoami` 核验账号为 `wangmo-bit`；仅登录，未发布任何包。
+- `@wangmo-bit/dsh-session-link` 查询未找到公开包；源码及当前自用包仍是 `@wangmo/dsh-session-link`。绑定 GitHub 与 CLI 登录不等于已经配置自动发布或验证了写入权限。
+- 正式发布前仍需确认包名/scope、升级迁移和安全验证方式；不要把密码、OTP、token 或完整配置发到聊天、Issue 或代码里。
 - 未经决定不擅自改包名。若需换 scope，先同步工具/安装/升级文档并复验。
 
 ### 3. 冻结首发版本与包
@@ -40,4 +41,4 @@ GitHub 仓库公开、GitHub Release 上传和 npm 实际发布都分别是对�
 
 ## English summary
 
-The preparation branch was fast-forwarded to main after real GitHub CI passed; main CI passed too (491/491, no skips). GitHub remains private. Release payloads are local only; npm dry-run used a temporary manifest, while source retains private:true. npm authentication and scope ownership remain unverified. Hiding the historical personal email requires separately authorized metadata history rewriting and old-reference/cache review; changing profile settings or a mailmap alone is insufficient. Publishing npm exposes packaged source even if GitHub stays private. Actual publication and daily-use upgrades remain separate owner decisions.
+The preparation branch was fast-forwarded to main after real GitHub CI passed; main CI passed too (491/491, no skips). GitHub remains private. Release payloads are local only; npm dry-run used a temporary manifest, while source retains private:true. The CLI has since authenticated as wangmo-bit; final package scope and publication permissions still need review. The same verified candidate was separately authorized for daily-use installation; its client was smoke-tested without a service restart. Hiding the historical personal email requires separately authorized metadata history rewriting and old-reference/cache review; changing profile settings or a mailmap alone is insufficient. Publishing npm exposes packaged source even if GitHub stays private. Actual publication and daily-use upgrades remain separate owner decisions.

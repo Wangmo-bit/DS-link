@@ -1,6 +1,6 @@
 # 0.8.16-pre.1 — 开放准备候选 / open-source preparation candidate
 
-**未公开发布，未安装到日用环境；不是正式 Release。**
+**未公开发布；2026-11-08 经所有者另行授权安装到日用环境。不是正式 Release。**
 
 ## 中文
 
@@ -14,4 +14,4 @@
 
 ## English
 
-This is an uninstalled, unpublished preparation candidate, not a public release. It adds bilingual product documentation and labelled offline fixture assets, a browser-local neutral/custom bubble label, portable explicit-root Host bridge maintenance, isolated tests including previously omitted bridge suites, pinned public SDK fixtures and third-party attribution. Messaging data format, delivery defaults, card behavior and authorization design are unchanged. Git history is not rewritten. Publication, registry rights and production upgrade remain separate owner decisions; see the readiness record for actual verification.
+This is an unpublished preparation candidate, not a public release. It was separately authorized and installed for daily use on 2026-11-08; this does not authorize publication. It adds bilingual product documentation and labelled offline fixture assets, a browser-local neutral/custom bubble label, portable explicit-root Host bridge maintenance, isolated tests including previously omitted bridge suites, pinned public SDK fixtures and third-party attribution. Messaging data format, delivery defaults, card behavior and authorization design are unchanged. Git history is not rewritten. Publication, registry rights and production upgrade remain separate owner decisions; see the readiness record for actual verification.
