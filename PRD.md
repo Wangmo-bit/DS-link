@@ -16,7 +16,7 @@
 | --- | --- |
 | **气泡模式 / 卡片模式** | 同一插件、同一通信数据和协议的**两套显示模式**；它们不是两个插件，也不是两套账本。核心差异见第 2 节。 |
 | **卡片样机 v2（第二版）** | 历史上的“两行卡 + 显式主题”设计样机，不等于插件 2.0 或一份独立的现行 PRD。当前卡片以保留实际已验收行为为准，不能只凭旧样机断言今天的行数。 |
-| **插件 0.2 / 0.8.5** | 插件发布版本；0.2 阶段移除了人为业务配额等旧限制；本次核对的源码和安装包是 **0.8.5**。版本号不代表 UI、宿主适配、运行进程和数据格式都处于同一版本。 |
+| **插件 0.2 / 0.8.5** | 插件发布版本；0.2 阶段移除了人为业务配额等旧限制；本次核对的源码和安装包是 **0.8.6**（含小人状态颜色修复）。版本号不代表 UI、宿主适配、运行进程和数据格式都处于同一版本。 |
 | **账本 v2 / v3、API v3** | 数据结构和接口版本，与显示模式、卡片样机版号无关。当前源码常量为账本 v3、API v3；旧账本迁移不代表旧 UI/API 同时兼容。 |
 | **Host** | DSH 宿主。会话互通插件和 DSH 官方宿主是不同组件；本机完整气泡流另依赖特定 Host Web 客户端桥接，见第 8 节。 |
 
@@ -76,7 +76,8 @@
 ### 3.5 作者右侧 agent 小人
 
 - 统计“**本轮派发了几个 agent**”：包括普通直接子 agent 和可证实被本轮派活的 Team 成员，按身份去重；同一 agent 反复发送不重复计数，没派就不显示占位。
-- 运行中蓝色；有证据正常完成才显示完成色；中断、失败与完成无法区分或证据不足时灰色“未确认”。只有能明确证明失败时才可标失败；不能把 `inactive`、派单成功或消息被宿主接受当完成。
+- 颜色语义：**运行中蓝色（#6aa8ff）→ 正常结束绿色（#4fb87b）→ 无法确认/中断灰色**；红色（#d95f5f）只留给宿主能证明的真实失败。当前宿主把取消与错误折成同一个布尔，无法区分，所以中断/失败不会显示红色，而是灰色“未确认”，不得用红色冒充确定失败。
+- 绿色需要本轮完成证据：本轮新建、显式 `agent_id` 追问成功返回、或本轮实际观察到运行（刷新后仍按可重放的证据恢复）；只有 Team 投递确认或历史完成不算。不能把 `inactive`、派单成功或消息被宿主接受当完成。
 - 完成后的统计应留在**原本那一轮**，刷新、历史加载后仍可恢复；后续轮次再次唤醒同一成员，不得把旧轮误标为运行中。
 - 当前已实现的可信归属包括新建直接子 agent、以明确 `agent_id` 复用的直接子 agent，以及本轮成功向 Team roster 中成员 `send_message`；任务板分配本身不启动成员，不算一次派发。**按名称复用、自动续跑缺少稳定持久 ID 的路径目前不能保证识别**，不得宣称全部复用均已支持。
 - 不增加用户已取消的小人点击跳转，也不凭名称猜测身份或补造状态。
@@ -144,7 +145,7 @@
 
 | 项目 | 事实 / 边界 |
 | --- | --- |
-| 本机版本 | 插件包 `0.8.5`；源码 `API_VERSION=3`、`STATE_VERSION=3`。磁盘、运行后端、浏览器资源必须分别核实。 |
+| 本机版本 | 插件包 `0.8.6`（2026-11-08 安装，仅客户端 bundle 变化）；源码 `API_VERSION=3`、`STATE_VERSION=3`。已装后刷新页面即加载新客户端；运行中的后端进程在重启前仍报告旧版本。磁盘、运行后端、浏览器资源必须分别核实。 |
 | 双模式实际依赖 | 插件提供气泡皮肤与卡片模式；**完整气泡流及小人依赖 Host 的 `conversation.chat.flow.adapter` 接缝**。无接缝时会回退旧节点皮肤，不能声称完整气泡行为已满足。 |
 | rc.1 私有 Host 桥 | 2026-11-08 已经用户批准，为本机 DSH `0.2.2-rc.1` 的一个 Host Web client 文件安装版本绑定的私有桥接，不是官方插件包，也不是上游 DSH 原版。前像 `b7e645f2…c823d84e`、后像 `74b1dfe9…932bf7f`；安装前后、备份和收据分别核验。新浏览器请求实测读取后像，未重启服务。未来升级可能覆盖；换版本必须重新适配、复核和授权，**不要照搬哈希或默认自动打补丁**。 |
 | 卡片入口和链控制 | 当前左侧主面板有设置与记录，但记录详情未实现链 pause/resume/close 按钮；模型控制工具与 owner RPC 不能等同于 UI 能力。尤其模型暂停链后，现有 UI 没有明确恢复入口；需单独修复或经现有授权控制面处理，不得把 README 的旧说法当事实。 |
@@ -169,5 +170,5 @@
 - 协议、当前工具及技术常量：[constants.js](src/core/constants.js)、[tools.js](src/host/tools.js)、[engine.js](src/core/engine.js)。
 - 显示模式与气泡：[display-mode.mjs](src/client/display-mode.mjs)、[native-flow.jsx](src/client/native-flow.jsx)、[native-flow-plan.mjs](src/client/native-flow-plan.mjs)、[chat-skin.jsx](src/client/chat-skin.jsx)。
 - 胶囊与往返：[chat-ui.jsx](src/client/chat-ui.jsx)、[exchange-page.mjs](src/client/exchange-page.mjs)、[subagent-message.jsx](src/client/subagent-message.jsx)、[subagent-history.mjs](src/client/subagent-history.mjs)。
-- 0.8.5 与此前变更记录：[CHANGELOG.md](CHANGELOG.md)、[RELEASE_NOTES-0.8.5.md](RELEASE_NOTES-0.8.5.md)。
+- 0.8.6 / 0.8.5 与此前变更记录：[CHANGELOG.md](CHANGELOG.md)、[RELEASE_NOTES-0.8.6.md](RELEASE_NOTES-0.8.6.md)、[RELEASE_NOTES-0.8.5.md](RELEASE_NOTES-0.8.5.md)。
 - 版本锁定的 Host 桥生成与受控维护：[dsh-web-flow-bridge-rc1.mjs](scripts/dsh-web-flow-bridge-rc1.mjs)、[install-host-flow-bridge-rc1.mjs](scripts/install-host-flow-bridge-rc1.mjs)。它们不赋予任何安装/重启许可。

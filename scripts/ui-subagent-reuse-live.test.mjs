@@ -78,8 +78,8 @@ test('live ordinary ask_agent reuse stays in its turn after completion and refre
     f.status('old',true);src.publish([start('old')]);
     v=f.view();assert.ok(f.renders>before,'source or child update must render');assert.deepEqual([...v.keys()],[1,2]);state(v,2,'running');state(v,1,'idle');
     src.publish([result('old'),result('old')]);f.status('old',false);
-    v=f.view();assert.deepEqual([...v.keys()],[1,2]);state(v,2,'idle');
-    f.refresh();v=f.view();state(v,2,'idle');assert.equal(src.listeners,1,'refresh cleans up the old source subscription');
+    v=f.view();assert.deepEqual([...v.keys()],[1,2]);state(v,2,'done');
+    f.refresh();v=f.view();state(v,2,'done');assert.equal(src.listeners,1,'refresh cleans up the old source subscription');
     // Failure, truncated call head and non-direct-child ids cannot create a turn-2 badge.
     src.publish([result('old',{error:true}),result('old',{head:false}),result('stranger')]);
     v=f.view();assert.deepEqual([...v.keys()],[1]);
@@ -90,7 +90,7 @@ test('same-label new and reused children dedupe without crossing sessions or bre
   const f=fixture();try{
     f.catalog('one',[{id:'old',label:'worker',mode:'continuable',createdAt:120},{id:'fresh',label:'worker',mode:'continuable',createdAt:220}]);
     const first=f.chats.one.sources.get(2);first.publish([result('old'),result('old')]);
-    let v=f.view();assert.deepEqual([...v.keys()],[1,2]);state(v,2,'idle');
+    let v=f.view();assert.deepEqual([...v.keys()],[1,2]);state(v,2,'done');
     f.roster('one');first.publish([result('old'),teamSend()]);v=f.view();
     assert.deepEqual([...v.keys()],[1,2]);assert.match(v.get(2).label,/本轮 2 个 agent/,'one ordinary label plus one teammate');
     f.switchTo('two');v=f.view();assert.equal(v.size,0,'other session has no inherited catalog or roster');

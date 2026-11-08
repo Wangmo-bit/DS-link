@@ -102,7 +102,7 @@ function fixture() {
     return {nodes,sources,entries,timeline:{turns:new Map(turns.map(t=>[t.turn,t])),turnOrder:turns.map(t=>t.turn)}};
   }
   const chats={one:chat('one'),two:chat('two')};let sessionId='one';
-  let sessions={byId:{one:{title:'One'},two:{title:'Two'},'member-a':{running:false,projectionValues:{subagentTiming:{lastTurnCompleted:true},turnOutline:[{turn:1}]}}},projectionsBySession:{one:{values:{subagentCatalog:[]}},two:{values:{subagentCatalog:[]}}}};
+  let sessions={byId:{one:{title:'One'},two:{title:'Two'},'member-a':{running:false,projectionValues:{subagentTiming:{},turnOutline:[{turn:1}]}}},projectionsBySession:{one:{values:{subagentCatalog:[]}},two:{values:{subagentCatalog:[]}}}};
   const flow={NativeFlow:()=>null,pendingInputs:[],lastInputTurn:0,
     useChat:selector=>selector({nodes:chats[sessionId].nodes,timeline:chats[sessionId].timeline}),
     useSessions:selector=>selector(sessions),useChatNode:(key,selector=x=>x)=>selector(chats[sessionId].nodes.get(key)),
@@ -123,8 +123,9 @@ function fixture() {
   };
 }
 function single(map,turn,state){
+  const spoken={running:'运行中',done:'已完成',failed:'失败',idle:'未确认'}[state];
   assert.deepEqual([...map.keys()],[turn]);
-  assert.match(map.get(turn).label,new RegExp(`本轮 1 个 agent，${state==='running'?'运行中':'未确认'}`));
+  assert.match(map.get(turn).label,new RegExp(`本轮 1 个 agent，${spoken}`));
   assert.equal(map.get(turn).icons.length,1);
   assert.ok(map.get(turn).icons[0].includes(`--${state}`));
 }
@@ -146,8 +147,8 @@ test('live source notifications, roster arrival, reuse state, dedupe and remount
     f.catalog('one',[{id:'member-a',label:'different task description',createdAt:220}]);
     single(f.view(),2,'idle'); // creation plus same-turn send remains one
     f.status(true);single(f.view(),2,'running');
-    f.status(false);single(f.view(),2,'idle'); // completed historical fact remains insufficient
-    f.refresh();single(f.view(),2,'idle'); // effect reconstructs from published source
+    f.status(false);single(f.view(),2,'done'); // created this turn and its only turn completed
+    f.refresh();single(f.view(),2,'done'); // effect reconstructs the same proven completion
     assert.equal(source2.listeners,1,'refresh removed the old subscription');
     source2.publish([send('worker',true)]);
     // A newly-created catalog agent still exists, but a failed send must not
@@ -188,7 +189,7 @@ test('later team reuse cannot make an earlier turn appear to be running',()=>{
     f.status(false,220,2);
     result=f.view();
     assert.ok(result.get(1).icons[0].includes('--idle'),'the latest child completion is not proof for the earlier turn');
-    assert.ok(result.get(2).icons[0].includes('--idle'),'an acknowledgement alone does not prove the later work completed');
+    assert.ok(result.get(2).icons[0].includes('--done'),'a run observed in this turn plus its completion proves the work finished');
   } finally {f.close();}
 });
 

@@ -12,7 +12,7 @@
 // - Internal mechanism rows (model retries) never draw in the timeline.
 //
 // Card mode is untouched: the adapter hands the native flow straight through.
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
 import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, subagentReuseSignature, teamDispatchSignature, teamRosterSignature, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
@@ -296,6 +296,11 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   const identity = session?.projectionValues?.subagent;
   const author = session?.origin === 'subagent' || identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
   const plans = useMemo(() => planNativeFlow(flow.entries, nodes), [flow.entries, nodes]);
+  // Running ids actually attributed to a turn in this session. A Team send is
+  // only an admission, so its later completion is provable only after we saw
+  // that member running in that turn. The map is per mounted flow and only ever
+  // grows by turn, so a later re-render can still finalise the badge.
+  const observedRunsRef = useRef(new Map());
   // Agent badges: the parent's catalog projection lists every direct child with
   // its creation time and label; each child's own summary carries running and the
   // latest-turn outcome the Host folds (subagentTiming.lastTurnCompleted).
@@ -319,6 +324,13 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       if (signature) targetsByTurn.set(window.turn, JSON.parse(signature));
       if (reuse) reuseByTurn.set(window.turn, JSON.parse(reuse));
     }
+    // Only a successful explicit-id follow-up is completion evidence; a merely
+    // started or failed call stays an admission at most.
+    const reuseConfirmed = new Map();
+    for (const [turn, rows] of reuseByTurn) {
+      const ids = new Set(rows.filter(row => Array.isArray(row) && row[2] === true).map(row => row[0]));
+      if (ids.size) reuseConfirmed.set(turn, ids);
+    }
     const groups = agentsByTurn(catalog, windows, members, targetsByTurn, reuseByTurn);
     const windowsByTurn = new Map(windows.map(window => [window.turn, window]));
     const reusedIds = new Set();
@@ -335,34 +347,48 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       }
     }
     for (const [turn, agents] of groups) {
-      // A Team acknowledgement is not completion. Also, a member working in a
-      // later turn must not make its historical bubbles look active or finished.
+      // Blue means this turn's dispatch started a run that is still going.
+      // Green needs positive evidence that this turn's work finished: the child
+      // was created in this turn, an explicit follow-up returned successfully,
+      // or we saw that child running here. A bare Team admission or an
+      // unrelated historical completion is not evidence. Red stays reserved for
+      // a real failure fact; the Host folds cancellation and error into the same
+      // boolean today, so an interrupted or failed run remains gray "未确认"
+      // rather than being mislabelled as failure.
       const window = windowsByTurn.get(turn);
       const states = agents.map(agent => ({
         label: agent.label,
         state: agentStateOf(agent.ids.map(id => {
-          const entry = byId.get(id), sent = agent.sentIds?.includes(id), isManaged = managed(id);
+          const entry = byId.get(id), isManaged = managed(id);
           const older = isManaged && latestTeamTurn.get(id)?.turn !== turn;
           const activeSince = entry?.activeSince;
           const createdAt = catalogById.get(id)?.createdAt;
           const sentAt = agent.sentTimes?.find(([sentId]) => sentId === id)?.[1];
-          const cutoffs = [createdAt, sentAt].filter(time => Number.isFinite(time) && time >= window.from && time <= window.to);
+          const createdHere = Number.isFinite(createdAt) && createdAt >= window.from && createdAt <= window.to;
+          const sentHere = Number.isFinite(sentAt) && sentAt >= window.from && sentAt <= window.to;
+          const cutoffs = [createdHere ? createdAt : undefined, sentHere ? sentAt : undefined].filter(time => Number.isFinite(time));
           const firstDispatch = cutoffs.length ? Math.min(...cutoffs) : undefined;
-          // Running is only associated with this turn when the child's current
-          // activation started strictly after an in-turn creation or accepted
-          // send call and before this parent turn ended. Equal millisecond
-          // timestamps, missing call heads and earlier activity stay unknown.
-          const runningUnproven = isManaged && entry?.running &&
-            (!Number.isFinite(activeSince) || !Number.isFinite(firstDispatch) || activeSince <= firstDispatch || activeSince >= window.to);
-          const running = entry?.running === true && !runningUnproven;
-          // A newly-created Team member's latest completion only proves this
-          // parent turn when the Host outline confirms it had exactly one turn.
-          // A later reuse may lie outside the loaded parent-history window.
-          const completionUnproven = isManaged && entry?.turnCount !== 1;
-          const uncertain = sent || older || runningUnproven || completionUnproven;
+          // A created child belongs to this turn from creation onward, so an
+          // activation starting at the same millisecond still counts. A reused
+          // child only proves a later activation started, never an earlier one.
+          const startedHere = Number.isFinite(activeSince) && activeSince < window.to &&
+            (createdHere ? activeSince >= createdAt : Number.isFinite(firstDispatch) && activeSince > firstDispatch);
+          // A directly-created ordinary child reports its own run; a reused or
+          // Team member needs the activation to be proven inside this turn.
+          const running = entry?.running === true && (!isManaged || startedHere);
+          const observedHere = observedRunsRef.current.get(turn)?.has(id) === true;
+          const reuseConfirmedHere = reuseConfirmed.get(turn)?.has(id) === true;
+          const createdHereAlone = createdHere && entry?.turnCount === 1;
+          const proven = !older && entry?.running !== true &&
+            (!isManaged || createdHereAlone || reuseConfirmedHere || observedHere);
+          if (running) {
+            let seen = observedRunsRef.current.get(turn);
+            if (!seen) observedRunsRef.current.set(turn, seen = new Set());
+            seen.add(id);
+          }
           return {
             running,
-            lastTurnCompleted: uncertain ? undefined : entry?.completed === true ? true : entry?.failed === true ? false : undefined,
+            lastTurnCompleted: proven ? entry?.completed === true ? true : entry?.failed === true ? false : undefined : undefined,
           };
         })),
       }));
