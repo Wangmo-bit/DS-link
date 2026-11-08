@@ -98,6 +98,7 @@ dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offlin
 | 文档 | 内容 |
 | --- | --- |
 | [PRD.md](PRD.md) | **当前产品需求正本**：气泡/卡片差异、已确认规则、已知缺口与维护约定 |
+| [docs/historical-repo-archive-2026-11-08.md](docs/historical-repo-archive-2026-11-08.md) | 早期开发仓（0.1–0.4）的归档位置、校验与影响说明 |
 | [TESTING.md](TESTING.md) | 测试范围、跳过条件、测试副作用与隔离前提 |
 | [SECURITY.md](SECURITY.md) | 私密漏洞报告渠道（待建）与支持范围 |
 | [MAINTAINING.md](MAINTAINING.md) | 分支/版本/发布/回滚维护约定 |
