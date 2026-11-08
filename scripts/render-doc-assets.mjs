@@ -18,7 +18,7 @@ const bundle = await build({
 });
 const js = bundle.outputFiles[0].text;
 const html = join(work, 'showcase.html');
-await writeFile(html, '<!doctype html><html><head><meta charset="utf-8"><title>Session Link — fictional documentation fixture</title></head><body><div id="app"></div><script>' + js.replaceAll('</script', '<\\/script') + '</script></body></html>');
+await writeFile(html, '<!doctype html><html><head><meta charset="utf-8"><title>DS-link — fictional documentation fixture</title></head><body><div id="app"></div><script>' + js.replaceAll('</script', '<\\/script') + '</script></body></html>');
 const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
 const manifest = { kind: 'synthetic-product-component-fixtures', network: 'blocked', host: 'mock shell; no DSH connection', browser: browser.version(), files: {} };
 try {

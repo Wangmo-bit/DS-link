@@ -1,8 +1,8 @@
 {
   "name": "@wangmo/dsh-session-link",
-  "version": "0.8.16-pre.1",
+  "version": "0.8.16-pre.2",
   "private": true,
-  "description": "Session collaboration with bubble and card views for DeepSeek Harness",
+  "description": "DS-link: local session collaboration with bubble and card views for DeepSeek Harness",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Wangmo-bit/dsh-session-link.git"
@@ -27,8 +27,8 @@
     "dsh": "0.2.1-rc.5 || 0.2.2-rc.1"
   },
   "exports": {
-    ".": "./src/host/entry-0.8.16-pre.1.js",
-    "./runtime-0.8.16-pre.1": "./src/host/entry-0.8.16-pre.1.js",
+    ".": "./src/host/entry-0.8.16-pre.2.js",
+    "./runtime-0.8.16-pre.2": "./src/host/entry-0.8.16-pre.2.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },

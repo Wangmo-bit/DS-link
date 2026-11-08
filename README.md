@@ -1,4 +1,4 @@
-# Session Link
+# DS-link
 
 **让 DSH 会话互相交流，也让聊天更顺手。**
 
@@ -6,13 +6,21 @@
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-587561?style=flat-square) ![Node.js 24](https://img.shields.io/badge/Node.js-24-587561?style=flat-square)
 
-你已经有开发、产品、调研等会话。Session Link 让这些会话互发消息、请求协作、收取明确回复；提供**气泡与卡片两种显示模式**，按自己的习惯看结果和过程。不必重新建立 Bot 团队，也不必在几个聊天框里来回转述。
+你已经有开发、产品、调研等会话。DS-link 让这些会话互发消息、请求协作、收取明确回复；提供**气泡与卡片两种显示模式**，按自己的习惯看结果和过程。不必重新建立 Bot 团队，也不必在几个聊天框里来回转述。
 
 > **开放准备中，尚未发布。** 本仓准备分支不代表已有公开 Release 或 npm 包；不会自动改变你已安装的版本。完整气泡效果另有宿主适配条件，见[安装与兼容性](docs/installation.md)。
 
 ![气泡模式：开发会话联系产品会话、收到回复，再继续工作](docs/assets/bubble-zh.png)
 
 *文中展示均为虚构内容的合成组件演示：复用产品组件与样式，宿主区域使用明确标注的替身，不是真实聊天或端到端验收录像。*
+
+## 现在是本机 link，未来再连接更远
+
+**当前只连接同一个 DSH 宿主里已登记的会话**，可以跨工作区，但不是跨电脑、团队网络或公网服务。
+
+后续方向包括**团队内 link**，以及 **Agent 邮箱式的全网 link**。先做哪一条仍可探索；它们不是当前已支持的功能，也没有发布日期。见[路线图](docs/roadmap.md)。
+
+DS-link 是对外品牌；现有 `session_link_*` 工具名、包名和数据标识暂留兼容，避免改名打断你的使用。
 
 ## 会话自己交流，你不用反复传话
 
@@ -93,6 +101,7 @@ git clone https://github.com/Wangmo-bit/dsh-session-link.git
 cd dsh-session-link
 npm ci
 npm run build
+mkdir -p output
 npm pack --pack-destination ./output
 # 安装前备份对应 profile；把下面路径换成实际生成的 tgz：
 dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.tgz

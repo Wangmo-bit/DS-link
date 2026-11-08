@@ -4,6 +4,14 @@
 
 > 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；新的 `0.8.16-pre.1` 是开源准备候选，已获后续独立授权安装到日用环境、未公开发布。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
 
+## 0.8.16-pre.2 — 未发布 / Unreleased
+
+- 对外品牌统一为 **DS-link**，界面、双语首页和合成素材同步更新。
+- 定位明确为当前本机 link；团队内 link、全网 Agent 邮箱式 link 属未来探索，先后未定，不宣传成已实现。
+- 保留现有包名、工具名、数据及偏好标识，不改变通信行为和权限，不自动升级日用安装。
+- Public-facing rename only; existing technical identifiers stay compatible. Local links work today; team/global links are future exploration, not implemented features.
+- [本版说明](docs/releases/RELEASE_NOTES-0.8.16-pre.2.md) · [路线图](docs/roadmap.md)。
+
 ## 0.8.16-pre.1 — 2026-11-08 · 未发布 / Unreleased
 
 - 开放准备：中英产品首页与合成展示、公共使用/安装/设置/排障/安全/贡献说明、反馈模板、依赖与包元数据、第三方许可。

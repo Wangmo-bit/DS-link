@@ -1,4 +1,4 @@
-# 为什么做 Session Link / Why Session Link
+# 为什么做 DS-link / Why DS-link
 
 [首页](../README.md) · [English home](../README_EN.md)
 
@@ -6,7 +6,7 @@
 
 你不该一边用 AI 做事，一边忙着给每个 AI 搬运问题、解释别人的回答，再从一屏工具日志里找结论。
 
-Session Link 有两条同等重要的主线：
+DS-link 有两条同等重要的主线：
 
 1. **会话交流**：复用已有会话和上下文，传递请求、信息与明确回复。
 2. **交互展示**：气泡与卡片各有适用场景，轻量消息入口、引用和 Agent 提示帮助人看懂并参与。
@@ -21,6 +21,6 @@ DeepSeek 发布的 [SuperAgent 研究原型理念](https://github.com/deepseek-a
 
 People should not have to relay every question, explain another session's answer and scan a screen of tool logs just to find the result.
 
-Session Link has two equally important parts: **communication between existing sessions**, and **presentation that makes work easier to read and respond to**. Bubble mode is for low-noise reading; card mode is for inspecting process. Neither changes permissions or the underlying messages.
+DS-link has two equally important parts: **communication between existing sessions**, and **presentation that makes work easier to read and respond to**. Bubble mode is for low-noise reading; card mode is for inspecting process. Neither changes permissions or the underlying messages.
 
 We draw on the SuperAgent prototype's attention principle, not its entire architecture. This plugin is not an official SuperAgent product and does not implement autonomous task intake or end-to-end task management. Quotes, small Agent hints and honest states are practical interactions—not a promise of perfect model judgment.

@@ -2,7 +2,7 @@
 
 [简体中文](settings.md) · [Home](../README_EN.md)
 
-Open Session Link in the sidebar, then Settings. There is no manual send form.
+Open DS-link in the sidebar, then Settings. There is no manual send form.
 
 | Setting | Default | Effect |
 | --- | --- | --- |

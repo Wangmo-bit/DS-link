@@ -4,15 +4,15 @@
   "host": "mock shell; no DSH connection",
   "browser": "154.0.8037.0",
   "files": {
-    "bubble-zh.png": "a8723510ad437d10425e0ba04bc0bf8c0ca8c9e760c8bb0d0f24288d7e649c8a",
-    "card-zh.png": "3f03bcad7b5afbf5bcd42e2dd50fa5701dced35b464d4142a6ba23f70f2a5515",
-    "quote-zh.png": "2d1419dbde2822081efa46119b105016510a83e70c12c01d9783f252c55278ae",
-    "settings-zh.png": "5db1f407a385eeec65bc4e6092848cd595f76f1c4dec8dbc0f3c35723f4d3f4b",
-    "bubble-en.png": "8c887a9a5637fa40fee4b1a9472e485cd3cc7b48e83d09e3cf4715fb2d861015",
-    "card-en.png": "fe304a627e8d4dd29b0149f97599a87934a15fbcb3697896828494420c17f206",
-    "quote-en.png": "013eadf8f9c9deee53ec3965db41aeada3dc45f7a9ff7d39c5762243bca84e71",
-    "settings-en.png": "11ab2aaf95a0b45433dbd7dc93c52ec513320376c9dc849c46da4b5a2d039cbd",
-    "flow-zh.gif": "e35894f7ded1308d7c498d531e4aa4953d9cc4160570c34bbe4216be5720accd",
-    "flow-en.gif": "b3fbc6484b03d052ef47bf7a9a15991e64e6acade17f24d119dc5de6c8dcc8c2"
+    "bubble-zh.png": "255a4c397a374fe99b3bc8e5634615fa2f1dc46e1afb5e688fdbe1adb7a9faed",
+    "card-zh.png": "9c003b2a52be6d22e5cd0e9566ef43688557b59801f0cf9974f8262738b414f2",
+    "quote-zh.png": "933adc3e47170935cb2ee5d24a362d40e452eff021434598ca3e5d72202bf60f",
+    "settings-zh.png": "67179159954a6826c065735cafa3cb717d600f238ddffdb9cea5e2887b21f36c",
+    "bubble-en.png": "b2ef384de5ef445715538b58eac01331ef73c7976ccd55efea5fd04193abd150",
+    "card-en.png": "c67547af67aceb6f0b58ce19b3c94cd266b67eceda27fbcb911f1d480e4be1d3",
+    "quote-en.png": "f4b8f02691c40a2f923d799bc418ced59c60f8a72d8e703f8fd5748a23fd07dc",
+    "settings-en.png": "d98201e5d4aef9257e41159c0d18108e430b50d3c581f432804daf6f3265d246",
+    "flow-zh.gif": "e60fe2410e80e622c94fea3555a6c927ab84d5b78eec98e786a9410e75f17e5d",
+    "flow-en.gif": "118bc112da53692e96b1bedd5c908a077384561674467b39084998b0290211a7"
   }
 }

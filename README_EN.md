@@ -1,4 +1,4 @@
-# Session Link
+# DS-link
 
 **Let DSH sessions talk to each other. Make everyday chat easier.**
 
@@ -6,13 +6,21 @@
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-587561?style=flat-square) ![Node.js 24](https://img.shields.io/badge/Node.js-24-587561?style=flat-square)
 
-You already have development, product and research sessions. Session Link lets those sessions exchange messages, ask for help and receive explicit replies. Choose **bubble or card mode** to read results and inspect work your way. No new bot team, and less copying between chat windows.
+You already have development, product and research sessions. DS-link lets those sessions exchange messages, ask for help and receive explicit replies. Choose **bubble or card mode** to read results and inspect work your way. No new bot team, and less copying between chat windows.
 
 > **Preparing for open source; not released yet.** This preparation branch does not imply a public Release or npm package and does not update your installed plugin. Full bubble behavior has a separate Host adaptation requirement; read [installation and compatibility](docs/installation.en.md).
 
 ![Bubble mode: Development consults Product discussion and continues with the answer](docs/assets/bubble-en.png)
 
 *All images use fictional content and product components/CSS in a labelled synthetic fixture. Host areas are mock stand-ins, not real conversations or end-to-end validation recordings.*
+
+## Local links now, wider connections later
+
+**Today DS-link connects registered sessions on the same DSH host.** Workspaces may differ; computers, team networks and public-network Agents are not connected by the current implementation.
+
+Future directions include **team links** and **global links through Agent mailbox-style communication**. Their order is open to exploration; neither is implemented or scheduled. See the [roadmap](docs/roadmap.md).
+
+DS-link is the public-facing brand. Existing `session_link_*` tools, package name and data identifiers stay compatible so rebranding does not break current use.
 
 ## Let sessions exchange the question and answer
 
@@ -93,6 +101,7 @@ git clone https://github.com/Wangmo-bit/dsh-session-link.git
 cd dsh-session-link
 npm ci
 npm run build
+mkdir -p output
 npm pack --pack-destination ./output
 # Back up the selected profile first; use the actual generated tgz path:
 dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.tgz

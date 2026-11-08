@@ -42,7 +42,7 @@ export const CHAIN_STATE = Object.freeze({ open: '进行中', paused: '已暂停
 // them on its own. Legacy unknown reasons stay parked for human confirmation.
 export const HELD_REASON = Object.freeze({
   paused: '全局已暂停新消息投递；恢复后自动继续。',
-  disabled: '会话互通已关闭；重新开启且未暂停后继续。',
+  disabled: 'DS-link已关闭；重新开启且未暂停后继续。',
   emergency_paused: '旧版紧急暂停（迁移保留）；需要人工确认后释放。',
   auto_collaborate_off: '旧版自动协作关闭（迁移保留）；需要人工确认后释放。',
   held_full: '旧版暂存容量限制（迁移保留）；需要人工确认后释放。',
@@ -361,7 +361,7 @@ export async function callApi(action, payload, { signal, fetchImpl = globalThis.
   let response;
   try { response = await fetchImpl(url, { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, payload }), signal: boundedSignal }); }
   catch (error) { if (deadline.aborted) throw Object.assign(new Error('等待确认超时；操作可能已经提交，请刷新核对，不要直接重复执行。'), { code: 'confirmation_timeout' }); throw error; }
-  if (!response.ok) throw Object.assign(new Error(response.status === 403 ? '当前连接无权访问会话互通；仅宿主本人可用。' : `通信接口返回 HTTP ${response.status}`), { code: `http_${response.status}` });
+  if (!response.ok) throw Object.assign(new Error(response.status === 403 ? '当前连接无权访问DS-link；仅宿主本人可用。' : `通信接口返回 HTTP ${response.status}`), { code: `http_${response.status}` });
   const body = await response.json();
   if (!body.ok) throw Object.assign(new Error(body.error?.message ?? '通信请求失败'), { code: body.error?.code ?? 'request_failed', details: body.error?.details });
   return body.value;

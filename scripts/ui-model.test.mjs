@@ -284,7 +284,7 @@ test('storage summary, health wording and writability follow the frozen contract
 test('held hints name the parking reason and never invent a bypass', () => {
   assert.equal(heldHint({ status: 'pending' }, 'open'), '');
   assert.match(heldHint({ status: 'held', heldReason: 'paused' }, 'open'), /恢复后自动继续/);
-  assert.match(heldHint({ status: 'held', heldReason: 'disabled' }, 'open'), /会话互通已关闭/);
+  assert.match(heldHint({ status: 'held', heldReason: 'disabled' }, 'open'), /DS-link已关闭/);
   assert.match(heldHint({ status: 'held', heldReason: 'emergency_paused' }, 'open'), /旧版紧急暂停/);
   assert.match(heldHint({ status: 'held', heldReason: 'legacy_unknown_reason' }, 'open'), /人工确认/);
   assert.match(heldHint({ status: 'held' }, 'paused'), /关联组已暂停/);
@@ -323,10 +323,10 @@ test('global panel page is the only entry and registers the left sidebar row', a
   assert.doesNotMatch(source, /sl-migrate/);
   assert.match(source, /name: 'sidebar\.panellist'/);
   assert.match(source, /id: PANEL/);
-  assert.match(source, /label: \(\) => translateText\('会话互通'\)/);
+  assert.match(source, /label: \(\) => translateText\('DS-link'\)/);
   assert.match(source, /name: 'main',/);
   assert.match(source, /key: PANEL/);
-  assert.match(source, /<h1>会话互通<\/h1>/);
+  assert.match(source, /<h1>DS-link<\/h1>/);
   assert.match(source, /className="sl-section sl-page"/);
   assert.match(source, /className="sl-page-card"/);
   assert.doesNotMatch(source, /className="sl-page-card-head"/);
@@ -337,7 +337,7 @@ test('global panel page is the only entry and registers the left sidebar row', a
   assert.doesNotMatch(source, /className="sl-page-card-desc"/);
   assert.match(source, /SessionPicker/);
   assert.doesNotMatch(source, /<select/);
-  assert.match(source, /aria-label="会话互通页面"/);
+  assert.match(source, /aria-label="DS-link页面"/);
   assert.match(source, /role="tablist"/);
   assert.match(source, /role="tab"/);
   assert.match(source, /role="tabpanel"/);

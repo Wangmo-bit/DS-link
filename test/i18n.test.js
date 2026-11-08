@@ -16,6 +16,19 @@ test('en translates exact chrome strings but leaves unknown text intact', () => 
   assert.equal(translateText('ABC 完全自定义文案'), 'ABC 完全自定义文案')
 })
 
+test('DS-link branding is consistent and local-only scope is explicit in both locales', () => {
+  setI18nLocale('zh')
+  assert.equal(translateText('DS-link'), 'DS-link')
+  assert.equal(translateText('DS-link设置'), 'DS-link设置')
+  setI18nLocale('en')
+  assert.equal(translateText('DS-link'), 'DS-link')
+  assert.equal(translateText('DS-link设置'), 'DS-link settings')
+  assert.equal(translateText('开启DS-link'), 'Enable DS-link')
+  assert.match(translateText('连接本机 DSH 会话，管理消息投递和通信记录。'), /this DSH host/)
+  assert.match(translateText('DS-link已关闭；重新开启且未暂停后继续。'), /^DS-link is off/)
+  setI18nLocale('zh')
+})
+
 test('en translates dynamic status terms without inventing read state', () => {
   setI18nLocale('en')
   const out = translateText('已进入上下文 · 截至 13:00')

@@ -13,7 +13,7 @@ export function getUserLabel() {
 }
 function notify() {
   for (const listener of [...listeners]) {
-    try { listener(); } catch { globalThis.console?.error('Session Link display-name subscriber failed'); }
+    try { listener(); } catch { globalThis.console?.error('DS-link display-name subscriber failed'); }
   }
 }
 const storageChanged = event => { if (event.key === USER_LABEL_KEY || event.key === null) notify(); };

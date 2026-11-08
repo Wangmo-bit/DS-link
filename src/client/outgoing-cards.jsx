@@ -275,7 +275,7 @@ export function createSessionLinkToolview() {
     return (
       <div className="sl-tool-record" data-session-link-toolview={callId} data-session-link-i18n-root="">
         <div className="sl-tool-record__row">
-          <span className="sl-tool-record__title">会话互通</span>
+          <span className="sl-tool-record__title">DS-link</span>
           <span className={`sl-tool-record__status${status === '调用失败' ? ' sl-tool-record__status--error' : ''}`} data-session-link-toolview-status>{status}</span>
           {phase === 'result' && canInspect ? (
             <button type="button" className="sl-tool-record__inspect" data-session-link-toolview-inspect onClick={inspect}>查看轨迹</button>

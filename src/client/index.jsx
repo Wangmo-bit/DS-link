@@ -1,4 +1,4 @@
-// Intent: one owner entry under Settings -> 会话互通 that explains delivery
+// Intent: one owner entry under Settings -> DS-link that explains delivery
 // evidence and lets the owner stop runaway work; this plugin still has no
 // manual send form.
 // Palette/surfaces/type: inherit DSH tokens; subtle borders, semantic status,
@@ -72,7 +72,7 @@ function Tabs({ value, onChange }) {
     onChange(next);
     refs.current[TAB_ORDER.indexOf(next)]?.focus();
   };
-  return <div className="sl-tabs" role="tablist" aria-label="会话互通页面">
+  return <div className="sl-tabs" role="tablist" aria-label="DS-link页面">
     {TAB_ORDER.map((key, index) => <button key={key} ref={node => { refs.current[index] = node; }} type="button" role="tab" id={`sl-tab-${key}`} aria-controls={`sl-panel-${key}`} aria-selected={value === key} tabIndex={value === key ? 0 : -1} className="sl-tab" onClick={() => onChange(key)} onKeyDown={event => {
       if (event.key === 'ArrowRight') { event.preventDefault(); move(index + 1); }
       else if (event.key === 'ArrowLeft') { event.preventDefault(); move(index - 1); }
@@ -97,7 +97,7 @@ function Banners({ snapshot }) {
   const settings = snapshot.settings ?? {};
   const notice = healthNotice(snapshot.storage?.health);
   return <>
-    {!settings.enabled && <p className="sl-note" role="status">会话互通已关闭：新消息会被拒绝；未投递记录保留，记录仍可查看。</p>}
+    {!settings.enabled && <p className="sl-note" role="status">DS-link已关闭：新消息会被拒绝；未投递记录保留，记录仍可查看。</p>}
     {settings.enabled && settings.paused && <p className="sl-note" role="status">已暂停新消息投递：新消息排队，不打断已开始的工作；恢复后继续投递。</p>}
     {notice && <p className={notice.tone === 'danger' ? 'sl-alert' : 'sl-note'} role="status">{notice.text}</p>}
     {snapshot.storage?.error && <p className="sl-alert" role="status">存储错误：{snapshot.storage.error.code} {snapshot.storage.error.message}</p>}
@@ -183,18 +183,18 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
   const timeout = msFromMinutes(draft.timeoutMinutes);
   const retention = parseIntegerText(draft.retentionDays, { min: 1, label: '已完成消息正文保留天数' });
 
-  return <form className="sl-settings" aria-label="会话互通设置" onSubmit={submit}>
+  return <form className="sl-settings" aria-label="DS-link设置" onSubmit={submit}>
     {!writable && <p className="sl-alert" role="status">存储异常：设置保存已禁用，当前只读。</p>}
     {external && <p className="sl-alert" role="status">设置已在其他页面更新（当前设置版本 {revision}）。保存可能冲突，可先重新载入。</p>}
     <label className="sl-setting">
-      <span><strong>开启会话互通</strong><small>关闭后拒绝新通信；记录仍可查看，未投递记录保留。</small></span>
+      <span><strong>开启DS-link</strong><small>关闭后拒绝新通信；记录仍可查看，未投递记录保留。</small></span>
       <input type="checkbox" checked={Boolean(draft.enabled)} onChange={event => change('enabled', event.target.checked)} disabled={busy || !writable}/>
     </label>
     <label className="sl-setting">
       <span><strong>暂停新消息投递</strong><small>暂停时新消息排队，不打断已开始的工作；恢复后继续投递。</small></span>
       <input type="checkbox" checked={Boolean(draft.paused)} onChange={event => change('paused', event.target.checked)} disabled={busy || !writable}/>
     </label>
-    <fieldset className="sl-setting sl-mode-setting"><legend>消息展示模式</legend><small>仅影响当前浏览器的会话互通展示，不改变消息或投递。</small><div className="sl-mode-options">{[['bubble','气泡模式'],['card','卡片模式']].map(([value, label]) => <label key={value}><input type="radio" name="sl-display-mode" value={value} checked={modeDraft === value} disabled={busy || saving} onChange={() => { setModeDraft(value); setModeTouched(true); setLocalError(''); }}/><span>{label}</span></label>)}</div></fieldset>
+    <fieldset className="sl-setting sl-mode-setting"><legend>消息展示模式</legend><small>仅影响当前浏览器的DS-link展示，不改变消息或投递。</small><div className="sl-mode-options">{[['bubble','气泡模式'],['card','卡片模式']].map(([value, label]) => <label key={value}><input type="radio" name="sl-display-mode" value={value} checked={modeDraft === value} disabled={busy || saving} onChange={() => { setModeDraft(value); setModeTouched(true); setLocalError(''); }}/><span>{label}</span></label>)}</div></fieldset>
     <label className="sl-setting sl-field">
       <span><strong>我的气泡显示名称</strong><small>仅当前浏览器显示；留空显示“我”。不改变账号、发送者身份或权限。</small></span>
       <input type="text" maxLength="80" value={labelDraft} placeholder="我" onChange={event => { setLabelDraft(event.target.value); setLabelTouched(true); setLocalError(''); }} disabled={busy || saving}/>
@@ -512,10 +512,10 @@ export function GlobalSettingsPage({ close, openSession }) {
     try { openSession?.(id); } catch (err) { setActionError(err.message); }
   };
 
-  return <section className="sl-section sl-page" aria-label="会话互通页面" data-sl-root="" data-session-link-i18n-root="">
+  return <section className="sl-section sl-page" aria-label="DS-link页面" data-sl-root="" data-session-link-i18n-root="">
     <header className="sl-page-head">
-      <h1>会话互通</h1>
-      <p className="sl-lead">管理会话之间的消息投递和通信记录。</p>
+      <h1>DS-link</h1>
+      <p className="sl-lead">连接本机 DSH 会话，管理消息投递和通信记录。</p>
     </header>
     {!snapshot && !error && <p className="sl-empty" role="status">正在读取通信记录…</p>}
     {error && <div className="sl-alert" role="alert">{error}<span> · 可刷新重试；失败操作不会显示为成功。</span></div>}
@@ -571,7 +571,7 @@ export function apply(ctx) {
     name: 'sidebar.panellist',
     id: PANEL,
     order: 30,
-    label: () => translateText('会话互通'),
+    label: () => translateText('DS-link'),
   }, LinkIcon));
   try {
     installChatSkin(ctx);
