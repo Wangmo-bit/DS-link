@@ -208,15 +208,14 @@ const hasAncestor = (node, predicate) => {
 
 /* ── Slot fixtures ───────────────────────────────────────────────────────── */
 
-function nativeEntry(key, priority, inject, locale = 'chat') {
+function nativeEntry(key, priority, inject, locale = 'chat', children) {
   return {
-    options: { key, priority },
+    options: { key, priority, ...(children === undefined ? {} : { children }) },
     component: function NativeMarker() {
       return React.createElement('div', { 'data-native-marker': key });
     },
     inject,
     locale,
-    children: { [`${key}-child`]: { kind: 'single', scope: 'session' } },
   };
 }
 
@@ -405,7 +404,7 @@ test('bundles chat-skin.jsx and chat-ui.jsx in memory with CSS text and a primit
   assert.equal(typeof skin.installChatSkin, 'function');
 });
 
-test('install registers keyed wrappers with native key, priority-5 and no redeclared children', () => {
+test('install registers keyed wrappers with native key, priority-5 and no invented children', () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
   let fixture;
   try {
@@ -429,7 +428,7 @@ test('install registers keyed wrappers with native key, priority-5 and no redecl
     assert.equal(options.locale, 'chat');
     assert.equal(typeof options.inject, 'function');
     assert.equal(typeof component, 'function');
-    assert.equal(Object.hasOwn(options, 'children'), false, `${options.key} must not redeclare native children`);
+    assert.equal(Object.hasOwn(options, 'children'), false, `${options.key} must not invent a children declaration rc.5 does not have`);
   }
 
   const userComponent = fixture.registers.find(({ options }) => options.key === 'user').component;
@@ -441,6 +440,19 @@ test('install registers keyed wrappers with native key, priority-5 and no redecl
 
   fixture.injections.find(item => item.name === 'conversation.chat.flow').cleanup();
   assert.deepEqual(fixture.stops, ['turn-process', 'assistant-step', 'steering', 'user']);
+});
+
+test('rc.1 user seat keeps the native child-chain declaration so renderSlotChain is supplied', () => {
+  const children = { 'conversation.chat.user.before': { kind: 'chain', scope: 'session' } };
+  const fixture = installFixture([
+    nativeEntry('user', 10, undefined, 'chat', children),
+    nativeEntry('steering', 7),
+  ]);
+  const user = fixture.registers.find(({ options }) => options.key === 'user');
+  const steering = fixture.registers.find(({ options }) => options.key === 'steering');
+  assert.deepEqual(user.options.children, children, 'the official user child chain must survive re-registration');
+  assert.equal(Object.hasOwn(steering.options, 'children'), false, 'the steering seat declares no child chain');
+  fixture.injections.find(item => item.name === 'conversation.chat.flow').cleanup();
 });
 
 test('when the scoped flow adapter exists, native assistant and process renderers stay authoritative', () => {

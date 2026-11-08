@@ -60,7 +60,7 @@ npm ci
 npm run build
 npm pack
 # 得到 wangmo-dsh-session-link-<version>.tgz
-VERSION=0.8.3
+VERSION=0.8.4
 dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
 ```
 

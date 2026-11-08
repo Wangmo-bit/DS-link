@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — 0.8.4 candidate
+
+- 修复 rc.1 气泡模式用户消息渲染崩溃：rc.1 官方 `user` 插槽新增 `conversation.chat.user.before` 子链声明，宿主据此注入 `renderSlotChain`；插件重注册该插槽时未保留 `children`，导致 `UserStyleBubble` 收到 undefined。现在仅在原生注册带声明时原样保留；rc.5 路径不变。补充定向回归测试。未改变宿主侧接口、功能或数据格式。
+
 ## Unreleased — 0.8.3 candidate
 
 - 适配 DSH 0.2.2-rc.1（Cordis 4.1）：逐项核对配置读取、工具注册与分步准入、提示词组装、Session 查询/创建与投递、`session/event` 监听释放、`createUserMessage` 导出；两版声明同为已验证范围，`engines.dsh` 与相关 peer 改为 `0.2.1-rc.5 || 0.2.2-rc.1`。未重写、未加功能；统一图标保留。

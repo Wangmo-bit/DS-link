@@ -217,6 +217,11 @@ export function installChatSkin(ctx) {
         const originalInject = native.inject;
         const options = {
           name: 'conversation.chat.node', key, priority: (native.options.priority ?? 0) - 5, locale: native.locale || 'chat',
+          // rc.1 declares the `conversation.chat.user.before` child chain on the
+          // official `user` registration; the slot host derives renderSlotChain
+          // from that declaration. Keep it when re-registering, or the official
+          // renderer receives undefined and crashes. rc.5 has no such field.
+          ...(native.options.children === undefined ? {} : { children: native.options.children }),
           inject: (...args) => {
             const base = typeof originalInject === 'function' ? originalInject(...args) : {};
             const id = args[0];
