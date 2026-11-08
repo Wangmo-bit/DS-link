@@ -34,8 +34,10 @@ function contrast(a, b) {
 test('the actual received and sent paths share the scoped notice selector', () => {
   assert.match(incoming, /data-session-link-direction="received" data-session-link-notice=""[\s\S]*?<ExchangeLink/);
   assert.match(outgoing, /className="sl-chat-event" data-session-link-card=\{data\.callId\} data-session-link-i18n-root="" data-session-link-direction="sent"[\s\S]*?<ExchangeLink/);
-  assert.match(subagent, /data-session-link-subagent-message="" data-session-link-notice=""/);
-  assert.match(subagent, /data-session-link-subagent-sent="" data-session-link-notice=""/);
+  // User decision 2026-11-08: direct parent/child agent messages never add a
+  // capsule to the bubble timeline; only parallel sessions use the notice path.
+  assert.doesNotMatch(subagent, /data-session-link-subagent-message/);
+  assert.doesNotMatch(subagent, /data-session-link-subagent-sent/);
   assert.match(subagent, /className="sl-exchange-link"/);
   const normal = rule(`${scope} ${button}`);
   assert.deepEqual(Object.keys(normal).sort(), ['--sl-notice-hover', '--sl-notice-ink', '--sl-notice-surface', 'background', 'color'].sort());
@@ -74,8 +76,8 @@ test('card link defaults, capsule geometry, focus and receipt semantics remain u
   // show the real "waiting to enter context" spinner while that is true.
   assert.doesNotMatch(incoming, /'✓'/);
   assert.match(incoming, /receiverHint\(/);
-  assert.match(subagent, /data-delivery-state=\{state\}/);
-  assert.match(subagent, /glyph:'✓'/);
+  assert.doesNotMatch(subagent, /data-delivery-state/);
+  assert.match(subagent, /Bubble mode \(user decision 2026-11-08\)/);
   // Any new notice declarations are strictly bubble-scoped and colour-only.
   const added = rules.filter(item => item.body.includes('--sl-notice-'));
   assert.equal(added.length, 5);

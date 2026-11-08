@@ -102,10 +102,11 @@ function VerifiedSubagentMessage({ props, Native, sessions, remote, workspace, s
     <button type="button" className="sl-card__toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><span className="sl-card__party"><span className="sl-card__party-label">发送者</span><span className="sl-card__party-name">{from}</span><span className="sl-card__toggle-text">{open?'收起':'展开'}</span></span><span className="sl-card__party"><span className="sl-card__party-label">接收者</span><span className="sl-card__party-name">{to}</span></span><span className="sl-card__party"><span className="sl-card__party-label">主题</span><span className="sl-card__subject">{text.split('\n').find(line=>line.trim())?.slice(0,120) || '会话消息'}</span></span></button>
     {open && <div className="sl-card__expanded"><div className="sl-card__body" data-i18n-skip="">{text}</div><div className="sl-chat-meta"><CopyMessage text={text}/></div><div className="sl-chat-event">{link}</div></div>}
   </div>;
-  // Bubble mode (user decision 2026-11-06): a subagent message is announced by
-  // the same notice capsule as any other session message, never laid out inline.
-  // Clicking it opens the existing exchange dialog with the full interaction.
-  return <div className="sl-chat-event" data-session-link-subagent-message="" data-session-link-notice="">{link}</div>;
+  // Bubble mode (user decision 2026-11-08): parent↔child agent messages are
+  // internal work, not peer conversations. The main session timeline only shows
+  // capsules for parallel sessions, so a direct subagent message renders
+  // nothing here. Card mode keeps its original card.
+  return null;
 }
 export function createSubagentMessageSkin(Native, dependencies) {
   return function SubagentMessageSkin(props) {
@@ -131,15 +132,10 @@ export function createSubagentSenderView({sessions,remote,workspace}) {
     const capsule = extra => <SubagentLink pair={pair} selfId={data.from} selfName={from} peerName={to} sessions={sessions} remote={remote} workspace={workspace}>已发消息给 {to}{extra}</SubagentLink>;
     const link=capsule(null);
     if(mode==='card')return state==='sent' ? <div className={cardClass('sent')} data-session-link-subagent-sender-card="" {...directionAttribute('sent')}><button type="button" className="sl-card__toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><span className="sl-card__party"><span className="sl-card__party-label">发送者</span><span className="sl-card__party-name">{from}</span><span className="sl-card__toggle-text">{open?'收起':'展开'}</span></span><span className="sl-card__party"><span className="sl-card__party-label">接收者</span><span className="sl-card__party-name">{to}</span></span><span className="sl-card__party"><span className="sl-card__party-label">主题</span><span className="sl-card__subject">{data.text.split('\n').find(line=>line.trim())?.slice(0,120)||'会话消息'}</span></span></button>{open && <div className="sl-card__expanded"><div className="sl-card__body" data-i18n-skip="">{data.text}</div><div className="sl-chat-meta"><CopyMessage text={data.text}/></div><div className="sl-chat-event">{link}</div></div>}</div> : null;
-    // The glyph is presentational only: keyboard focus is not added inside the
-    // capsule button and its meaning is in the label. ✓ is a real receipt, never
-    // a claim of "read" or "answered".
-    const marker = state==='sending'
-      ? {kind:'pending', title:`正在发送给 ${to}`, glyph:<span className="sl-delivery-spinner" aria-hidden="true"/>}
-      : state==='failed' ? {kind:'failed', title:'发送失败', glyph:'×'}
-      : state==='unknown' ? {kind:'', title:'发送结果未确认', glyph:'?'}
-      : {kind:'received', title:'对方宿主已确认收到，不代表已读或已回复', glyph:'✓'};
-    return <div className="sl-chat-event" data-session-link-subagent-sent="" data-session-link-notice="">{capsule(<span className={`sl-delivery-indicator${marker.kind?` sl-delivery-indicator--${marker.kind}`:''}`} data-delivery-state={state} role="status" aria-label={marker.title} title={marker.title}>{marker.glyph}</span>)}</div>;
+    // Bubble mode (user decision 2026-11-08): sending to a direct subagent is
+    // internal work; it never adds a capsule to the main timeline. Only the
+    // card mode keeps its original post-confirmation card.
+    return null;
   };
 }
 export function installSubagentMessages(ctx) {
