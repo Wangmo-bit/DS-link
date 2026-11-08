@@ -2,6 +2,17 @@
 // a presentation layer: user message bodies, subjects, paths, ids, protocol keys
 // and ledger values are marked data-i18n-skip and never translated.
 const EN = {
+  '我': 'You',
+  '消息展示模式': 'Message display mode',
+  '仅影响当前浏览器的会话互通展示，不改变消息或投递。': 'Local to this browser; changes presentation, not messages or delivery.',
+  '气泡模式': 'Bubble mode',
+  '卡片模式': 'Card mode',
+  '保存并应用': 'Save and apply',
+  '1～10；只限制同时入队的消息，不限制会话同时工作。': '1–10 delivery channels; does not limit how many sessions can work.',
+  '我的气泡显示名称': 'My bubble display name',
+  '仅当前浏览器显示；留空显示“我”。不改变账号、发送者身份或权限。': 'Local to this browser; leave blank for “You”. Does not change your account, sender identity or permissions.',
+  '显示名称限 40 个字符，不能含换行或控制字符。': 'Use up to 40 characters without line breaks or control characters.',
+  '浏览器未能保存显示名称；已保存的其他设置不受影响，请检查站点存储权限后重试。': 'Could not save the display name. Other saved settings are unaffected; check site storage permissions and retry.',
   '会话互通': 'Session Link',
   '会话互通页面': 'Session Link page',
   '会话互通设置': 'Session Link settings',
@@ -86,7 +97,6 @@ const EN = {
   '旧版预算操作已被移除；请刷新页面。': 'Legacy budget action was removed; refresh the page.',
   '旧版暂存容量限制（迁移保留）；需要人工确认后释放。': 'Legacy held capacity limit (kept for migration); requires manual confirmation before release.',
   '旧版暂存记录需要人工确认；仅在你确认安全后才释放。': 'Legacy held record needs manual confirmation; release only after you confirm it is safe.',
-  '旧版预算操作已被移除；请刷新页面。': 'Legacy budget action was removed; refresh the page.',
   '等待确认超时；操作可能已经提交，请刷新核对，不要直接重复执行。': 'Confirmation timed out; the operation may have submitted. Refresh and verify; do not repeat it directly.',
   '异常 / 未确认': 'Error / unconfirmed', '需核对': 'Needs verification', '需要核对': 'Needs verification',
   '状态未知': 'Status unknown', '未知状态': 'Unknown state', '未知原因': 'Unknown reason',
@@ -109,7 +119,7 @@ const EN = {
   '（多目标状态明细见上一行）': '(multi-target details on the previous line)',
   '参数未加载': 'Arguments not loaded', '参数未加载（调用头不在当前窗口）': 'Arguments not loaded (call head outside the current window)',
   '技术详情': 'Technical details', '技术详情/原始消息': 'Technical details / raw message', '查看轨迹': 'View trace',
-  '处理中': 'Processing', '已返回': 'Returned', '调用失败': 'Call failed', '未知状态': 'Unknown state',
+  '处理中': 'Processing', '已返回': 'Returned', '调用失败': 'Call failed',
   '展开 ⌄': 'Expand ⌄', '收起 ⌃': 'Collapse ⌃', '发件人': 'Sender', '收件人': 'Recipient',
   '主题': 'Subject', '发件': 'Sent', '收件': 'Received', '发送': 'Send', '接收': 'Receive',
   '正文加载中…': 'Loading body…', '正文已清除，无法展示。': 'Body was cleared and cannot be shown.',
@@ -118,9 +128,9 @@ const EN = {
   '正文状态不可用': 'Body status unavailable', 'Host 未提供正文': 'Host provided no body',
   '事件已不在当前会话窗口': 'Event is outside the current session window',
   '身份不一致，按原文技术详情显示': 'Identity mismatch; showing raw technical details',
-  '（无错误详情）': '(no error details)', '未知工具': 'Unknown tool', '未知状态': 'Unknown state',
+  '（无错误详情）': '(no error details)',
   '通信请求失败': 'Communication request failed', '存储异常': 'Storage error',
-  '等待投递 · 已暂停': 'Awaiting delivery · paused', '已暂存·待投递': 'Held · awaiting delivery',
+  '已暂存·待投递': 'Held · awaiting delivery',
   '迟到回复': 'Late reply', '关联消息ID': 'Related message ID', '关联请求ID': 'Related request ID',
   '关联组已暂停；恢复这组通信后继续，不能绕过。': 'Chain paused; resume the chain to continue. It cannot bypass pause.',
   '关联组已结束；这条暂存记录不会自动投递。': 'Chain ended; this held record will not be delivered automatically.',
@@ -167,6 +177,8 @@ export function translateText(text) {
   const body = text.slice(lead.length, text.length - trail.length)
   if (EN[body] !== undefined) return lead + EN[body] + trail
   let out = body
+  const timeout = out.match(/^超时只标记，不停止任务、不自动重发；当前换算 (\d+) 毫秒。$/)
+  if (timeout) return lead + `Timeouts only mark the request; they do not stop work or resend. Current value: ${timeout[1]} ms.` + trail
   const queued = out.match(/^已排队 (\d+) 条消息。$/)
   if (queued) return lead + `Queued ${queued[1]} messages.` + trail
   const resumed = out.match(/^已恢复投递 (\d+) 条消息。$/)

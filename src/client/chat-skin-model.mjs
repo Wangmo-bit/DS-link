@@ -1,3 +1,7 @@
+// Folding helpers adapted from DS-Bot's src/client/fold.js (Apache-2.0).
+// Copyright 2026 Fei2411 and the DS Bot contributors.
+// Modifications: Unicode code-point limits and an independent view-model API.
+// License and attribution are retained in THIRD_PARTY_NOTICES.md.
 // Pure view-model helpers for the DS-Bot-style chat skin. No DOM, no React:
 // node --test can execute this module directly.
 //

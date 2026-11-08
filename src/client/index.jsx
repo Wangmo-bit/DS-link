@@ -42,6 +42,7 @@ import { MessageBubble, CopyMessage, ExchangeLink } from './chat-ui.jsx';
 import { installI18n, translateText } from './i18n.js';
 import { useDisplayMode, setDisplayMode } from './display-mode.mjs';
 import { installSubagentMessages } from './subagent-message.jsx';
+import { useUserLabel, setUserLabel } from './user-label.mjs';
 
 export const name = '@wangmo/dsh-session-link';
 export const inject = ['slots', 'layout', 'connection', 'uiWorkspace', 'sessions', 'uiConversation', 'locale', 'remote.session'];
@@ -52,6 +53,7 @@ const KIND = { request: '协作请求', notification: '通知', reply: '明确�
 const date = value => value ? new Date(value).toLocaleString() : '—';
 const statusOf = message => message.dispatchStatus ?? message.status;
 
+// Feather-derived Lucide link glyph; MIT/ISC notices in THIRD_PARTY_NOTICES.md.
 function LinkIcon({ size = 16, active } = {}) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-session-link-nav-icon={active ? 'active' : 'idle'}>
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -124,7 +126,12 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
   const [modeDraft, setModeDraft] = useState(mode);
   const [modeTouched, setModeTouched] = useState(false);
   const modeDirty = modeDraft !== mode;
+  const userLabel = useUserLabel();
+  const [labelDraft, setLabelDraft] = useState(userLabel);
+  const [labelTouched, setLabelTouched] = useState(false);
+  const labelDirty = labelDraft !== userLabel;
   useEffect(() => { if (!modeTouched) setModeDraft(mode); }, [mode, modeTouched]);
+  useEffect(() => { if (!labelTouched) setLabelDraft(userLabel); }, [userLabel, labelTouched]);
   const base = useRef({ settingsRevision: revision, settings: snapshot.settings });
   const savingRef = useRef(false);
 
@@ -144,7 +151,8 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
     setLocalError('');
     const built = buildSettingsPatch(draft, base.current.settings);
     if (!built.ok) { setLocalError(Object.values(built.errors).join(' ')); return; }
-    if (built.empty && !modeDirty) { setLocalError('没有需要保存的改动。'); return; }
+    if (Array.from(labelDraft.trim()).length > 40 || /[\u0000-\u001f\u007f]/u.test(labelDraft)) { setLocalError('显示名称限 40 个字符，不能含换行或控制字符。'); return; }
+    if (built.empty && !modeDirty && !labelDirty) { setLocalError('没有需要保存的改动。'); return; }
     if (!built.empty && !writable) { setLocalError('通信设置当前只读。'); return; }
     savingRef.current = true;
     setSaving(true);
@@ -166,6 +174,8 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
       }
       if (modeDirty && !setDisplayMode(modeDraft)) { setLocalError(built.empty ? '浏览器未能保存展示模式；请检查站点存储权限后重试。' : '通信设置已保存，但浏览器未能保存展示模式；请检查站点存储权限后重试。'); return; }
       setModeTouched(false);
+      if (labelDirty && !setUserLabel(labelDraft)) { setLocalError('浏览器未能保存显示名称；已保存的其他设置不受影响，请检查站点存储权限后重试。'); return; }
+      setLabelTouched(false);
     }
   };
 
@@ -185,6 +195,10 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
       <input type="checkbox" checked={Boolean(draft.paused)} onChange={event => change('paused', event.target.checked)} disabled={busy || !writable}/>
     </label>
     <fieldset className="sl-setting sl-mode-setting"><legend>消息展示模式</legend><small>仅影响当前浏览器的会话互通展示，不改变消息或投递。</small><div className="sl-mode-options">{[['bubble','气泡模式'],['card','卡片模式']].map(([value, label]) => <label key={value}><input type="radio" name="sl-display-mode" value={value} checked={modeDraft === value} disabled={busy || saving} onChange={() => { setModeDraft(value); setModeTouched(true); setLocalError(''); }}/><span>{label}</span></label>)}</div></fieldset>
+    <label className="sl-setting sl-field">
+      <span><strong>我的气泡显示名称</strong><small>仅当前浏览器显示；留空显示“我”。不改变账号、发送者身份或权限。</small></span>
+      <input type="text" maxLength="80" value={labelDraft} placeholder="我" onChange={event => { setLabelDraft(event.target.value); setLabelTouched(true); setLocalError(''); }} disabled={busy || saving}/>
+    </label>
     <div className="sl-settings-grid">
       <label className="sl-setting sl-field">
         <span><strong>同时投递通道数</strong><small>{concurrent.ok ? '1～10；只限制同时入队的消息，不限制会话同时工作。' : concurrent.error}</small></span>
@@ -201,7 +215,7 @@ export function SettingsForm({ snapshot, writable, busy, save }) {
     </div>
     {localError && <p className="sl-alert" role="alert">{localError}</p>}
     <div className="sl-actions">
-      <button type="submit" className="sl-button sl-primary" disabled={busy || saving || (!dirty && !modeDirty) || (dirty && !writable)}>{saving ? '保存中…' : '保存并应用'}</button>
+      <button type="submit" className="sl-button sl-primary" disabled={busy || saving || (!dirty && !modeDirty && !labelDirty) || (dirty && !writable)}>{saving ? '保存中…' : '保存并应用'}</button>
     </div>
   </form>;
 }

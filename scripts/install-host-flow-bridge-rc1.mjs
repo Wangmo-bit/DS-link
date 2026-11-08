@@ -1,30 +1,24 @@
-// One-file private Host maintenance for the user-approved rc.1 flow bridge.
-// Default is check-only. No profile/store/database/service changes or restart.
+// Optional, one-file Host maintenance for the exact rc.1 flow bridge.
+// Explicit installation root required; default is read-only check. Never called
+// by the plugin installer. No profile/store/database/service changes or restart.
 // This is NOT the official DSH plugin installer and must not be used for plugins.
 import { constants as C } from 'node:fs';
 import { chmod, lstat, mkdir, mkdtemp, open, readFile, realpath, rename, unlink } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { patchHostFlowRc1 } from './dsh-web-flow-bridge-rc1.mjs';
 
 const hash = data => createHash('sha256').update(data).digest('hex');
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs;
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const PRODUCTION = Object.freeze({
-  target: '/home/<user>/.local/share/dsh/lib/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/client.js',
-  packageFile: '/home/<user>/.local/share/dsh/lib/node_modules/@deepseek-ai/dsh-client-ui-chat/package.json',
-  coreFile: '/home/<user>/.local/share/dsh/lib/node_modules/@deepseek-ai/dsh/package.json',
-  candidate: join(REPO, 'artifacts/rc1-flow-bridge-00def19-candidate.js'),
-  generator: join(REPO, 'scripts/dsh-web-flow-bridge-rc1.mjs'),
-  backupBase: '/home/<user>/.dsh/backups',
+export const BRIDGE = Object.freeze({
   expectedVersion: '0.2.2-rc.1',
   beforeHash: 'b7e645f2461231e8ece31381f026db2df72d058e425eaef19265f215c823d84e',
   beforeSize: 688923,
   afterHash: '74b1dfe9656fedd2099bc812819491f896d781fc550501cc6522b68ed932bf7f',
   afterSize: 691781,
-  mode: 0o600,
   generatorCommit: '00def193c4a162af2c2a14d5999b3fa3892f604b',
-  generatorHash: 'de6c4bfa46277b87d6ba9cfd2ac5426525a27af6bb34ec72c1e39ad0e381d355',
 });
 
 async function readRegularExact(path, expectedMode) {
@@ -68,9 +62,9 @@ async function writeExclusive(path, data, mode) {
 }
 
 /**
- * The programmatic config/hook seam exists solely for isolated tests. The CLI
- * below exposes no target/manifest/path flags and always uses PRODUCTION.
- * hooks may only run in tests; no such hook is reachable from the CLI.
+ * The low-level config/hook seam supports isolated tests. Public CLI paths are
+ * built from an explicit DSH installation root and the pinned BRIDGE manifest.
+ * Hooks may only run in tests; no such hook is reachable from the CLI.
  */
 export async function runHostBridge(config, { apply = false, hooks = {} } = {}) {
   const target = resolve(config.target), candidatePath = resolve(config.candidate), backupBase = resolve(config.backupBase);
@@ -161,13 +155,67 @@ export async function runHostBridge(config, { apply = false, hooks = {} } = {}) 
   }
 }
 
+/** No implicit home paths, config files, or production target. */
+export function parseBridgeArgs(args) {
+  const options = { apply: false };
+  const seen = new Set();
+  for (let index = 0; index < args.length; index++) {
+    const key = args[index];
+    if (!['--check', '--apply', '--dsh-root', '--backup-dir'].includes(key) || seen.has(key)) throw Error('Unknown or duplicate argument');
+    seen.add(key);
+    if (key === '--check' || key === '--apply') { options.apply = key === '--apply'; continue; }
+    const value = args[++index];
+    if (!value || !value.startsWith('/') || resolve(value) !== value) throw Error('Paths must be canonical absolute paths');
+    options[key === '--dsh-root' ? 'dshRoot' : 'backupBase'] = value;
+  }
+  if (seen.has('--check') && seen.has('--apply')) throw Error('Choose --check or --apply, not both');
+  if (!options.dshRoot) throw Error('--dsh-root is required; no default installation will be touched');
+  if (options.apply && !options.backupBase) throw Error('--apply requires an existing private --backup-dir');
+  return options;
+}
+
+/**
+ * Check the explicit installation without writes. Applying is a separate,
+ * opt-in Host mutation: generate a candidate, retain exact backups/receipts,
+ * then use the same guarded atomic writer as the isolated tests.
+ */
+export async function maintainHostBridge({ dshRoot, backupBase, apply = false }) {
+  if (process.platform !== 'linux' || typeof process.getuid !== 'function') throw Error('This maintenance tool is verified for Linux only');
+  if (process.getuid() === 0) throw Error('Run as the installation owner, not root or sudo');
+  if (!dshRoot || resolve(dshRoot) !== dshRoot || await realpath(dshRoot) !== dshRoot) throw Error('DSH root must be canonical and non-symlinked');
+  const modules = join(dshRoot, 'lib/node_modules/@deepseek-ai');
+  const target = join(modules, 'dsh-client-ui-chat/lib/client.js');
+  const packageFile = join(modules, 'dsh-client-ui-chat/package.json'), coreFile = join(modules, 'dsh/package.json');
+  const config = { ...BRIDGE, target, packageFile, coreFile };
+  const packageVersion = await versionOf(config);
+  const original = await readRegularExact(target);
+  const mode = original.stat.mode & 0o777;
+  const parent = dirname(target), parentStat = await lstat(parent);
+  if (await realpath(parent) !== parent || parentStat.uid !== process.getuid() || (parentStat.mode & 0o022) !== 0 || original.stat.uid !== process.getuid() || original.stat.gid !== process.getgid() || (mode & 0o022) !== 0) throw Error('Host file and parent must be controlled by the current user; never use sudo to bypass this check');
+  if (original.hash === BRIDGE.afterHash && original.data.length === BRIDGE.afterSize) return { status: 'already-installed', target, packageVersion, hash: original.hash, restarted: false };
+  verifyBefore(original, config);
+  const bytes = Buffer.from(patchHostFlowRc1(original.data.toString('utf8')));
+  verifyCandidate({ hash: hash(bytes), data: bytes }, config);
+  if (!apply) return { status: 'ready', target, packageVersion, beforeHash: original.hash, afterHash: hash(bytes), restarted: false, writes: false };
+  if (!backupBase || resolve(backupBase) !== backupBase || await realpath(backupBase) !== backupBase) throw Error('A canonical existing backup directory is required');
+  const backupStat = await lstat(backupBase);
+  if (!backupStat.isDirectory() || backupStat.uid !== process.getuid() || (backupStat.mode & 0o077) !== 0) throw Error('Backup directory must belong to this user and be private (0700)');
+  // Keep the generated candidate as review/recovery evidence; never overwrite
+  // an ignored developer artifact or require a missing local candidate file.
+  const prepared = await mkdtemp(join(backupBase, 'flow-bridge-candidate-'));
+  await chmod(prepared, 0o700);
+  const candidate = join(prepared, 'client.js');
+  await writeExclusive(candidate, bytes, 0o600);
+  const generator = join(REPO, 'scripts/dsh-web-flow-bridge-rc1.mjs');
+  const generatorHash = (await readRegularExact(generator)).hash;
+  return runHostBridge({ ...config, mode, backupBase, candidate, generator, generatorHash }, { apply: true });
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const args = process.argv.slice(2);
-  if (args.length > 1 || (args.length === 1 && !['--check', '--apply'].includes(args[0]))) {
-    console.error('Usage: node scripts/install-host-flow-bridge-rc1.mjs [--check | --apply]');
-    process.exitCode = 2;
-  } else {
-    try { console.log(JSON.stringify(await runHostBridge(PRODUCTION, { apply: args[0] === '--apply' }), null, 2)); }
-    catch (error) { console.error(JSON.stringify({ status: 'stopped', phase: error.phase ?? 'preflight', message: error.message, backup: error.backup ?? null, temporary: error.temporary ?? null }, null, 2)); process.exitCode = 1; }
+  try { console.log(JSON.stringify(await maintainHostBridge(parseBridgeArgs(process.argv.slice(2))), null, 2)); }
+  catch (error) {
+    console.error(JSON.stringify({ status: 'stopped', phase: error.phase ?? 'preflight', message: error.message, backup: error.backup ?? null, temporary: error.temporary ?? null }, null, 2));
+    console.error('Usage: node scripts/install-host-flow-bridge-rc1.mjs --dsh-root /absolute/dsh-prefix [--check | --apply --backup-dir /absolute/private-backups]');
+    process.exitCode = 1;
   }
 }

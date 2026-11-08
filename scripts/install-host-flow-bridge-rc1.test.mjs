@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { chmod, lstat, mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runHostBridge } from './install-host-flow-bridge-rc1.mjs';
+import { runHostBridge, parseBridgeArgs, maintainHostBridge, BRIDGE } from './install-host-flow-bridge-rc1.mjs';
 
 if (process.env.SL_HOST_INSTALL_TEST_ISOLATED !== '1') throw new Error('requires verified isolated tmpfs; do not run against host /tmp');
 const sha = x => createHash('sha256').update(x).digest('hex');
@@ -24,6 +24,39 @@ async function fixture() {
   return {root,host,target,candidate,packageFile,coreFile,generatorPath,backupBase,config};
 }
 const eq = async (path, bytes) => assert.deepEqual(await readFile(path),bytes);
+
+test('public CLI requires explicit target, refuses ambiguous args and needs backup opt-in', () => {
+  assert.throws(() => parseBridgeArgs([]), /required/);
+  assert.throws(() => parseBridgeArgs(['--apply']), /required/);
+  assert.throws(() => parseBridgeArgs(['--dsh-root','relative']), /absolute/);
+  assert.throws(() => parseBridgeArgs(['--dsh-root','/fixture','--check','--apply']), /not both/);
+  assert.throws(() => parseBridgeArgs(['--dsh-root','/fixture','--apply']), /backup/);
+  assert.throws(() => parseBridgeArgs(['--dsh-root','/fixture','--dsh-root','/other']), /duplicate/);
+  assert.deepEqual(parseBridgeArgs(['--dsh-root','/fixture']), { apply:false, dshRoot:'/fixture' });
+});
+
+test('public wrapper checks and applies the exact registry Host in a disposable prefix', { skip: !process.env.DSH_CHAT_RC1_CLIENT && 'set DSH_CHAT_RC1_CLIENT to the exact registry artifact' }, async () => {
+  const bytes = await readFile(process.env.DSH_CHAT_RC1_CLIENT);
+  assert.equal(sha(bytes), BRIDGE.beforeHash);
+  const root = await mkdtemp(join(tmpdir(), 'sl-public-bridge-'));
+  const base = join(root,'lib/node_modules/@deepseek-ai');
+  await mkdir(join(base,'dsh-client-ui-chat/lib'), { recursive:true });
+  await mkdir(join(base,'dsh'), { recursive:true });
+  const target=join(base,'dsh-client-ui-chat/lib/client.js');
+  await writeFile(target,bytes,{mode:0o644});
+  await writeFile(join(base,'dsh-client-ui-chat/package.json'), JSON.stringify({name:'@deepseek-ai/dsh-client-ui-chat',version:'0.2.2-rc.1'}));
+  await writeFile(join(base,'dsh/package.json'), JSON.stringify({name:'@deepseek-ai/dsh',version:'0.2.2-rc.1'}));
+  const checked=await maintainHostBridge({dshRoot:root});
+  assert.equal(checked.status,'ready'); assert.equal(checked.writes,false); await eq(target,bytes);
+  const backupBase=join(root,'private-backups'); await mkdir(backupBase,{mode:0o700});
+  const applied=await maintainHostBridge({dshRoot:root,backupBase,apply:true});
+  assert.equal(applied.status,'installed'); assert.equal(sha(await readFile(target)),BRIDGE.afterHash);
+  assert.equal((await lstat(target)).mode&0o777,0o644,'preserve supported original file mode');
+  await eq(join(applied.backup,'client.js.original'),bytes);
+  const beforeRetry=await readdir(backupBase);
+  assert.equal((await maintainHostBridge({dshRoot:root,backupBase,apply:true})).status,'already-installed');
+  assert.deepEqual(await readdir(backupBase),beforeRetry);
+});
 
 test('default check does not write and identifies exact candidate',async()=>{
  const f=await fixture(), result=await runHostBridge(f.config);

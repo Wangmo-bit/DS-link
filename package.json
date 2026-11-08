@@ -1,8 +1,24 @@
 {
   "name": "@wangmo/dsh-session-link",
-  "version": "0.8.15",
+  "version": "0.8.16-pre.1",
   "private": true,
-  "description": "让已有 DSH 会话在工作中可靠协作",
+  "description": "Session collaboration with bubble and card views for DeepSeek Harness",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wangmo-bit/dsh-session-link.git"
+  },
+  "homepage": "https://github.com/Wangmo-bit/dsh-session-link#readme",
+  "bugs": {
+    "url": "https://github.com/Wangmo-bit/dsh-session-link/issues"
+  },
+  "author": "Wangmo-bit",
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "session-collaboration",
+    "chat",
+    "multi-agent"
+  ],
   "icon": "assets/icon.svg",
   "type": "module",
   "license": "MIT",
@@ -11,8 +27,8 @@
     "dsh": "0.2.1-rc.5 || 0.2.2-rc.1"
   },
   "exports": {
-    ".": "./src/host/entry-0.8.15.js",
-    "./runtime-0.8.15": "./src/host/entry-0.8.15.js",
+    ".": "./src/host/entry-0.8.16-pre.1.js",
+    "./runtime-0.8.16-pre.1": "./src/host/entry-0.8.16-pre.1.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },
@@ -26,10 +42,12 @@
     "assets/icon.svg"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js scripts/dsh-web-scroll-patch.test.mjs scripts/dsh-web-flow-bridge.test.mjs scripts/ui-model.test.mjs scripts/ui-chat-skin-model.test.mjs scripts/ui-chat-skin.test.mjs scripts/ui-image-skin.test.mjs scripts/ui-display-mode.test.mjs scripts/ui-native-flow-plan.test.mjs scripts/ui-native-flow-anchors.test.mjs scripts/ui-native-flow-summary.test.mjs scripts/ui-native-flow-terminal.test.mjs scripts/ui-message-quote.test.mjs scripts/ui-native-flow-attention.test.mjs scripts/ui-native-flow-silent-rows.test.mjs scripts/ui-native-flow-running.test.mjs scripts/ui-native-flow-empty-block.test.mjs scripts/ui-agent-badges-render.test.mjs scripts/ui-agent-badges.test.mjs scripts/ui-agent-badges-live.test.mjs scripts/ui-team-dispatch.test.mjs scripts/ui-team-dispatch-live.test.mjs scripts/ui-subagent-reuse.test.mjs scripts/ui-subagent-reuse-live.test.mjs scripts/ui-capsule-color.test.mjs scripts/ui-thinking-dots.test.mjs scripts/ui-subagent-history.test.mjs scripts/ui-subagent-message.test.mjs scripts/ui-subagent-outgoing.test.mjs scripts/ui-exchange-page.test.mjs scripts/ui-sender-event.test.mjs scripts/ui-bootstrap.test.mjs scripts/ui-incoming.test.mjs scripts/ui-incoming-body.test.mjs scripts/ui-outgoing.test.mjs scripts/stress/*.test.mjs scripts/v02/*.test.mjs scripts/v03/*.test.mjs scripts/v04/*.test.mjs scripts/deactivate-managed-entry.test.mjs",
+    "test": "node scripts/run-tests.mjs",
     "build": "node scripts/build.mjs",
     "check": "npm run build && npm test",
-    "prepack": "node scripts/build.mjs"
+    "prepack": "node scripts/build.mjs",
+    "check:public": "node scripts/check-public.mjs",
+    "docs:assets": "node scripts/render-doc-assets.mjs"
   },
   "dsh": {
     "bundle": {
@@ -77,7 +95,11 @@
     }
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
     "esbuild": "^0.25.0",
-    "react": "^18.2.0"
+    "playwright-core": "1.64.1",
+    "react": "^18.2.0",
+    "react-dom": "18.3.1",
+    "zod": "4.4.3"
   }
 }

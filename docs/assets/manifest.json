@@ -1,0 +1,18 @@
+{
+  "kind": "synthetic-product-component-fixtures",
+  "network": "blocked",
+  "host": "mock shell; no DSH connection",
+  "browser": "154.0.8037.0",
+  "files": {
+    "bubble-zh.png": "a8723510ad437d10425e0ba04bc0bf8c0ca8c9e760c8bb0d0f24288d7e649c8a",
+    "card-zh.png": "3f03bcad7b5afbf5bcd42e2dd50fa5701dced35b464d4142a6ba23f70f2a5515",
+    "quote-zh.png": "2d1419dbde2822081efa46119b105016510a83e70c12c01d9783f252c55278ae",
+    "settings-zh.png": "5db1f407a385eeec65bc4e6092848cd595f76f1c4dec8dbc0f3c35723f4d3f4b",
+    "bubble-en.png": "8c887a9a5637fa40fee4b1a9472e485cd3cc7b48e83d09e3cf4715fb2d861015",
+    "card-en.png": "fe304a627e8d4dd29b0149f97599a87934a15fbcb3697896828494420c17f206",
+    "quote-en.png": "013eadf8f9c9deee53ec3965db41aeada3dc45f7a9ff7d39c5762243bca84e71",
+    "settings-en.png": "11ab2aaf95a0b45433dbd7dc93c52ec513320376c9dc849c46da4b5a2d039cbd",
+    "flow-zh.gif": "e35894f7ded1308d7c498d531e4aa4953d9cc4160570c34bbe4216be5720accd",
+    "flow-en.gif": "b3fbc6484b03d052ef47bf7a9a15991e64e6acade17f24d119dc5de6c8dcc8c2"
+  }
+}

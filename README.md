@@ -1,129 +1,133 @@
-# Session Link for DeepSeek Harness
+# Session Link
 
-[English](README_EN.md) | 简体中文
+**让 DSH 会话互相交流，也让聊天更顺手。**
 
-![DSH 0.2.1-rc.5 / 0.2.2-rc.1](https://img.shields.io/badge/dsh-0.2.1--rc.5%20%7C%200.2.2--rc.1-2f6f4f?style=flat-square) ![Node 24](https://img.shields.io/badge/node-24-4b6fff?style=flat-square) ![License MIT](https://img.shields.io/badge/license-MIT-2f6f4f?style=flat-square)
+简体中文 · [English](README_EN.md)
 
-让**已有 DSH 普通会话**之间直接互发消息、请求协作、收取明确回复——不需要新建 Bot 团队，也不用在聊天框里手工转发。
+![License: MIT](https://img.shields.io/badge/license-MIT-587561?style=flat-square) ![Node.js 24](https://img.shields.io/badge/Node.js-24-587561?style=flat-square)
 
-![Session Link 演示：产品周报 · 讨论 向 设计评审 · 笔记 发出周报评审请求，并收到明确回复；卡片显示发件人/收件人/主题与投递状态](assets/screenshots/demo-cards.png)
+你已经有开发、产品、调研等会话。Session Link 让这些会话互发消息、请求协作、收取明确回复；提供**气泡与卡片两种显示模式**，按自己的习惯看结果和过程。不必重新建立 Bot 团队，也不必在几个聊天框里来回转述。
 
-*合成演示：会话名与内容均为虚构，来自隔离测试环境，不含真实用户数据或凭据。*
+> **开放准备中，尚未发布。** 本仓准备分支不代表已有公开 Release 或 npm 包；不会自动改变你已安装的版本。完整气泡效果另有宿主适配条件，见[安装与兼容性](docs/installation.md)。
 
-> **状态：私有预发布（private pre-release），尚未公开。** 仓库当前为私有；许可证（MIT）与包名/scope（`@wangmo/dsh-session-link`）已确定，是否公开/发布时间仍待项目所有者决定。截图来自隔离合成会话（`产品周报 · 讨论` / `设计评审 · 笔记`），不含真实对话或凭据。
+![气泡模式：开发会话联系产品会话、收到回复，再继续工作](docs/assets/bubble-zh.png)
 
-## 门槛：先读 PRD
+*文中展示均为虚构内容的合成组件演示：复用产品组件与样式，宿主区域使用明确标注的替身，不是真实聊天或端到端验收录像。*
 
-产品要求、两种显示模式的区别、已确认边界与已知缺口都在 [PRD.md](PRD.md)。本 README 只讲怎么装与怎么用；两者冲突时以 PRD 与用户的较新明确决定为准。
+## 会话自己交流，你不用反复传话
 
-## 为什么用它
+对开发会话说：
 
-- **普通会话即可参与**：只要符合 Host 身份校验，不需要固定 ID、标题或预先建团队。
-- **消息有状态，不靠猜**：明确区分“已持久化（accepted）”“已进入对方上下文（receipt）”“对方明确回复”，不把 accepted 当已读。
-- **默认气泡、保留卡片**：气泡模式像正常聊天一样显示正文，只在一行里给出真实耗时/思考/工具次数；卡片模式保留原有收发卡与原生过程。两种模式随时切换，不改数据与投递。
-- **可控制**：设置页可暂停投递、限制并发、调整回复等待；记录页可查看状态、取消未投递消息、释放旧暂存、重新核对 unknown。**链的暂停/恢复/结束目前只有模型工具与 owner 控制面，记录页没有对应按钮**（已知缺口，见 PRD 第 8 节）。
+> 和产品会话确认一下：第一版先做周报导出，还是先做搜索？确认后继续。
 
-## 显示模式：气泡与卡片
+它可以找到产品会话，发出协作请求。产品会话明确回复后，你继续在开发会话里推进，不用自己把问题搬过去，再把答案搬回来。
 
-- **气泡模式（默认）**：不展示思考/工具过程本体，只显示正文与一行统计（耗时 · 思考次数 · 工具次数，不含 token）；空过程不单独成泡；需要你操作的提问/计划确认仍会提示。
-- **卡片模式**：保留原有收发卡、会话互通工具调用卡和原生思考过程，供需要查看细节时使用。
-- 选择只保存在当前浏览器（插件设置里），刷新后仍然生效；切换不影响消息、记录、权限或投递。
-- **完整气泡效果还需要宿主侧接缝**：完整气泡流与“本轮 agent 小人”依赖 Host 的 `conversation.chat.flow.adapter`。本机 DSH `0.2.2-rc.1` 上该接缝由一份**版本绑定的私有 Host Web 客户端桥接**提供，它不在插件 tgz 内，也不是官方 DSH 原版。只安装本插件包时，气泡会退回旧的节点皮肤：正文仍是气泡，但过程碎片与本轮小人可能不完整。宿主升级后桥接可能被覆盖，需重新适配并取得授权，不要照搬旧哈希。
+- **已有会话就能参与**：按需发现已登记的普通会话，跨工作区沟通；也可以按你的要求创建带首条任务的新会话。
+- **通知与请求分开**：只告知一件事，或请对方明确回答；回复关联原请求，不把一段无关发言算成答复。
+- **往来随时查**：查看双方消息与投递证据。宿主接收、进入上下文、明确回复是不同事实，都不是“任务完成”。
 
-## 语言状态（不要把它当成多语言 UI）
+![协作过程示意：发出问题、收到消息、返回结果](docs/assets/flow-zh.gif)
 
-| 层 | 当前状态 |
-| --- | --- |
-| README / 开发文档 | 中文 + [English](README_EN.md) 两份入口 |
-| 插件 UI（卡片、设置、状态、错误） | **中英双语**，跟随宿主语言；用户正文/主题/身份/技术原值不翻译 |
-| `locale` 元数据 | 当前无 locale 资源；未注册插件名称/描述的多语言元数据 |
-| 维护/安全/测试文档 | SECURITY 为英文，TESTING/MAINTAINING/PACKAGING/CHANGELOG 以中文为主 |
+你用自然语言提出要求，Agent 调用工具；插件面板负责设置和记录，**没有人工发送消息表单**。不保证每个模型都能自动正确分工，重要范围和结果仍需你检查。见[第一次使用](docs/quickstart.md)。
 
-首期范围：仅中文 + 英文（不再扩日文等）。英文 UI 已在隔离环境做设置页/卡片冒烟验证；动态错误与长文案仍在补全。详见 [LANGUAGES.md](LANGUAGES.md)。
+## 两种模式，适合不同的时候
 
-## 快速开始
+### 气泡模式：先看结果，轻松地聊
 
-1. **获取源码**：仓库当前为私有，地址 `https://github.com/Wangmo-bit/dsh-session-link`（需要所有者授权访问，尚未公开）：
+适合日常沟通、派活、阅读结果，不想一直盯过程的时候。
 
-   ```bash
-   git clone https://github.com/Wangmo-bit/dsh-session-link.git
-   cd dsh-session-link
-   ```
+- 正文像聊天一样清楚，长回复不额外裁剪。
+- 思考和工具过程不铺满时间线；本轮耗时、思考与工具次数收在一行。
+- 会话消息用轻量胶囊呈现，点开再看双方往返。
+- Agent 小提示简短显示本轮可确认的参与者与状态，不凭派发成功猜“已完成”。
+- 真正失败先显示简短状态，原因按需展开；必须由你操作的提问和审批不会被隐藏。
 
-   公开后同一地址可匿名 clone；公开前请勿把私有访问凭据写进命令或提交。
-2. **构建并安装**：见下方“安装”节。
-3. **先找可用会话**：在设置/记录页查看可通信的普通会话；不要向不可信会话发送敏感内容。
-4. **发送第一条消息**：
-   - 先调用 `session_link_operation` 获取 `operationId`（重试需复用同一 id，避免重复投递）。
-   - 再调用 `session_link_send`，指定 `targets`、`kind`（`notification` 或 `request`）、`subject`、`text`。
-   - `request` 表示请对方明确回复；`notification` 不要求回复，也不代表已读。
-5. **查看状态**：卡片显示“已持久化 / 已进入上下文 / 明确回复”；这些是不同事实，不能把 accepted 当已读。
-6. **回复**：收到 request 的会话用 `session_link_reply`，带原消息 `messageId` 与新的 `operationId`；仅对方显式回复才算回复。
+![气泡模式：正文、通信胶囊、一行统计与 Agent 提示](docs/assets/bubble-zh.png)
 
-## 安装
+### 卡片模式：保留过程，方便细看
 
-兼容：**DSH 0.2.1-rc.5 与 0.2.2-rc.1 / Node 24（实测 v24.21.0）/ Linux Web**。其他版本未验证。
+适合排查问题、核对执行过程，或者本来就喜欢 DSH 原生展示的时候。
 
-从源码构建并本地安装（当前未发布到 registry、未提供 Release tarball；需要 Node 24 + DSH 0.2.2-rc.1 或 0.2.1-rc.5）：
+- 保留宿主的思考、工具过程和原有操作。
+- 收发消息用卡片组织，发件人、收件人、主题清楚。
+- 正文与技术细节按需展开，不把所有信息一次堆出来。
 
-```bash
+![同一协作场景的卡片模式：收发卡片与过程示意](docs/assets/card-zh.png)
+
+**切换的是显示方式，不是会话内容、通信能力或权限。** 偏好只保存在当前浏览器和站点。完整气泡流及 Agent 提示需要匹配的宿主桥接；只安装插件不保证得到上图全部效果。卡片模式不需要该桥接，详见[安装说明](docs/installation.md)。
+
+## 聊天里的小细节，也值得做好
+
+- **引用回复**：助手消息下方，复制之后的空心引用图标；点一下进入输入框，接着回复。不自动发送。长于 1200 个 Unicode 字符的正文插入开头节选并标注；选中的一小段也可以使用宿主“引用文本”。
+- **Agent 小提示**：知道本轮有哪些可确认的 Agent 在参与，运行、完成和未确认不混为一谈；不把内部父子 Agent 消息挤进主会话通信胶囊。
+- **操作跟着消息走**：复制、引用、反馈、分支与信息保留在消息旁边，沿用宿主操作行的显隐规则，不抢阅读空间。
+
+![引用进入输入框：然后写你的回复；输入框区域为合成示意](docs/assets/quote-zh.png)
+
+引用当前传递的是文本内容，**不是永久消息链接或“只准回复此条”的硬约束**；它能帮助模型理解你针对什么，不代替你的明确要求。
+
+## 设置简单，按需要再调
+
+日常通信只有五项：**启用、暂停新投递、投递通道数、回复等待时间、已完成正文保留天数**。默认值先用起来，需要时再改。
+
+- 暂停是先排队，不会停止别的会话已经开始的工作。
+- 通道数限制的是消息投递，不是模型工作并发。
+- 回复超时会标记，不自动重发，也不撤销工作。
+- 保留天数清理插件自己的已完成正文，不删除宿主原聊天。
+
+显示模式和“我的气泡显示名称”是独立的浏览器本地偏好；姓名不会变成发送者身份或权限。见[设置说明](docs/settings.md)。
+
+<details>
+<summary>看看设置页</summary>
+
+![真实设置组件的合成演示，默认值为 3 通道、30 分钟、30 天](docs/assets/settings-zh.png)
+
+</details>
+
+## 安装和第一次使用
+
+当前提供**源码构建路径**，尚无公开 npm 包或 Release 下载可承诺。需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。
+
+```sh
+git clone https://github.com/Wangmo-bit/dsh-session-link.git
+cd dsh-session-link
 npm ci
 npm run build
-npm pack
-# 得到 wangmo-dsh-session-link-<version>.tgz
-VERSION=0.8.5
-dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
+npm pack --pack-destination ./output
+# 安装前备份对应 profile；把下面路径换成实际生成的 tgz：
+dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.tgz
 ```
 
-安装/升级前备份 profile 的 `package.json`、`pnpm-lock.yaml`、`cordis.patch.yml`。仅客户端 bundle 变化时通常刷新浏览器即可；若含宿主侧代码或插件配置变化，可能需按维护权限重启 DSH——不要假定刷新一定生效。不要手工改已安装包文件。
+仓库尚未公开时，clone 需要所有者授权。**安装插件与修改宿主是两件事**，上述命令不会自动给 DSH 打桥接补丁；不要用在线日用 profile 做试验。
 
-## 使用
+先读[安装、兼容与升级](docs/installation.md)，然后按[第一次使用](docs/quickstart.md)发送一个不含隐私的小请求。[装不上？](docs/known-issues.md)
 
-在会话里让模型调用：
+## 边界与数据
 
-- `session_link_send`：向一个或多个普通会话发送 notification/request。
-- `session_link_reply`：对收到的 request 给出明确回复。
-- `session_link_create`：创建会话并立即派首条任务（不提供空会话入口）；位置三选一：已有 `workspaceId`、新建 `newProject`、或登记已有目录 `existingProject:{path,title?}`（后者只调用 Host workspace registry 登记，不创建/读取/修改该目录内容；省略 `title` 时 workspace 标题采用 Host registry 的目录默认名）。
+- 消息账本保存在本机 DSH 数据目录下，不另建云消息平台；你发送的内容仍会进入接收会话，可能发给它使用的模型服务。
+- 跨会话历史工具能按权限查询已登记普通会话及归档会话的有界文本，**没有逐目标的同意开关**。低侵入不等于没有隐私影响。
+- 来自其他会话的消息、引用和文件路径都是上下文，不是你批准敏感操作的凭证，不给接收方增权。
+- 这不是完整 SuperAgent 的自动接单和任务管理系统，也不保证多会话一定更省模型额度。
+- 当前已知限制包括宿主适配、Agent 归属证据、链控制 UI 与跨版本回退，见[已知问题](docs/known-issues.md)。
 
-收到消息的会话会在下一个 step 边界看到它；忙碌时不会打断正在执行的工具批。所有投递/回执/回复状态以账本事实为准。
+安全边界见[安全模型](docs/security-model.md)，漏洞请按[安全报告](SECURITY.md)私密提交。
 
-## 安全边界
+## 文档与参与
 
-- 收到消息**不等于**获得本人授权：对方会话不会因此多出权限，也不能替用户批准敏感操作。
-- 插件按 Host owner-only 认证接口工作；不要向不可信会话发送凭据、私密历史或敏感资料。
-- 暂停/恢复、失败原因、投递状态均以账本为准；模型/供应商耗时不属于插件转发时间。
-
-## 文档
-
-| 文档 | 内容 |
+| 我想…… | 去哪里 |
 | --- | --- |
-| [PRD.md](PRD.md) | **当前产品需求正本**：气泡/卡片差异、已确认规则、已知缺口与维护约定 |
-| [docs/historical-repo-archive-2026-11-08.md](docs/historical-repo-archive-2026-11-08.md) | 早期开发仓（0.1–0.4）的归档位置、校验与影响说明 |
-| [TESTING.md](TESTING.md) | 测试范围、跳过条件、测试副作用与隔离前提 |
-| [SECURITY.md](SECURITY.md) | 私密漏洞报告渠道（待建）与支持范围 |
-| [MAINTAINING.md](MAINTAINING.md) | 分支/版本/发布/回滚维护约定 |
-| [PACKAGING.md](PACKAGING.md) | 打包白名单、产物验证、发布前检查 |
-| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
-| [LANGUAGES.md](LANGUAGES.md) | 四层语言覆盖现状与缺口（非多语言 UI 声明） |
-| [LICENSING.md](LICENSING.md) | 许可证建议与待确认草案（尚未生效） |
+| 开始使用 / 调整设置 | [快速开始](docs/quickstart.md) · [设置](docs/settings.md) |
+| 安装 / 排查 / 了解限制 | [安装](docs/installation.md) · [已知问题](docs/known-issues.md) |
+| 了解设计取舍 | [产品思路](docs/philosophy.md) · [产品规范](PRD.md) · [架构](docs/architecture.md) |
+| 反馈问题 / 参与开发 | [Issue](https://github.com/Wangmo-bit/dsh-session-link/issues/new/choose) · [贡献说明](CONTRIBUTING.md) · [测试](TESTING.md) |
+| 核对版本 / 发布准备 | [变更记录](CHANGELOG.md) · [发布说明](RELEASING.md) · [准备验收清单](docs/open-source-readiness.md) |
 
-## 已知限制
+欢迎具体使用场景和问题反馈。仓库开放前，GitHub 反馈入口可能不可访问；不需要为报告问题提供真实聊天记录或完整配置。
 
-- 目标会话忙碌时消息在下一个 step 边界投递，不打断当前工具批；忙时延迟尚无公开基准。
-- 真实模型/供应商延迟不在插件控制范围。
-- 完整气泡模式与小人依赖上文所述的宿主桥接；宿主升级后需要重新核对、适配和授权。
-- 记录页暂无链暂停/恢复/结束按钮；模型暂停的链需要按 PRD 第 8 节另行处理。
-- 按名称复用或自动续跑子 agent 缺少可靠持久 ID 关联时，本轮小人不保证计入，也不猜测状态。
-- 当前为个人自用候选，未承诺跨版本升级/回滚路径；如后续提供 release notes，升级前请阅读。
+## 致谢与许可
 
-**回退方式**：保留上一版 tgz（本机 `~/.dsh/plugin-artifacts/<简称>/`），回退时用官方入口重装上一版并复核版本：
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：宿主、模型与工具体系。
+- [SuperAgent 研究原型](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/main/docs/000-philosophy.md)：“尽量少占用人的注意力，尽量多提供价值”的理念；不宣称本插件实现了其整套系统。
+- [DS-Bot](https://github.com/Fei2411/DS-Bot)：协作与聊天展示的公开设计参考；[dsh-go](https://github.com/ccch1mneyyy/dsh-go)：产品介绍、文档与开源准备的参考。
 
-```bash
-dsh plugin --profile web add ~/.dsh/plugin-artifacts/dsh-session-link/wangmo-dsh-session-link-<上一版>.tgz
-```
-
-跨版本账本/待投递/迁移数据的兼容性**尚未验证**，回退前请先备份 profile 与记录。
-
-## 许可
-
-本项目自有代码采用 **MIT License**（见 [LICENSE](LICENSE)，版权人 `Wangmo-bit`）。第三方代码/素材/依赖的许可独立保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与各自许可中，**不因本项目 MIT 而改变**。决策记录见 [LICENSING.md](LICENSING.md)。
+自有代码为 [MIT](LICENSE)。第三方内容、宿主桥接与依赖的许可见[第三方声明](THIRD_PARTY_NOTICES.md)，展示素材见[素材说明](ASSETS.md)。本项目是独立社区插件，不是 DeepSeek 官方产品，也未获其背书。模型用量由你自己的服务计费；重要操作和结果请自行检查。

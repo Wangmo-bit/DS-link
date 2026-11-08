@@ -1,25 +1,43 @@
-name: ci
+name: Quality
 on:
   push:
-    branches: [main]
+    branches: [main, 'prep/**']
   pull_request:
-
+  workflow_dispatch:
 permissions:
   contents: read
-
+concurrency:
+  group: quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
-  test:
-    # Disposable container: fixed /tmp paths in tests are isolated from any host.
-    runs-on: ubuntu-latest
-    container: node:24-bookworm
+  isolated-check:
+    name: Tests, build and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - run: npm ci
-      # The container runs as root by default. Several storage tests inject
-      # write failures with chmod(read-only), which root bypasses; that made
-      # "expected rejection" missing in CI. Run tests/build/pack as the image's
-      # unprivileged `node` user so the fault injection is real, not skipped.
-      - run: chown -R node:node .
-      - run: su node -s /bin/bash -c 'npm test && npm run build && npm pack --dry-run'
+      - name: Prepare disposable dependency image
+        run: docker build -f scripts/test.Dockerfile -t session-link-check .
+      - name: Run without network, as non-root, on a private tmpfs
+        run: >-
+          docker run --rm --network=none --read-only --user=node
+          --cap-drop=ALL --security-opt=no-new-privileges
+          --pids-limit=512 --memory=3g --cpus=4
+          --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g,mode=1777
+          session-link-check
+  result:
+    name: CI OK
+    needs: [isolated-check]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every quality job
+        env:
+          CHECK: ${{ needs.isolated-check.result }}
+        run: test "$CHECK" = success
+# No pull_request_target, secrets, npm publish, production installation or
+# repository-management permissions. Host-SDK integration skips are reported
+# by the tests and must not be described as verified compatibility.

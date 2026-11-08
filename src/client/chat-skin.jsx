@@ -8,9 +8,12 @@ import css from './chat-skin.css';
 import { ImageHandoffContext, imageHandoffFor, installStableUserImages } from './image-skin.jsx';
 import { getDisplayMode, subscribeDisplayMode } from './display-mode.mjs';
 import { installNativeFlowAdapter } from './native-flow.jsx';
+import { getUserLabel, useUserLabel, subscribeUserLabel } from './user-label.mjs';
+import { translateText } from './i18n.js';
 
 export function createUserSkin(Native) {
   return function UserSkin(props) {
+    const userLabel = useUserLabel() || translateText('我');
     const originalFactory = props.renderFactorySlot;
     const renderFactorySlot = (name, input, ...rest) => {
       if (name !== 'conversation.chat.user.content') return originalFactory(name, input, ...rest);
@@ -30,7 +33,7 @@ export function createUserSkin(Native) {
       </div>;
     };
     return <article className="sl-chat-message sl-chat-message--sent sl-chat-user" data-sl-message="">
-      <header className="sl-chat-author" data-sl-author="">王墨</header>
+      <header className="sl-chat-author" data-sl-author="" data-i18n-skip="">{userLabel}</header>
       <div className="sl-native-user"><Native {...props} renderFactorySlot={renderFactorySlot}/></div>
     </article>;
   };
@@ -190,10 +193,14 @@ export function installChatSkin(ctx) {
     style.dataset.plugin = 'session-link-chat-skin';
     style.textContent = css;
     document.head.append(style);
-    const sync = () => document.documentElement?.toggleAttribute('data-sl-card-mode', getDisplayMode() === 'card');
+    const sync = () => {
+      document.documentElement?.toggleAttribute('data-sl-card-mode', getDisplayMode() === 'card');
+      // JSON quoting keeps arbitrary user-supplied names a CSS string, not CSS.
+      document.documentElement?.style?.setProperty('--sl-user-label', JSON.stringify(getUserLabel() || translateText('我')));
+    };
     sync();
-    const off = subscribeDisplayMode(sync);
-    return () => { off(); document.documentElement?.removeAttribute('data-sl-card-mode'); style.remove(); };
+    const off = subscribeDisplayMode(sync), offLabel = subscribeUserLabel(sync);
+    return () => { off(); offLabel(); document.documentElement?.removeAttribute('data-sl-card-mode'); document.documentElement?.style?.removeProperty('--sl-user-label'); style.remove(); };
   });
   // Wait for native renderers as well as the keyed seat. The chat flow is
   // declared after the business renderers have registered on the current SDK.

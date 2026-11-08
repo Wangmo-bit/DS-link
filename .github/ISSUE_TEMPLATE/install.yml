@@ -1,0 +1,86 @@
+name: 安装问题
+description: 安装、升级或加载插件失败时使用；中文或英文都可以
+title: "[Install] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先按 [README 的安装节](https://github.com/Wangmo-bit/dsh-session-link/blob/main/README.md#安装)操作，并确认 DSH / Node 版本在支持范围内。
+        贴报错前请先移除 token、Cookie、密钥、真实会话内容和个人路径。安装失败通常不是安全问题；如果怀疑是安全漏洞，请按 [SECURITY.md](https://github.com/Wangmo-bit/dsh-session-link/blob/main/SECURITY.md) 私密报告。
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: 插件版本
+      description: 要安装或升级到的 tgz 版本
+      placeholder: "0.8.x"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Host / Node / 操作系统 / 浏览器
+      description: 请写清 DSH 版本、node -v、系统和浏览器版本
+      placeholder: "DSH 0.2.2-rc.1 / Node 24.21.0 / Linux / Chrome 142"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: 安装方式
+      options:
+        - 从源码 npm pack 后安装 tgz
+        - 使用已有 tgz 重装或升级
+        - 其他方式
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: failed-at
+    attributes:
+      label: 卡在哪一步
+      description: 例如 npm ci、npm run build、dsh plugin add，或安装后刷新加载
+      placeholder: 执行到……时失败
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: 报错原文（脱敏后）
+      description: 只贴必要片段；不要贴 access token、Cookie、私钥、真实会话内容或完整 profile 路径
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: after-install
+    attributes:
+      label: 安装后做过什么（可选）
+      options:
+        - 只刷新了浏览器
+        - 重启过 DSH
+        - 两者都试过
+        - 还没试
+        - 不确定
+    validations:
+      required: false
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 已经试过什么（可选）
+      description: 例如回退上一版、检查 profile 备份；不要贴私有路径
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我已移除真实会话、凭据、token、私钥和未脱敏的个人信息
+          required: true

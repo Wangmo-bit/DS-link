@@ -1,15 +1,43 @@
-# Security Policy
+# 安全问题报告
 
-## Supported versions
+[English](SECURITY.en.md)
 
-Only the latest tagged release is supported for security fixes. DSH/Node compatibility is limited to the versions listed in the README.
+不要在公开 Issue、评论或 PR 中提交漏洞利用细节、密钥、私钥、真实会话内容、真实用户数据或完整诊断包。
 
-## Reporting a vulnerability
+## 当前状态与报告渠道
 
-This repository is currently **private pre-release**. GitHub private vulnerability reporting is **not yet enabled** for it (the advisory endpoint currently returns disabled/404). Do **not** assume anonymous private reporting is available.
+本仓库目前是**私有预发布**，尚未公开。GitHub 的私密漏洞报告（Private vulnerability reporting）**尚未启用**（此前核对时，advisory 入口返回 disabled/404）。`SECURITY.md` 文件本身不会启用该功能；不要假设可以匿名私密提交。
 
-**Now (private repo):** contact the project owner privately through the repository access you already have, or another channel the owner designates. Do not open public issues with exploit details.
+**现在（仓库未公开）**：通过你已有的私有仓库协作渠道（例如仅仓库成员可见的 Issue 或讨论）私密联系项目所有者，或使用所有者另行指定的私密渠道。不要在公开 Issue 里描述漏洞或贴利用细节。
 
-**Before any public release (owner TODO):** enable GitHub private vulnerability reporting (Settings → Security → Advisories) for the repository, verify the advisory link works, publish a response expectation, and only then describe it as the reporting channel. This document must not promise a channel that is not actually enabled.
+**仓库公开后（所有者动作，不是贡献者动作）**：所有者需要确认 GitHub 私密漏洞报告已启用，并实际打开 [Security Advisories](https://github.com/Wangmo-bit/dsh-session-link/security/advisories) 页面，验收 **Report a vulnerability** 入口可用；验收通过后，才能把该入口写成本项目承诺的报告渠道。本文不承诺尚未启用的入口，也不承诺邮箱或其他未公布的联系方式。
 
-This project is a local collaboration plugin. It does not grant sessions additional permissions and does not bypass the Host's owner authentication. Reports about model behavior, provider latency, or third-party services are out of scope.
+**仓库公开后（报告者）**：如果 Security Advisories 页面有 **Report a vulnerability** 入口，请使用该入口私密提交。如果入口不可用，请只开一个**询问如何私密联系维护者**的 Issue，等待私密联系方式；不要在该 Issue 中描述漏洞、附复现数据或公开受影响的部署地址。
+
+## 报告里写什么
+
+- 插件版本（安装的 tgz 版本或设置页显示的版本）；源码问题附提交号。
+- DSH 版本、Node 版本、操作系统和浏览器；与显示模式有关时注明气泡 / 卡片。
+- 问题影响、触发条件和最小复现步骤。
+- 用虚构内容、测试账号或合成夹具的复现材料，以及必要的脱敏日志。
+- 哪些已验证、哪些未验证；检查过其他版本时一并写明。
+
+不需要提供真实的 API Key、token、Cookie、私钥、真实会话内容、带签名的私密链接或完整的个人诊断包。如果自己的凭据已经泄漏，请先到对应服务撤销或更换。
+
+## 范围
+
+本仓库包含 DSH 的本地会话互通插件，以及不随插件包分发的、版本锁定的 Host 桥接工具。可报告的问题包括凭据暴露、越权访问、审批或授权绕过、把会话文本当成用户授权、消息状态误导等。
+
+本插件按 Host 的 owner-only 认证接口工作，不会因为收到消息就给会话增加权限，也不绕过 Host 的 owner 认证。桥接工具不随插件 tgz 分发，安装、重启或回退仍需单独授权；报告安全问题不等于获得这些操作许可。
+
+只在**自己的环境、账号和数据**中复现，或使用明确获授权的环境。不要为验证问题访问他人的会话或内容、执行破坏性操作或影响线上服务。本政策不授予测试任何第三方服务的权限。
+
+模型行为、供应商延迟、DSH 宿主本体和第三方服务的问题不属于本插件范围；涉及插件与宿主接缝的问题，可以先私密说明再判断归属。
+
+## 支持范围
+
+安全修复只承诺覆盖最新的发布标签（tagged release）；更早版本不承诺。DSH / Node 兼容范围见 [README.md](README.md)。
+
+## 处理与披露
+
+在私密渠道沟通复现、影响和修复验证，再与所有者协调公开时间。请注明受影响版本。此处不设固定响应时限、修复期限、赏金或长期旧版本支持承诺。

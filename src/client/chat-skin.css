@@ -248,7 +248,7 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
   background: transparent;
 }
 :root:not([data-sl-card-mode]) [data-submission-echo]::before, :root:not([data-sl-card-mode]) [data-pending-steering]::before {
-  content: '王墨'; position: absolute; right: 2px; bottom: calc(100% + 7px);
+  content: var(--sl-user-label, '我'); position: absolute; right: 2px; bottom: calc(100% + 7px);
   font-size: 14px; font-weight: 650; line-height: 1.5; color: var(--sl-chat-ink);
 }
 :root:not([data-sl-card-mode]) [data-submission-echo] [class*="_userStack"], :root:not([data-sl-card-mode]) [data-pending-steering] [class*="_userStack"] { max-width: 100%; }

@@ -1,0 +1,55 @@
+name: 功能建议
+description: 想要新能力，或某个交互想改；中文或英文都可以
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先说真实使用场景，再说想要的做法。方案可以聊，但请写清现在卡在哪，不要只列抽象术语。
+        **不要贴真实会话内容、凭据或未脱敏的个人信息。**
+
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 现在卡在哪
+      description: 你想完成什么、现在只能怎么绕，给一个真实场景即可
+      placeholder: 我想……，但现在只能……
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你想到的做法（可选）
+      description: 不确定也行，说个大方向就够
+    validations:
+      required: false
+
+  - type: dropdown
+    id: display-mode
+    attributes:
+      label: 涉及哪种显示模式（可选）
+      options:
+        - 气泡模式
+        - 卡片模式
+        - 两种模式都涉及
+        - 不确定 / 与显示模式无关
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: 插件 / Host 版本（可选）
+      description: 方便判断这个场景在哪个版本上出现
+      placeholder: "插件 0.8.x / DSH 0.2.2-rc.1"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我已移除真实会话、凭据和未脱敏的个人信息
+          required: true

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全问题：先读私密报告说明
+    url: https://github.com/Wangmo-bit/dsh-session-link/blob/main/SECURITY.md
+    about: 不要在公开 Issue 里贴漏洞细节；先确认当前可用的私密联系渠道。
+  - name: 安装、兼容范围与已知限制
+    url: https://github.com/Wangmo-bit/dsh-session-link/blob/main/README.md
+    about: 安装失败请先用“安装问题”模板；安装步骤、兼容版本和已知缺口在 README。
+  - name: 测试前提与副作用
+    url: https://github.com/Wangmo-bit/dsh-session-link/blob/main/TESTING.md
+    about: 源码测试的固定 /tmp 隔离前提、跳过条件和副作用，先看 TESTING.md。

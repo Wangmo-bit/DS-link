@@ -80,7 +80,11 @@ function loadConversation() {
   return spec.factory((name) => {
     try {
       if (name === 'react' || name === 'react/jsx-runtime' || name === 'react-dom') return repoReq(name);
-      if (name === '@deepseek-ai/cordis' || name === 'zod') return dshReq(name);
+      // Resolve pinned test dependencies from this source checkout first.
+      // A standalone registry tarball has no installed peer tree beside it.
+      if (name === '@deepseek-ai/cordis' || name === 'zod') {
+        try { return repoReq(name); } catch { return dshReq(name); }
+      }
     } catch {
       // fall through to the structural stub
     }

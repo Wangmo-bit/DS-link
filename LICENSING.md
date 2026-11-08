@@ -1,37 +1,29 @@
-# 许可证建议与待确认草案（尚未生效）
+# 许可证与第三方内容
 
-状态：**已选定 MIT License**（项目所有者确认）。正式文本见根目录 [LICENSE](LICENSE)，`package.json` 与 lock 的 `license` 字段已为 `MIT`。本文保留决策记录与边界说明。
+## 状态
 
-## 决定
+**MIT License 已生效**，不是建议草案。正式文本见根目录 [LICENSE](LICENSE)；`package.json` 与 lock 中的 `license` 为 `MIT`。版权人署名为 `Wangmo-bit`。
 
-- 采用 **MIT**：最简、与 DSH 生态多数高星插件一致。
-- 版权人署名：`Wangmo-bit`（仓库所有者公开标识，不含个人邮箱）。
-- Apache-2.0 未采用。
+## 项目自有内容
 
-## MIT 正式文本（已启用）
+本项目有权许可的代码和文档采用 MIT。MIT 只覆盖这些内容；不自动覆盖第三方代码、图标、素材、依赖、字体或参考项目的作品。
 
-```text
-MIT License
+**不要把本仓库描述成“没有第三方代码”或“全部原创”**：仓库中包含从 DSH 派生的桥接代码/片段、来自 Lucide/Feather 的图标路径，以及适配自 DS-Bot `fold.js` 的 fold/preview helpers；这些材料各自保留许可证，完整文本见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-Copyright (c) <year> <copyright holder>
+## 第三方材料与参考
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+- **DeepSeek Harness（DSH）**：MIT，`Copyright (c) 2026 DeepSeek`。可选 Host 气泡桥接工具从精确版本的 DSH Web Chat 客户端派生/打补丁，相关材料保留 DSH 的 MIT 许可；桥接工具本身不在插件 tgz 内。
+- **Lucide 图标**：ISC，`Copyright (c) 2026 Lucide Icons and Contributors`。一键引用图标来自 Lucide 的 `quote` 图标。
+- **Feather 派生图标**：MIT，`Copyright (c) 2013-present Cole Bemis`。侧栏 `link` 图标是 Feather 派生路径（经 Lucide 的 Feather-derived 集合）。
+- **DS-Bot**：Apache-2.0，`Copyright 2026 Fei2411 and DS Bot contributors`。`src/client/chat-skin-model.mjs` 的 fold/preview helpers 适配自 `ds-bot/src/client/fold.js`，改为按 Unicode code point 计数并使用独立返回契约；气泡当前不折叠长消息，但该 helper 仍留在客户端源码/构建路径。DS-Bot 的 runtime、Bot roster、服务器逻辑、头像和美术没有打包；适配代码及其 Apache-2.0 声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+- **dsh-go**：公开文档与开源准备方式参考；没有复制其代码/美术。
+- **开发依赖**：React、React DOM、esbuild、playwright-core 等只用于构建/测试，各自保留自己的许可证；它们不随插件 tgz 以第三方源码形式 vendored，也不因本项目 MIT 而重新许可。
+- **Host peer dependencies**：`@deepseek-ai/dsh-llm`、`@deepseek-ai/cordis`、`@deepseek-ai/schemastery` 及 React 等由各自作者提供，本项目不 vendored、不重新授权。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## 边界
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-范围：MIT 仅覆盖本项目有权许可的代码与文档。第三方代码/素材/依赖/字体/图标分别保留其许可与 NOTICE；不借 MIT 覆盖。当前仓库未 vendored 第三方源码；`THIRD_PARTY_NOTICES.md` 记录 DS-bot Apache-2.0 仅作设计参考、未复制代码。
+- 许可证兼容性、署名和 NOTICE 在新增/移植第三方内容时必须重新核对；不能凭“旧版没有声明”推断新内容可以并入。
+- 不复制 AGPL 代码或美术；需要参考设计时自行实现，并保留必要的来源说明。
+- 第三方依赖的许可独立于本项目 MIT；分发本项目不改变它们各自的条款。
+- 提交贡献即表示你有权提交该内容，并同意按项目 MIT 提供；若包含第三方材料，提交者需同时提供来源、版本/提交、许可证和修改说明。
+- 以上是工程署名与来源说明，不是法律鉴定或最终合规意见；新增、移植或改变第三方内容的许可判断都需单独复核。

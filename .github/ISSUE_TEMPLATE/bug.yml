@@ -1,0 +1,77 @@
+name: Bug 报告
+description: 插件行为不对、报错或卡住时使用；中文或英文都可以
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先搜一下已有 Issue。**不要贴真实会话内容、凭据、token、私钥、Cookie 或未脱敏日志**；截图请先遮盖会话名、账号和个人路径。
+
+        安装失败请改用“安装问题”模板。安全问题不要开公开 Issue，按 [SECURITY.md](https://github.com/Wangmo-bit/dsh-session-link/blob/main/SECURITY.md) 走私密渠道。
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: 插件版本
+      description: 安装时使用的 tgz 版本，或设置页显示的版本
+      placeholder: "0.8.x"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Host / Node / 操作系统 / 浏览器
+      description: 请写清 DSH 版本、node -v、系统和浏览器版本
+      placeholder: "DSH 0.2.2-rc.1 / Node 24.21.0 / Linux / Chrome 142"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: display-mode
+    attributes:
+      label: 显示模式
+      options:
+        - 气泡模式
+        - 卡片模式
+        - 两种模式都能复现
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 写实际结果和预期结果；气泡模式若缺少本轮统计或 agent 小人，也请注明
+      placeholder: 我做了……，实际看到……，期望……
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤（可选）
+      description: 能重复最好；写最小步骤即可
+      placeholder: |
+        1. 打开……
+        2. 执行……
+        3. 看到……
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图或脱敏日志（可选）
+      description: 确认已移除真实会话、凭据和个人信息；只贴必要片段
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我已移除真实会话、凭据、token、私钥和未脱敏的个人信息
+          required: true

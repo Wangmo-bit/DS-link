@@ -1,95 +1,133 @@
-# Session Link for DeepSeek Harness
+# Session Link
 
-[简体中文](README.md) | English
+**Let DSH sessions talk to each other. Make everyday chat easier.**
 
-Let **existing ordinary DSH sessions** message each other directly: send a request, receive an explicit reply, without creating a bot team or copy-pasting between chats.
+[简体中文](README.md) · English
 
-> **Status: private pre-release.** The repository is private and not public yet. License (MIT) and package name/scope (`@wangmo/dsh-session-link`) are settled; whether and when to publish are still pending the owner's decision. The screenshot below is a synthetic demo from an isolated environment; it contains no real conversations or credentials.
+![License: MIT](https://img.shields.io/badge/license-MIT-587561?style=flat-square) ![Node.js 24](https://img.shields.io/badge/Node.js-24-587561?style=flat-square)
 
-![Synthetic demo: a request from a product-weekly session to a design-review session, with an explicit reply](assets/screenshots/demo-cards.png)
+You already have development, product and research sessions. Session Link lets those sessions exchange messages, ask for help and receive explicit replies. Choose **bubble or card mode** to read results and inspect work your way. No new bot team, and less copying between chat windows.
 
-*Synthetic demo. Session names and content are fictional; the UI follows the host locale (Chinese screenshot shown here).*
+> **Preparing for open source; not released yet.** This preparation branch does not imply a public Release or npm package and does not update your installed plugin. Full bubble behavior has a separate Host adaptation requirement; read [installation and compatibility](docs/installation.en.md).
 
-## Compatibility
+![Bubble mode: Development consults Product discussion and continues with the answer](docs/assets/bubble-en.png)
 
-- DeepSeek Harness **0.2.1-rc.5** or **0.2.2-rc.1** (both tested)
-- **Node.js 24** (tested v24.21.0; `engines >=24` is a floor declaration, not a claim that every newer version was tested)
-- **Linux Web**
-- Windows/macOS, other DSH/Node versions and other deployment forms are not promised or verified.
+*All images use fictional content and product components/CSS in a labelled synthetic fixture. Host areas are mock stand-ins, not real conversations or end-to-end validation recordings.*
 
-## Language status
+## Let sessions exchange the question and answer
 
-Chinese and English are supported (only these two): the plugin UI follows the host locale, and main card/settings paths were verified in an isolated browser. User message bodies, subjects, identities and raw technical values are explicitly not translated. There are no separate `locale/*.json` resources; dynamic errors and very long copy are still being covered. See [LANGUAGES.md](LANGUAGES.md).
+Tell your development session:
 
-## Read the PRD first
+> Ask Product discussion whether the first version should start with weekly-report export or search. Then continue.
 
-Product requirements, the difference between the two display modes, confirmed boundaries and known gaps live in [PRD.md](PRD.md). This README covers install and usage only; where they differ, the PRD and the user's newer explicit decision win.
+It can find the product session and send a request. After an explicit reply, continue in the development session instead of carrying the question and answer between windows yourself.
 
-## What it does
+- **Use existing sessions:** discover registered ordinary sessions across workspaces, or ask to create a new session with its first task.
+- **Separate notifications from requests:** tell another session something, or ask it for a reply explicitly linked to your request.
+- **Inspect the exchange:** look at messages and delivery evidence. Host acceptance, context receipt and an explicit reply are different facts; none proves the work is done.
 
-- Ordinary sessions participate; no fixed IDs or pre-created teams required.
-- Explicit states: persisted (`accepted`) vs delivered into the target context (`receipt`) vs explicit reply. `accepted` is not "read".
-- Bubble mode by default, card mode preserved: bubbles show the message body plus one truthful line of elapsed time / reasoning count / tool count, while card mode keeps the original send/receive cards and native process view. Switching modes changes presentation only, never data or delivery.
-- Settings can pause delivery, limit concurrency and adjust reply waiting; the records page exposes status, cancellation, legacy held release and unknown re-checks. **Chain pause/resume/close currently exists only in model tools and the owner control plane — the records page has no buttons for it** (known gap, see PRD §8).
+![Synthetic collaboration sequence: send a question, receive a message, bring back a result](docs/assets/flow-en.gif)
 
-## Display modes: bubble and card
+You ask in natural language and the Agent calls tools. The panel holds settings and records, **not a manual message-sending form**. A model may still misunderstand scope or fail to coordinate; review important results. See [first use](docs/quickstart.en.md).
 
-- **Bubble mode (default)**: no reasoning or tool-process body, only the message body and one summary line (elapsed time · reasoning count · tool count, no tokens); empty process fragments do not become their own bubbles; prompts that need your action still appear.
-- **Card mode**: keeps the original send/receive cards, relay tool-call cards and native process view for when you want details.
-- The choice is stored in this browser only (plugin settings) and survives refresh; bubble is the default. Switching never touches messages, records, permissions or delivery.
-- **Full bubble behavior needs a Host-side seam**: the complete bubble flow and the per-turn agent badges rely on the Host's `conversation.chat.flow.adapter`. On this machine's DSH `0.2.2-rc.1` that seam is provided by a **version-pinned private Host web-client bridge**, which is not part of the plugin tgz and not official upstream DSH. Installing only this plugin package leaves the older per-seat skin: message bodies are still bubbles, but process fragments and per-turn agent badges may be incomplete. A Host upgrade can overwrite the bridge; re-adapt and re-authorize instead of reusing old hashes.
+## Two modes, for different moments
 
-## Get the source (private)
+### Bubble mode: read the result, without the noise
 
-The repository is currently private at `https://github.com/Wangmo-bit/dsh-session-link` (owner access required). After it becomes public the same URL can be cloned anonymously.
+For everyday conversation, delegation and reading results when you do not want to watch every execution step.
 
-## Install from source (not published to a registry)
+- Clear message bodies; long replies are not additionally clipped.
+- Reasoning and tool bodies stay out of the timeline; elapsed time and thought/tool counts occupy one line.
+- Lightweight message capsules open the exchange on demand.
+- Small Agent hints show participants and states only when the evidence supports them; dispatch is not completion.
+- A failed turn has a short status and expandable cause. Questions and approvals requiring you remain available.
 
-```bash
+![Bubble mode: message bodies, exchange capsules, one stats line and an Agent hint](docs/assets/bubble-en.png)
+
+### Card mode: keep the process and inspect the details
+
+For troubleshooting, checking execution, or simply preferring DSH's original process view.
+
+- Keeps native reasoning, tool steps and existing actions.
+- Groups sent and received messages in cards with sender, recipient and subject.
+- Expands bodies and technical details when you need them.
+
+![The same fictional collaboration in card mode, with cards and a mock process area](docs/assets/card-en.png)
+
+**Switch presentation, not messages, collaboration rights or permissions.** The preference is local to this browser and origin. Full bubble flow and per-turn Agent hints require the matching Host bridge; the plugin alone does not guarantee every behavior shown above. Card mode needs no bridge. See [installation](docs/installation.en.md).
+
+## Small interactions matter too
+
+- **Quote a reply:** the outline quote icon follows Copy in an assistant message's action strip. Click, then type your response. Nothing is sent automatically. Bodies longer than 1,200 Unicode code points use a marked opening excerpt; for a smaller selection, use the Host's selected-text quote action.
+- **Agent hints:** see participants and evidence-backed states without turning internal parent/child messages into peer-session capsules.
+- **Actions stay with the message:** copy, quote, feedback, branch and info follow the Host action strip's reveal rules instead of crowding the reading area.
+
+![Quote into the composer and continue your reply; the composer here is a labelled stand-in](docs/assets/quote-en.png)
+
+Quotes carry text, **not a permanent source-message link or a hard instruction to answer only that message**. They help the model understand your reference; your own instructions still matter.
+
+## Simple settings, adjustable when you need them
+
+Five shared communication settings: **enabled, pause new delivery, delivery channels, reply wait and completed-body retention**. Start with defaults and adjust when necessary.
+
+- Pause queues new delivery; it does not stop work already running in another session.
+- Channels limit delivery, not the number of models working.
+- Timeouts mark requests; they do not resend or cancel the work.
+- Retention cleans the plugin's completed bodies, not original Host chats.
+
+Display mode and your bubble display name are separate browser-local preferences. A name changes neither sender identity nor permissions. See [settings](docs/settings.en.md).
+
+<details>
+<summary>See the settings</summary>
+
+![Synthetic rendering of the settings component: 3 channels, 30 minutes, 30 days](docs/assets/settings-en.png)
+
+</details>
+
+## Install and start
+
+The currently available path is **build from source**; no public npm package or Release download is promised yet. Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web.
+
+```sh
+git clone https://github.com/Wangmo-bit/dsh-session-link.git
+cd dsh-session-link
 npm ci
 npm run build
-npm pack
-# produces wangmo-dsh-session-link-<version>.tgz
-VERSION=0.8.5
-dsh plugin --profile web add "./wangmo-dsh-session-link-${VERSION}.tgz" --offline
+npm pack --pack-destination ./output
+# Back up the selected profile first; use the actual generated tgz path:
+dsh plugin --profile web add /absolute/path/to/wangmo-dsh-session-link-VERSION.tgz
 ```
 
-Back up the profile's `package.json`, `pnpm-lock.yaml` and `cordis.patch.yml` before installing/upgrading. A refresh is usually enough for client-bundle-only changes; host-side or config changes may require restarting DSH under your maintenance authority.
+Until the repository is public, cloning requires owner-granted access. **Installing the plugin and modifying the Host are separate actions.** These commands do not automatically apply the bridge. Do not experiment in a daily-use profile.
 
-## First use
+Read [installation, compatibility and upgrades](docs/installation.en.md), then send a small, non-sensitive request using [first use](docs/quickstart.en.md). [Install trouble?](docs/known-issues.en.md)
 
-1. Call `session_link_operation` and keep the returned `operationId` (reuse it on retry; do not create duplicates).
-2. Call `session_link_send` with `targets`, `kind` (`notification` or `request`), `subject` and `text`.
-3. `request` asks for an explicit reply; `notification` does not. Neither means the target has read it.
-4. The target replies with `session_link_reply`, passing the original `messageId` and a new `operationId`.
-5. Status shown on cards is ledger truth: persisted, delivered into context, explicit reply.
+## Boundaries and data
 
-`session_link_create` takes exactly one location: an existing `workspaceId`, `newProject:{parentDir,directoryName,title?}` (creates a single-level directory), or `existingProject:{path,title?}` (registers an already existing directory through the Host workspace registry; it never creates, reads, or modifies that directory's contents).
+- The ledger stays in the local DSH data directory, not a separate cloud messaging service. Sent content still enters the receiving session and may reach its model provider.
+- History tools can read bounded user/assistant text from registered ordinary and archived sessions under their tool access. **There is no per-target consent switch.** Low intrusion does not mean no privacy impact.
+- Messages, quotes and referenced paths are context, not user approval for sensitive operations, and grant no additional permissions.
+- This is not a complete SuperAgent automatic-intake/task-management system and does not guarantee lower model usage.
+- Host adaptation, Agent attribution evidence, chain-control UI and cross-version rollback have limits: [known issues](docs/known-issues.en.md).
 
-If the target is busy, delivery happens at the next step boundary and does not interrupt a running tool batch.
+See the [security model](docs/security-model.md) and report vulnerabilities privately using the [security policy](SECURITY.en.md).
 
-## Security
+## Documentation and participation
 
-Messages are collaboration, not user authorization: a receiving session gains no extra permission and cannot approve sensitive actions on the user's behalf. Do not send credentials or private history to untrusted sessions.
+| I want to… | Read |
+| --- | --- |
+| Start or adjust settings | [First use](docs/quickstart.en.md) · [Settings](docs/settings.en.md) |
+| Install or troubleshoot | [Installation](docs/installation.en.md) · [Known issues](docs/known-issues.en.md) |
+| Understand the design | [Philosophy](docs/philosophy.md) · [Product contract](PRD.md) · [Architecture](docs/architecture.md) |
+| Report a problem or contribute | [Issues](https://github.com/Wangmo-bit/dsh-session-link/issues/new/choose) · [Contributing](CONTRIBUTING.en.md) · [Testing](TESTING.md) |
+| Check changes or release preparation | [Changelog](CHANGELOG.md) · [Releasing](RELEASING.md) · [Readiness](docs/open-source-readiness.md) |
 
-Security reporting is documented in [SECURITY.md](SECURITY.md). The repository is private, so GitHub private vulnerability reporting is not enabled yet; the owner must enable it before a public release.
+Concrete scenarios and problem reports are welcome. GitHub issue links may be unavailable before the repository opens. You never need to provide private conversations or full configuration files to report an issue.
 
-## Rollback
+## Acknowledgments and license
 
-Keep the previous `.tgz` in `~/.dsh/plugin-artifacts/<short-name>/`. To roll back, reinstall that package through the official entry point and then re-check the version:
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): the Host, models and tool ecosystem.
+- [SuperAgent research prototype](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/main/docs/000-philosophy.md): “Take as little human attention as possible, and give as much value as possible.” This plugin does not claim to implement its whole system.
+- [DS-Bot](https://github.com/Fei2411/DS-Bot): public collaboration and chat-presentation ideas; [dsh-go](https://github.com/ccch1mneyyy/dsh-go): product presentation, documentation and open-source preparation.
 
-```bash
-dsh plugin --profile web add ~/.dsh/plugin-artifacts/dsh-session-link/wangmo-dsh-session-link-<previous>.tgz
-```
-
-Ledger/pending-delivery/migration compatibility across versions is **not verified**; back up the profile and records before rolling back.
-
-## Testing and limits
-
-See [TESTING.md](TESTING.md) for scope, skipped cases and the isolation requirements for tests that use fixed `/tmp` paths. Real model/provider latency is outside this plugin; busy-target latency has no public benchmark yet.
-
-Known limits: full bubble mode and agent badges depend on the Host bridge described above; the records page has no chain pause/resume/close buttons; name-only reuse or automatic resume of subagents has no reliable persistent-id correlation and is not counted or guessed; cross-version ledger/rollback compatibility is not verified.
-
-## License
-
-Project-owned code is released under the **MIT License** (see [LICENSE](LICENSE), copyright holder `Wangmo-bit`). Third-party code/assets/dependencies keep their own licenses in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and are **not** relicensed by this project's MIT license.
+Project-owned code uses [MIT](LICENSE). Third-party material, dependencies and Host-bridge licensing are documented in [notices](THIRD_PARTY_NOTICES.md); demonstration assets in [asset notes](ASSETS.md). This is an independent community plugin, not an official DeepSeek product or an endorsed SuperAgent distribution. Your providers bill model usage; check important actions and results yourself.

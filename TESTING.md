@@ -1,42 +1,59 @@
-# 测试说明（公开候选）
+# 测试与验证 / Testing
 
-本文件描述公开候选的测试范围，**不是上游开发仓的全量测试**。
+[贡献说明](CONTRIBUTING.md) · [English contribution guide](CONTRIBUTING.en.md)
 
-## 开发/测试需要源码仓
+## 先隔离，再测试
 
-`npm ci`、`npm test`、`npm run build`、`npm pack --dry-run` 是**源码仓开发命令**；通过 tgz 安装的插件包不包含 `test/` 或 `scripts/`，不能在这些命令下运行测试。请从源码仓执行。运行 `npm test` 前必须满足下文的独立 `/tmp` 隔离前提；仅设置 `TMPDIR` 不够。
+测试包含固定 `/tmp/dsh-session-link-*` 路径、子进程、文件删除、锁竞争和 chmod 故障注入。不要在日用宿主的共享 `/tmp` 上运行完整套件。仅设置 TMPDIR 或换用户不够；root 还会绕过权限故障。
 
-```bash
-npm ci
-npm test
-npm run build
-npm pack --dry-run
+`npm test` 现在先检查 **Linux、非 root、独立挂载到 `/tmp` 的 tmpfs**，不满足就退出，避免误清理。按下面方式在一次性容器中运行：
+
+```sh
+docker build -f scripts/test.Dockerfile -t session-link-check .
+docker run --rm --network=none --read-only --user=node \
+  --cap-drop=ALL --security-opt=no-new-privileges \
+  --pids-limit=512 --memory=3g --cpus=4 \
+  --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g,mode=1777 \
+  session-link-check
 ```
 
-## 测试结果与环境
+镜像构建阶段 `npm ci` 需要访问依赖源；测试运行阶段断网、只读根文件系统，源码/依赖复制到 tmpfs 后才测试、构建和核对包清单。退出即销毁所有测试数据。固定 Node 24 镜像 digest 见 Dockerfile；不是启动新的 DSH 服务。
 
-- 测试数量和结果以目标提交的本次运行记录为准；旧版候选的统计不代表当前版本。
-- 宿主集成用例需显式提供对应的 client bundle 环境变量；未提供时会跳过，不能把跳过当作通过。
-- 运行完整测试套件前，必须满足本文件下方的隔离前提；仅设置 `TMPDIR` 不够。
+`npm test` 用 `scripts/run-tests.mjs` 发现 test 和 scripts 的测试，包括 rc.1 桥接与安装器，不再手写容易漏挂的长列表。新增脚本子目录如需被发现，须修改 runner 的白名单。安装器测试使用合成前后像；它的隔离环境变量由经过守卫的 runner 设置。
 
-## 与上游测试的差异（面向用户）
+## 哪些测试依赖实际 Host
 
-公开候选不携带绝大多数内部运维/试验脚本；保留了一个**测试专用 helper** `scripts/deactivate-managed-entry.mjs`，仅由 `scripts/deactivate-managed-entry.test.mjs` 通过临时 fixture 目录调用，用于验证 managed 行移除/崩溃安全；它带有 `/tmp` 与 `--allow-production` 守卫，**不提供默认运行入口，不要对真实 profile 运行**。opt-in 真实模型 fixture（`fixtures/live.js`）已移除，候选不含真实模型测试。相对于上游 `npm test`，删除了 4 个内部 runner/设计文档相关测试文件，另有 8 个本来就不在上游 `npm test` 通配内的 spike/harness 测试未纳入。因此公开候选**未验证**这些 runner/默认权限/模型 fail-closed 等内部范围，不能视为与上游等价。内部逐项映射与减少范围记录在本地准备材料中，不随包分发。
+上述镜像在构建时用 `scripts/prepare-host-fixtures.mjs` 获取并核验三份固定公开 SDK bundle，运行时只读使用；因此 CI 配方可以覆盖这些集成用例。直接运行源码而未提供夹具时，下列用例会明确跳过，不能把跳过算成兼容通过：
 
-环境适配：`scripts/ui-incoming.test.mjs` 移除了针对特定本机安装路径的硬编码回退，只保留 `DSH_CLIENT_CONVERSATION` 环境变量入口；这属于环境调整，不是未修改测试。
+| 环境变量 | 需要的文件 / 范围 |
+| --- | --- |
+| `DSH_CHAT_FLOW_CLIENT` | 精确 rc.5 chat bundle，用于旧桥接用例 |
+| `DSH_CHAT_RC1_CLIENT` | 原始 DSH `0.2.2-rc.1` chat bundle；精确 SHA 校验、桥生成和一次性前缀安装器验收 |
+| `DSH_CLIENT_CONVERSATION` | 对应版本 conversation bundle；真实 dispatcher 的 4 个集成用例 |
+| `DSH_CHAT_CLIENT` | 旧滚动补丁需要的精确 client artifact（具体入口以测试源码为准） |
 
-## CI 运行身份（重要）
+只读挂载相应公开 SDK 夹具进测试容器并设置变量，禁止挂载生产 profile 或真实会话。桥接测试只修改 `/tmp` 中专门创建的假安装前缀，不改系统 DSH。不同历史测试的实际变量名以源码为准，不伪造环境使 skip 变 pass。
 
-CI 在一次性容器中运行，但容器默认是 **root**。部分存储测试用 `chmod` 只读来注入写入失败，root 会绕过权限导致“期望拒绝未发生”。因此 CI 在 `npm ci` 后执行 `chown -R node:node .`，并以镜像内非 root 用户 `node` 运行 `npm test`/`build`/`pack`。不要为了让测试变绿而删除或跳过这些断言；若在本地以 root 运行测试，同样会失效，应先切到非 root。
+## 按改动选择证据
 
-## 测试副作用与资源边界（重要）
+- 协议/存储：幂等、显式 reply、暂停、unknown、超时、旧数据迁移、锁与恢复。
+- 客户端：气泡/卡片两条路径、作者身份、附件、审批、引用、操作行、Agent 归属与滚动。
+- Host 维护：精确前后像、版本拒绝、备份、并发写入、原子替换、失败证据和重试。
+- 包与文档：`npm run build` 后 `npm run check:public -- --pack`。检查是有限规则，不代替全历史人工审计。
 
-测试**不是**无进程、无删除、无固定路径副作用的：
+UI 的 React/合成用例不是实际模型、图片上传、浏览器全部时序或真实权限验证。代码中保留原生动作也不等于已点过。应分别报告通过、失败、跳过和未运行。
 
-- `test/core-lock-multiprocess.test.js` 会 `spawn` Node 子进程（持锁/竞争）。**正常路径**：`SIGTERM` 后 `await waitExit`；**异常兜底**：`finally` 里的 `SIGKILL` **没有 await 退出**，因此不保证异常分支子进程已收回。代码等待也不等同于外部可审计的进程树终态。
-- `test/core-create.test.js`、`scripts/v04/fixture-guard.test.mjs`、`scripts/deactivate-managed-entry.test.mjs` 等使用真实文件系统并递归 `rm` 临时目录；多数用 `mkdtemp` 唯一根，但并非所有用例都如此。
-- `scripts/v02/fixture-guard.test.mjs`、`scripts/v03/fixture-guard.test.mjs`、`scripts/v03/fixture-model.test.mjs`、`scripts/stress/fixture-guard.test.mjs` 使用**固定** `/tmp/dsh-session-link-*` 目录；重复运行可能覆盖/清理同路径旧物，运行前无法证明归属。
-- 因此“测试通过”不能证明没有子进程、没有删除、没有覆盖旧临时文件。**固定字面量 `/tmp/...` 不受 `TMPDIR` 重定向影响；新用户也不自动隔离 `/tmp`**，二者都不足以保护这些用例。
-- 运行固定路径用例的前提：在**独立挂载命名空间或容器内独立 `/tmp`** 中，并先证明该 `/tmp` 未映射宿主真实路径；否则这些用例先不跑。
-- 本候选此前那次 `npm test` 运行日志 `/tmp/final-test.log` 的写前状态同其他固定路径一样未知，不能仅凭“当前没有文件”推断无影响；不要删除/探测未知内容，记录为未知事实。
-- 不要在本机共享 `/tmp` 上盲跑，也不要把本候选测试当作无副作用验证。
+## 演示素材不是验收录像
+
+```sh
+npm ci
+# 若尚无浏览器，开发者可自行安装与 playwright-core 匹配的 Chromium。
+# 或通过 CHROMIUM_PATH 显式指定一个已有浏览器。
+npm run docs:assets
+```
+
+离线组件演示不连接 DSH、不读取 DSH_HOME、不发送消息，只有虚构会话和标注的宿主替身。生成说明和可选 GIF 工具见 [ASSETS](ASSETS.md)。生成素材本身不证明真正的跨会话调用或生产可用。
+
+## English summary
+
+The full suite mutates files, uses fixed /tmp names and starts subprocesses. Run it only in the documented disposable, non-root Linux container with a private tmpfs mounted at /tmp; TMPDIR alone is not isolation. The default runner refuses unsafe environments. Dependencies are fetched during image build, then tests/build/pack run offline. Optional Host SDK tests skip explicitly unless exact read-only fixtures are supplied. Synthetic UI images are presentation fixtures, not end-to-end, live-model, permission or production-installation evidence.

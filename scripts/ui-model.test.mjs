@@ -377,7 +377,7 @@ test('no budget UI, no manual send form and no hard-coded old capacities', async
   assert.match(source, /migration\.backupAvailable/);
   assert.doesNotMatch(source, /backupPath/);
   assert.match(source, /const TAB_ORDER = \['settings', 'records'\]/);
-  assert.equal((source.match(/<input /g) ?? []).length, 6, 'five relay inputs plus a mapped local display-mode radio');
+  assert.equal((source.match(/<input /g) ?? []).length, 7, 'five relay inputs plus local mode and local display-name fields');
   assert.match(source, /name="sl-display-mode"/);
   assert.match(source, /style\.textContent = css \+ CARD_CSS;/);
   assert.doesNotMatch(source, /css \+ CARD_CSS \+ BUBBLE_CSS/, 'legacy cards must not inherit bubble-only overrides');

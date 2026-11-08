@@ -570,7 +570,7 @@ test('user skin keeps Host actions outside the bubble and preserves the full ori
   copyButton.props.onClick();
   assert.deepEqual(fixture.copied, [long], 'copy uses the untouched original text');
 
-  const { article, bubble } = assertSingleBubbleSibling(view.tree, '王墨');
+  const { article, bubble } = assertSingleBubbleSibling(view.tree, '我');
   const nativeNode = findOne(article, (node) => hasProp(node, 'data-native'), 'native renderer');
   assert.ok(hasAncestor(bubble, (node) => node === nativeNode), 'text bubble stays inside the native renderer');
   assert.ok(!hasAncestor(copyButton, (node) => node === bubble), 'native copy action stays outside the text surface');
