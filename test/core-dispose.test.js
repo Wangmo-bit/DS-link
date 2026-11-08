@@ -216,7 +216,7 @@ test('plugin close is idempotent, disposes route/tools/section, and a new genera
     clock: () => clock.read(),
   })
   t.after(() => second.close())
-  assert.equal((await second.snapshot({})).version, '0.8.10')
+  assert.equal((await second.snapshot({})).version, '0.8.11')
   assert.equal((await second.snapshot({})).messages.length, 1)
   const again = await second.engine.send({
     from: 'A',

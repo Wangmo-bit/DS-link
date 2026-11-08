@@ -160,6 +160,7 @@ function formatCount(value, label) {
 function statusPrefix(status) {
   if (status === 'interrupted') return '已停止';
   if (status === 'error') return '执行失败';
+  if (status === 'max-tokens') return '超过上限';
   return '';
 }
 

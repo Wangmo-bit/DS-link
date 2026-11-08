@@ -30,6 +30,7 @@ function statusOf(turn) {
   const reason = turn?.end?.data?.reason?.kind;
   if (reason === 'error') return 'error';
   if (reason === 'aborted' || reason === 'interrupted') return 'interrupted';
+  if (reason === 'max-tokens') return 'max-tokens';
   return undefined;
 }
 function thinkingCountOf(turn) {
@@ -74,10 +75,18 @@ function RunningHeading({ turn, control, agents }) {
 function SummaryHeading({ turn, control, running, agents }) {
   return running ? <RunningHeading turn={turn} control={control} agents={agents}/> : <EndedHeading turn={turn} control={control} agents={agents}/>;
 }
-function EndedHeading({ turn, control, agents }) {
+function EndedHeading({ turn, control, agents, action }) {
   const text = endedText({ turn, control });
-  if (!text && !agents?.length) return null;
-  return <span className="sl-chat-summary sl-heading-process">{text}{agents?.length ? <>{text ? <span className="sl-summary-divider" aria-hidden="true">·</span> : null}<AgentBadges badges={agents}/></> : null}</span>;
+  if (!text && !agents?.length && !action) return null;
+  return <span className="sl-chat-summary sl-heading-process">{text}{agents?.length ? <>{text ? <span className="sl-summary-divider" aria-hidden="true">·</span> : null}<AgentBadges badges={agents}/></> : null}{action ? <>{text || agents?.length ? <span className="sl-summary-divider" aria-hidden="true">·</span> : null}{action}</> : null}</span>;
+}
+// The original Host terminal block is kept but stays inside the bubble. It only
+// mounts when the user asks for it, so the timeline itself is one honest line.
+function TerminalDisclosure({ open, onToggle }) {
+  return <button type="button" className="sl-terminal-toggle" aria-expanded={open} onClick={onToggle}>{open ? '收起原因' : '查看原因'}</button>;
+}
+function TerminalDetail({ flow, NativeFlow, entries }) {
+  return <div className="sl-terminal-detail" data-sl-terminal-detail="">{<NoRunningFlow flow={flow} NativeFlow={NativeFlow} entries={entries}/>}</div>;
 }
 // One inline SVG per state. The silhouette is the same for every state; only the
 // colour changes, so a glance reads "how many are still working" without having
@@ -175,7 +184,8 @@ function AnchorOnly({ entry }) {
 // A process segment plus its own response. Segments are grouped by the Host, so
 // the text that finishes a turn may arrive in a later segment: `turnHasText`
 // keeps earlier text-less segments from drawing an empty bubble.
-function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention, agents }) {
+function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention, agents, terminal }) {
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const firstEntry = plan.groups[0], groupKey = firstEntry?.kind === 'group' ? firstEntry.key : '';
   const groupTurn = flow.useChatGroup(groupKey, group => group?.data.turn);
   const memberKey = flow.useChatGroup(groupKey, group => group?.members?.[0]?.key);
@@ -204,24 +214,28 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
   // statistics belong to the turn's carrier bubble once it ends.
   const runningLine = running && live;
   const endedLine = !running && carrySummary && (endedText({ turn, control: controlNode }) !== '' || Boolean(agents?.length));
-  if (!hasText && !runningLine && !attentionLine && !endedLine) return null;
+  const terminalLine = !running && carrySummary && Array.isArray(terminal) && terminal.length > 0;
+  if (!hasText && !runningLine && !attentionLine && !endedLine && !terminalLine) return null;
+  const showTerminal = terminalOpen && terminalLine;
   const key = plan.response?.key ?? plan.groups[0]?.key;
   return <div data-sl-native-message="" data-chat-turn={plan.turn} data-chat-flow-key={key} data-chat-anchor-key={`sl-native:${key}`} data-chat-paging-anchor="">
     {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
-    <MessageBubble author={author} bodyless={!hasText && !runningLine && !attentionLine} heading={runningLine
+    <MessageBubble author={author} bodyless={!(hasText || runningLine || attentionLine || showTerminal)} heading={runningLine
       ? <RunningHeading turn={turn} control={controlNode} agents={agents}/>
-      : endedLine ? <EndedHeading turn={turn} control={controlNode} agents={agents}/> : null}>
+      : endedLine || terminalLine ? <EndedHeading turn={turn} control={controlNode} agents={agents} action={terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
         ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
         : runningLine ? <ThinkingDots/> : null}
+      {showTerminal && <TerminalDetail flow={flow} NativeFlow={NativeFlow} entries={terminal}/>}
     </MessageBubble>
   </div>;
 }
 // A turn whose loaded window holds no other material: the live bubble while it
 // runs, or a statistics-only bubble once it ended without producing text.
-function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention, agents }) {
+function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention, agents, terminal }) {
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const node = flow.useChatNode(plan.entry.key);
   if (!node) return <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.entry)}/>;
   const turn = node.location?.turn;
@@ -229,24 +243,27 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
   const attentionLine = carrySummary && attention.needsInput;
   const runningLine = running && carrySummary;
   const endedLine = !running && carrySummary && (endedText({ turn, control: node }) !== '' || Boolean(agents?.length));
-  if (!runningLine && !attentionLine && !endedLine) return null;
+  const terminalLine = !running && carrySummary && Array.isArray(terminal) && terminal.length > 0;
+  if (!runningLine && !attentionLine && !endedLine && !terminalLine) return null;
+  const showTerminal = terminalOpen && terminalLine;
   return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}>
-    <MessageBubble author={author} bodyless={!runningLine && !attentionLine} heading={runningLine
+    <MessageBubble author={author} bodyless={!(runningLine || attentionLine || showTerminal)} heading={runningLine
       ? <RunningHeading turn={turn} control={node} agents={agents}/>
-      : endedLine ? <EndedHeading turn={turn} control={node} agents={agents}/> : null}>
+      : endedLine || terminalLine ? <EndedHeading turn={turn} control={node} agents={agents} action={terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {runningLine ? <ThinkingDots/> : null}
+      {showTerminal && <TerminalDetail flow={flow} NativeFlow={NativeFlow} entries={terminal}/>}
     </MessageBubble>
   </div>;
 }
 // Rows that describe an internal mechanism rather than the conversation. They
 // keep an invisible anchor so paging and navigation still resolve, but never draw
 // a fragment between bubbles (user decision 2026-11-06: "要么进气泡，要么不要出现").
-// Only mechanism plumbing is silenced. Rows that carry real user-visible
-// information keep rendering natively: `turn-error` / `turn-max-tokens` report a
-// terminal failure the bubble does not reproduce, `manual-compaction` is a command
-// the user issued, and `context` is injected content.
+// Terminal failure rows are handled by the turn's own bubble instead of a stray
+// row outside it (user decision 2026-11-08): the summary line names the failure
+// and an in-bubble disclosure reveals the original Host block on demand.
 const SILENT_ROWS = new Set(['model-retry', 'turn-tail', 'turn-trigger']);
+const TERMINAL_ROWS = new Set(['turn-error', 'turn-max-tokens']);
 function BubbleFlow({ NativeFlow, ...flow }) {
   const nodes = flow.useChat(snapshot => snapshot.nodes);
   // `nodes` is a stable live reader, not an immutable value. Subscribe to the
@@ -296,6 +313,28 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   const identity = session?.projectionValues?.subagent;
   const author = session?.origin === 'subagent' || identity?.mode ? identity?.label || '子智能体' : session?.title || '助手';
   const plans = useMemo(() => planNativeFlow(flow.entries, nodes), [flow.entries, nodes]);
+  // Terminal Host rows stay available for the bubble that owns them: the row no
+  // longer paints between bubbles, and its original block is rendered only when
+  // the user opens the bubble's "查看原因" disclosure.
+  // A turn only owns its terminal row if it also has a bubble to carry the
+  // disclosure; otherwise the row must stay native rather than vanish.
+  const carriedTurns = useMemo(() => new Set(plans.filter(plan => plan.kind !== 'native' && Number.isSafeInteger(plan.turn)).map(plan => plan.turn)), [plans]);
+  const terminalByTurn = useMemo(() => {
+    const map = new Map();
+    for (const plan of plans) {
+      if (plan.kind !== 'native') continue;
+      for (const entry of plan.entries) {
+        if (entry.kind !== 'node') continue;
+        const node = nodes.get(entry.key);
+        if (!node || !TERMINAL_ROWS.has(node.kind)) continue;
+        const turn = node.location?.kind === 'turn' ? node.location.turn?.turn : undefined;
+        if (!Number.isSafeInteger(turn)) continue;
+        const list = map.get(turn);
+        if (list) list.push(entry); else map.set(turn, [entry]);
+      }
+    }
+    return map;
+  }, [plans, nodes]);
   // Running ids actually attributed to a turn in this session. A Team send is
   // only an admission, so its later completion is provable only after we saw
   // that member running in that turn. The map is per mounted flow and only ever
@@ -453,7 +492,9 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       // and invalidates the Host's retained DOM paging anchor.
       for (const entry of plan.entries) {
         const node = entry.kind === 'node' ? nodes.get(entry.key) : undefined;
-        rows.push(node && SILENT_ROWS.has(node.kind)
+        const terminalTurn = node?.location?.kind === 'turn' ? node.location.turn?.turn : undefined;
+        const ownedTerminal = node && TERMINAL_ROWS.has(node.kind) && Number.isSafeInteger(terminalTurn) && carriedTurns.has(terminalTurn);
+        rows.push(node && (SILENT_ROWS.has(node.kind) || ownedTerminal)
           ? <AnchorOnly key={`silent:${entryKey(entry)}`} entry={entry}/>
           : <NoRunningFlow key={`native:${entryKey(entry)}`} NativeFlow={NativeFlow} flow={flow} entries={singleton(entry)}/>);
       }
@@ -463,8 +504,8 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     if (early && plan.kind === 'control' && plan.entry.key === tail?.key) rows.push(<NoRunningFlow key={`echo:${early.requestId}`} NativeFlow={NativeFlow} flow={flow} entries={EMPTY_INPUTS} pendingInputs={[early]}/>);
     const attention = attentionOf(plan.turn);
     rows.push(plan.kind === 'control'
-      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)}/>
-      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)}/>);
+      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)} terminal={terminalByTurn.get(plan.turn)}/>
+      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)} terminal={terminalByTurn.get(plan.turn)}/>);
   }
   // If an unexpected projection removed the opening controller, show its echo
   // at the tail rather than silently losing it.

@@ -1,6 +1,7 @@
-// Render-level contract for the 2026-11-06 "no timeline fragments" rule: mechanism
-// rows keep an anchor but draw nothing, while rows carrying real user-visible
-// information (terminal failures, token-limit stops) still reach the native renderer.
+// Render-level contract for the timeline rules: mechanism rows keep an anchor but
+// draw nothing; terminal failure rows no longer paint between bubbles either.
+// (User decision 2026-11-08: the turn bubble states the failure in its summary
+// line and reveals the original Host block only through its own disclosure.)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -19,6 +20,7 @@ const nodes=new Map([
  ['trigger',{kind:'turn-trigger',location:{kind:'turn',turn:closed},data:{turn:7}}],
  ['error',{kind:'turn-error',location:{kind:'turn',turn:closed},data:{turn:7,failure:{message:'boom',code:'E1'}}}],
  ['maxtok',{kind:'turn-max-tokens',location:{kind:'turn',turn:closed},data:{turn:7}}],
+ ['control',{kind:'turn-process',location:{kind:'turn',turn:closed},data:{turn:7,toolCallCount:1}}],
  ['compact',{kind:'manual-compaction',location:{kind:'turn',turn:closed},data:{turn:7}}],
 ]);
 const base={sessionId:'self',pendingInputs:[],lastInputTurn:7,useChat:fn=>fn({nodes}),useSessions:fn=>fn({byId:{self:{title:'助手'}}}),useChatNode:(key,fn=x=>x)=>fn(nodes.get(key)),useChatGroup:(key,fn=x=>x)=>fn(undefined),usePresentation:fn=>fn({foldCompletedTurns:true,stepGrouping:'collapsed'}),NativeFlow};
@@ -35,9 +37,15 @@ test('mechanism rows draw nothing while remaining resolvable',()=>{
  assert.deepEqual(drawn,[],'model-retry / turn-tail / turn-trigger must not reach the renderer');
 });
 
-test('terminal failure and token-limit rows still reach the renderer',()=>{
+test('terminal failure and token-limit rows stay out of the timeline itself',()=>{
  drawn.length=0;
- const entries=['error','maxtok','compact'].map(key=>({kind:'node',key}));
+ const entries=['control','error','maxtok','compact'].map(key=>({kind:'node',key}));
  mount(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries}));
- assert.deepEqual(drawn.sort(),['compact','error','maxtok'],'real information must never be swallowed');
+ assert.deepEqual(drawn.sort(),['compact'],'terminal rows are owned by the turn bubble, not painted as stray rows');
+});
+
+test('a terminal row with no bubble to own it stays visible instead of vanishing',()=>{
+ drawn.length=0;
+ mount(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'error'}]}));
+ assert.deepEqual(drawn,['error'],'never swallow a failure just because the turn produced no bubble');
 });

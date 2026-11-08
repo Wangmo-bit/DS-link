@@ -217,6 +217,15 @@ test('ended turn formats elapsed time and real counts, including zero', () => {
   assert.doesNotMatch(formatTurnSummary({ thinkingCount: 0, toolCount: 0 }), /undefined|NaN|null/);
 });
 
+test('terminal status prefix names the state before the real counts', () => {
+  assert.equal(formatTurnSummary({ elapsedMs: 5000, thinkingCount: 2, toolCount: 3, status: 'error' }), '执行失败 · 耗时 5 秒 · 2 次思考 · 3 次工具');
+  assert.equal(formatTurnSummary({ status: 'error' }), '执行失败');
+  assert.equal(formatTurnSummary({ status: 'interrupted' }), '已停止');
+  assert.equal(formatTurnSummary({ status: 'max-tokens' }), '超过上限');
+  assert.equal(formatTurnSummary({ status: 'max-tokens', elapsedMs: 5000 }), '超过上限 · 耗时 5 秒');
+  assert.equal(formatTurnSummary({ status: 'unknown' }), '');
+});
+
 test('time format switches to minutes and seconds at 60 seconds', () => {
   assert.equal(formatTurnSummary({ elapsedMs: 0 }), '耗时 0 秒');
   assert.equal(formatTurnSummary({ elapsedMs: 999 }), '耗时 0 秒');
