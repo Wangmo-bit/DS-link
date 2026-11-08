@@ -179,5 +179,5 @@
 - 协议、当前工具及技术常量：[constants.js](src/core/constants.js)、[tools.js](src/host/tools.js)、[engine.js](src/core/engine.js)。
 - 显示模式与气泡：[display-mode.mjs](src/client/display-mode.mjs)、[native-flow.jsx](src/client/native-flow.jsx)、[native-flow-plan.mjs](src/client/native-flow-plan.mjs)、[chat-skin.jsx](src/client/chat-skin.jsx)。
 - 胶囊与往返：[chat-ui.jsx](src/client/chat-ui.jsx)、[exchange-page.mjs](src/client/exchange-page.mjs)、[subagent-message.jsx](src/client/subagent-message.jsx)、[subagent-history.mjs](src/client/subagent-history.mjs)。
-- 0.8.6 / 0.8.5 与此前变更记录：[CHANGELOG.md](CHANGELOG.md)、[RELEASE_NOTES-0.8.6.md](RELEASE_NOTES-0.8.6.md)、[RELEASE_NOTES-0.8.5.md](RELEASE_NOTES-0.8.5.md)。
+- 0.8.6 / 0.8.5 与此前变更记录：[CHANGELOG.md](CHANGELOG.md)、[RELEASE_NOTES-0.8.6.md](docs/releases/RELEASE_NOTES-0.8.6.md)、[RELEASE_NOTES-0.8.5.md](docs/releases/RELEASE_NOTES-0.8.5.md)。
 - 版本锁定的 Host 桥生成与受控维护：[dsh-web-flow-bridge-rc1.mjs](scripts/dsh-web-flow-bridge-rc1.mjs)、[install-host-flow-bridge-rc1.mjs](scripts/install-host-flow-bridge-rc1.mjs)。它们不赋予任何安装/重启许可。
