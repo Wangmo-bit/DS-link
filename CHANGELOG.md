@@ -2,14 +2,14 @@
 
 各版本详细说明统一收在 [版本说明目录](docs/releases/README.md)，根目录只保留本更新日志作为入口。
 
-> 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；新的 `0.8.16-pre.1` 是开源准备候选，未安装、未发布。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
+> 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；新的 `0.8.16-pre.1` 是开源准备候选，已获后续独立授权安装到日用环境、未公开发布。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
 
 ## 0.8.16-pre.1 — 2026-11-08 · 未发布 / Unreleased
 
 - 开放准备：中英产品首页与合成展示、公共使用/安装/设置/排障/安全/贡献说明、反馈模板、依赖与包元数据、第三方许可。
 - 气泡称呼不再写死维护者姓名，改为中性默认与浏览器本地名称设置；不改变发件身份。
 - Host 桥保留为单独、显式前缀、默认只读检查的版本锁定维护工具，不自动安装；测试入口和 CI 增加隔离守卫与公开 SDK 夹具，补齐桥接/安装器回归。
-- Open-source preparation only: bilingual product docs/assets, local display-name preference, portable opt-in Host maintenance, isolated SDK-backed regression and attribution. No production installation, public release or Git history rewrite.
+- Open-source preparation only: bilingual product docs/assets, local display-name preference, portable opt-in Host maintenance, isolated SDK-backed regression and attribution. Initially preparation-only; separately authorized for daily-use installation on 2026-11-08. No public release or Git history rewrite.
 - 详情：[候选说明](docs/releases/RELEASE_NOTES-0.8.16-pre.1.md) · [实际验收与待定项](docs/open-source-readiness.md)。
 
 ## 0.8.15 — 2026-11-08
