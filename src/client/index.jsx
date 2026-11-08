@@ -37,6 +37,7 @@ import { CARD_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
 import { installChatSkin } from './chat-skin.jsx';
+import { installMessageQuote } from './message-quote.mjs';
 import { MessageBubble, CopyMessage, ExchangeLink } from './chat-ui.jsx';
 import { installI18n, translateText } from './i18n.js';
 import { useDisplayMode, setDisplayMode } from './display-mode.mjs';
@@ -560,6 +561,7 @@ export function apply(ctx) {
   }, LinkIcon));
   try {
     installChatSkin(ctx);
+    const disposeMessageQuote = installMessageQuote(ctx);
   } catch (error) {
     // A visual skin failure must not take messaging down; keep the cause in
     // the developer console rather than silently hiding an assembly failure.

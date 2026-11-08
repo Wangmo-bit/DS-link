@@ -56,3 +56,17 @@ test('the in-bubble disclosure reveals the original Host block on demand',()=>{
  assert.deepEqual(drawn,['err'],'expanding mounts the original terminal block inside the bubble');
  assert.match(text(ui.tree),/收起原因/);
 });
+
+test('an ended message with text offers a one-click quote action',()=>{
+ const okTurn={turn:8,status:'closed',start:{time:1000},end:{time:21000,data:{reason:{kind:'completed'}}},steps:[]};
+ const textNodes=new Map([
+  ['ctrl2',{kind:'turn-process',location:{kind:'turn',turn:okTurn},data:{turn:8,toolCallCount:0}}],
+  ['resp2',{kind:'assistant-step',location:{kind:'turn',turn:okTurn},data:{turn:8}}],
+ ]);
+ const base2={...base,useChat:fn=>fn({nodes:textNodes}),useChatNode:(key,fn=x=>x)=>fn(textNodes.get(key))};
+ drawn.length=0;
+ const ui=mount(React.createElement(mod.exports.NativeFlowAdapter,{...base2,entries:[{kind:'node',key:'ctrl2'},{kind:'node',key:'resp2'}]}));
+ assert.match(text(ui.tree),/引用/,'the quote action lives on the message heading');
+ assert.ok(ui.find(node=>String(node.props?.className??'').includes('sl-quote-action')));
+ assert.ok(ui.find(node=>node.props?.['data-sl-quote-text']!==undefined));
+});

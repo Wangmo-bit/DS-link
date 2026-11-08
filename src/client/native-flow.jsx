@@ -15,6 +15,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
+import { quoteMessage } from './message-quote.mjs';
 import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, subagentReuseSignature, teamDispatchSignature, teamRosterSignature, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 
@@ -186,6 +187,13 @@ function AnchorOnly({ entry }) {
 // keeps earlier text-less segments from drawing an empty bubble.
 function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention, agents, terminal }) {
   const [terminalOpen, setTerminalOpen] = useState(false);
+  // Quote the rendered message into the composer through the Host's own quote
+  // machinery (atomic quote block, removable by the user).
+  const onQuote = event => {
+    const message = event?.currentTarget?.closest?.('.sl-chat-message');
+    const source = message?.querySelector?.('[data-sl-quote-text]');
+    quoteMessage(flow.sessionId, source?.innerText ?? '');
+  };
   const firstEntry = plan.groups[0], groupKey = firstEntry?.kind === 'group' ? firstEntry.key : '';
   const groupTurn = flow.useChatGroup(groupKey, group => group?.data.turn);
   const memberKey = flow.useChatGroup(groupKey, group => group?.members?.[0]?.key);
@@ -223,10 +231,10 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
     <MessageBubble author={author} bodyless={!(hasText || runningLine || attentionLine || showTerminal)} heading={runningLine
       ? <RunningHeading turn={turn} control={controlNode} agents={agents}/>
-      : endedLine || terminalLine ? <EndedHeading turn={turn} control={controlNode} agents={agents} action={terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}/> : null}>
+      : endedLine || terminalLine ? <EndedHeading turn={turn} control={controlNode} agents={agents} action={(hasText || terminalLine) ? <span className="sl-heading-actions">{hasText ? <button type="button" className="sl-quote-action" aria-label="引用这条消息，插入输入框" title="引用这条消息" onClick={onQuote}>引用</button> : null}{terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}</span> : null}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
-        ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
+        ? <div className="sl-quote-source" data-sl-quote-text=""><NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/></div>
         : runningLine ? <ThinkingDots/> : null}
       {showTerminal && <TerminalDetail flow={flow} NativeFlow={NativeFlow} entries={terminal}/>}
     </MessageBubble>

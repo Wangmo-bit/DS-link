@@ -163,6 +163,13 @@ body[data-ds-dark-theme], html[data-ds-dark-theme] body {
 .sl-terminal-toggle:hover, .sl-terminal-toggle:focus-visible { opacity: 1; }
 .sl-terminal-toggle:focus-visible { outline: 2px solid #829aff; outline-offset: 2px; border-radius: 4px; }
 .sl-terminal-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+/* One-click quote lives next to the turn summary; it inserts the rendered text
+   into the Host composer as an atomic quote (Host quote machinery reused). */
+.sl-heading-actions { display: inline-flex; align-items: center; gap: 8px; }
+.sl-quote-action { border: 0; background: none; color: inherit; font: inherit; font-size: 11px; line-height: 1.5; padding: 0 2px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; opacity: .72; }
+.sl-quote-action:hover, .sl-quote-action:focus-visible { opacity: 1; }
+.sl-quote-action:focus-visible { outline: 2px solid #829aff; outline-offset: 2px; border-radius: 4px; }
+.sl-quote-source { display: block; }
 /* A pending user action is the one thing that must stay visible in bubble mode. */
 .sl-bubble-attention { margin:0 0 .6em; color:var(--sl-chat-ink); font-size:12px; }
 .sl-inline-process { display: flex; flex-direction: column; gap: 5px; padding: 0 0 10px; margin-bottom: 10px; border-bottom: 1px solid var(--sl-chat-border); color: var(--sl-chat-muted); font-size: 12px; }
