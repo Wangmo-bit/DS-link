@@ -8,7 +8,7 @@ English · [简体中文](README_ZH.md)
 
 You already have development, product and research sessions. DS-link lets those sessions exchange messages, ask for help and receive explicit replies. Choose **bubble or card mode** to read results and inspect work your way. No new bot team, and less copying between chat windows.
 
-> **Preparing for open source; not released yet.** This preparation branch does not imply a public Release or npm package and does not update your installed plugin. Full bubble behavior has a separate Host adaptation requirement; read [installation and compatibility](docs/installation.en.md).
+> **Private preview; not publicly released.** Repository collaborators can use the [private prerelease](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6). There is no public npm package, and a release does not update your installed plugin. Full bubble behavior has a separate Host adaptation requirement; read [installation and compatibility](docs/installation.en.md).
 
 ![Bubble mode: Development consults Product discussion and continues with the answer](docs/assets/bubble-en.png)
 
@@ -94,7 +94,7 @@ Display mode and your bubble display name are separate browser-local preferences
 
 ## Install and start
 
-The currently available path is **build from source**; no public npm package or Release download is promised yet. Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web.
+Repository collaborators can download the `.tgz` from the [private prerelease](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6) and follow [installation](docs/installation.en.md). There is no public npm package or anonymously accessible Release. **Building from source** is also supported. Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web.
 
 ```sh
 git clone https://github.com/Wangmo-bit/DS-link.git
@@ -135,8 +135,7 @@ Concrete scenarios and problem reports are welcome. GitHub issue links may be un
 
 ## Acknowledgments and license
 
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): the Host, models and tool ecosystem.
-- [SuperAgent research prototype](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/main/docs/000-philosophy.md): “Take as little human attention as possible, and give as much value as possible.” This plugin does not claim to implement its whole system.
-- [DS-Bot](https://github.com/Fei2411/DS-Bot): public collaboration and chat-presentation ideas; [dsh-go](https://github.com/ccch1mneyyy/dsh-go): product presentation, documentation and open-source preparation.
+- [DS-Bot](https://github.com/Fei2411/DS-Bot): a public design reference for collaboration and chat presentation.
+- [Claude](https://claude.com/): where the maintainer first experienced this kind of collaboration, and an early inspiration for DS-link.
 
-Project-owned code uses [MIT](LICENSE). Third-party material, dependencies and Host-bridge licensing are documented in [notices](THIRD_PARTY_NOTICES.md); demonstration assets in [asset notes](ASSETS.md). This is an independent community plugin, not an official DeepSeek product or an endorsed SuperAgent distribution. Your providers bill model usage; check important actions and results yourself.
+Project-owned code uses [MIT](LICENSE). Third-party material, dependencies and Host-bridge licensing are documented in [notices](THIRD_PARTY_NOTICES.md); demonstration assets in [asset notes](ASSETS.md). This is an independent community plugin, not an official DeepSeek product, and it is not endorsed by DeepSeek. Your providers bill model usage; check important actions and results yourself.

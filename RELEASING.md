@@ -1,6 +1,6 @@
 # 发布准备（不自动发布）
 
-本文是**所有者/获授权维护者**的发布检查单，不是发布授权。准备内容已获准合入 `main`，但没有公开 Release 或 npm 包，也不改动已安装的生产 profile。当前 CI、npm 预演、历史邮箱与扣扳机前的事项见[最后开门前](docs/publication-checklist.md)。
+本文是**所有者/获授权维护者**的发布检查单，不是发布授权。准备内容已获准合入 `main`；所有者可另外授权私有预发布，但这不代表公开 Release 或 npm 包，也不改动已安装的生产 profile。当前 CI、npm 预演、历史邮箱与扣扳机前的事项见[最后开门前](docs/publication-checklist.md)。
 
 ## 授权边界
 
@@ -18,8 +18,9 @@
   ```
 
 - 准备分支的 `package.json` 仍为 `"private": true`；`npm publish` 会被拒绝，这是有意的。
-- pre-release（例如带 `-pre` 的候选号）**不是公开 Release**，也不能写成“已发布”“稳定版”或对外可下载。候选号不写死在文档和命令里，避免旧版本被沿用。
-- 只有所有者明确决定公开后，才考虑去掉 `private`、发布 tag/Release 或 npm 包；这些动作本指南不执行。
+- pre-release 候选号本身不证明已有 GitHub Release；只有实际创建并核验后才能称为已发布的预览，不能冒充稳定版或公开可下载。
+- 私有仓库可以在所有者明确授权后创建 tag 和 GitHub Pre-release，下载权限仍随仓库；不需要公开仓库或去掉 `package.json` 的 `private`。
+- 改变仓库可见性、去掉 `private` 或发布 npm 包仍分别需要所有者明确授权；这些动作本指南不执行。
 
 ## A. GitHub 源码
 

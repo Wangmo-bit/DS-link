@@ -8,6 +8,10 @@
 
 Detailed notes live here. They are records, not proof of a public release, downloadable package or installed version. See the changelog for the overview.
 
+## 私有预发布 / Private prereleases
+
+- [0.8.16-pre.6 — 私有下载候选，仓库不公开、不发 npm](RELEASE_NOTES-0.8.16-pre.6.md) · [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6)
+
 ## 准备候选 / Preparation candidate
 
 - [0.8.16-pre.5 — 美元金额显示修复，未公开发布](RELEASE_NOTES-0.8.16-pre.5.md)

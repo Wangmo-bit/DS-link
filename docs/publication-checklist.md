@@ -9,7 +9,7 @@
 - 所有者已授权将准备分支合入 `main`；采用快进合并，不重写旧提交。
 - 私有 GitHub runner 只有 2 核，已把 CI 容器配额从 4 调为 2，保留断网、非 root、只读根及独立 tmpfs 的隔离条件。
 - [准备分支实际 CI](https://github.com/Wangmo-bit/DS-link/actions/runs/42470100506) 与 [main 实际 CI](https://github.com/Wangmo-bit/DS-link/actions/runs/42470323291) 均已通过：491 tests / 491 pass / 0 fail / 0 skipped，包白名单 38 文件。
-- GitHub Release 的请求草案、候选包和校验和已在维护者本地准备；**未创建远端 Release、未打 tag、未上传制品**。
+- 所有者于 2026-11-09 另行授权 `v0.8.16-pre.6` 的 GitHub **私有预发布**，安装包与校验以[Release 页面](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6)为准。此授权不包括公开仓库、npm 发布、上传视频或更新日用。
 - npm 使用独立临时副本完成 `publish --dry-run --ignore-scripts --access public --tag next`，38 文件通过。只在临时副本移除 private 门做预演，仓库仍为 `private:true`；模拟包不是正式制品。
 - 所有者后续独立授权后，同一已验收候选已升级日用安装；新客户端真实加载，气泡/卡片/原生引用 smoke 通过，未重启、未公开。详细安装及运行态范围见[升级记录](open-source-readiness.md#日用升级同日后续授权)。
 
@@ -31,7 +31,7 @@
 
 ### 3. 冻结首发版本与包
 
-当前源码、磁盘安装与运行中的后台均为 DS-link 统一包名候选 `@wangmo-bit/ds-link@0.8.16-pre.3`，未对外发版。正式发布前确认目标版本和安装策略，从最终提交重新构建与核 SHA，不能把临时更改 private 字段的模拟包当成权威包，也不能覆盖旧版产物冒充同一包。
+本轮私有预发布源码为 `@wangmo-bit/ds-link@0.8.16-pre.6`；日用仍保留原先的 `0.8.16-pre.5` 安装，本轮不更新。私有 Release、公开可见性和 npm 包是三个不同状态。制品须从最终提交重新构建与核 SHA，不能把临时更改 private 字段的模拟包当成权威包，也不能覆盖旧版产物冒充同一包。
 
 ### 4. 等所有者扣扳机
 
@@ -41,4 +41,4 @@ GitHub 仓库公开、GitHub Release 上传和 npm 实际发布都分别是对�
 
 ## English summary
 
-The preparation branch was fast-forwarded to main after real GitHub CI passed; main CI passed too (491/491, no skips). GitHub remains private. Release payloads are local only; npm dry-run used a temporary manifest, while source retains private:true. The CLI has since authenticated as wangmo-bit; final package scope and publication permissions still need review. The same verified candidate was separately authorized for daily-use installation; its client was smoke-tested without a service restart. Hiding the historical personal email requires separately authorized metadata history rewriting and old-reference/cache review; changing profile settings or a mailmap alone is insufficient. Publishing npm exposes packaged source even if GitHub stays private. Actual publication and daily-use upgrades remain separate owner decisions.
+The preparation branch was fast-forwarded to main after real GitHub CI passed; main CI passed too (491/491, no skips). GitHub remains private. The owner has separately authorized the private v0.8.16-pre.6 GitHub prerelease; final assets and checksums are listed on its Release page. Repository visibility, npm publication, video uploads and daily-use installation updates remain outside that authorization. The npm dry-run used a temporary manifest, while source retains private:true. The CLI has since authenticated as wangmo-bit; final package scope and publication permissions still need review. The same verified candidate was separately authorized for daily-use installation; its client was smoke-tested without a service restart. Hiding the historical personal email requires separately authorized metadata history rewriting and old-reference/cache review; changing profile settings or a mailmap alone is insufficient. Publishing npm exposes packaged source even if GitHub stays private. Actual publication and daily-use upgrades remain separate owner decisions.

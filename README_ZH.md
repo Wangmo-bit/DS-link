@@ -8,7 +8,7 @@
 
 你已经有开发、产品、调研等会话。DS-link 让这些会话互发消息、请求协作、收取明确回复；提供**气泡与卡片两种显示模式**，按自己的习惯看结果和过程。不必重新建立 Bot 团队，也不必在几个聊天框里来回转述。
 
-> **开放准备中，尚未发布。** 本仓准备分支不代表已有公开 Release 或 npm 包；不会自动改变你已安装的版本。完整气泡效果另有宿主适配条件，见[安装与兼容性](docs/installation.md)。
+> **私有预览，尚未公开发布。** 有仓库访问权限的成员可使用[私有预发布](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6)。尚无公开 npm 包，Release 不会自动改变你已安装的版本。完整气泡效果另有宿主适配条件，见[安装与兼容性](docs/installation.md)。
 
 ![气泡模式：开发会话联系产品会话、收到回复，再继续工作](docs/assets/bubble-zh.png)
 
@@ -94,7 +94,7 @@
 
 ## 安装和第一次使用
 
-当前提供**源码构建路径**，尚无公开 npm 包或 Release 下载可承诺。需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。
+有仓库访问权限的成员可从[私有预发布](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6)下载 `.tgz`，按[安装说明](docs/installation.md)安装。尚无公开 npm 包或可匿名下载的 Release；也支持下方的**源码构建路径**。需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。
 
 ```sh
 git clone https://github.com/Wangmo-bit/DS-link.git
@@ -135,8 +135,7 @@ dsh plugin --profile web add /absolute/path/to/wangmo-bit-ds-link-VERSION.tgz
 
 ## 致谢与许可
 
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：宿主、模型与工具体系。
-- [SuperAgent 研究原型](https://github.com/deepseek-ai/dsh-superagent-prototype/blob/main/docs/000-philosophy.md)：“尽量少占用人的注意力，尽量多提供价值”的理念；不宣称本插件实现了其整套系统。
-- [DS-Bot](https://github.com/Fei2411/DS-Bot)：协作与聊天展示的公开设计参考；[dsh-go](https://github.com/ccch1mneyyy/dsh-go)：产品介绍、文档与开源准备的参考。
+- [DS-Bot](https://github.com/Fei2411/DS-Bot)：协作与聊天展示的公开设计参考。
+- [Claude](https://claude.com/)：维护者最早体验到这类协作功能的产品，也是 DS-link 的早期启发来源。
 
 自有代码为 [MIT](LICENSE)。第三方内容、宿主桥接与依赖的许可见[第三方声明](THIRD_PARTY_NOTICES.md)，展示素材见[素材说明](ASSETS.md)。本项目是独立社区插件，不是 DeepSeek 官方产品，也未获其背书。模型用量由你自己的服务计费；重要操作和结果请自行检查。
