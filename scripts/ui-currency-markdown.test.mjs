@@ -28,6 +28,8 @@ test('math, code, link destinations, escaped dollars and fences stay untouched',
 test('long malformed Markdown fails safe without quadratic rescans', () => {
   const source = '<'.repeat(100_000) + '\n' + '<'.repeat(100_000) + ' $1';
   assert.equal(display(source), source);
+  const denseTags = '<>'.repeat(100_000) + ' $1';
+  assert.equal(display(denseTags), denseTags);
   const links = ']('.repeat(30_000) + ' $5 and $10';
   assert.equal(display(links), links);
   const unclosedCode = '金额 $5 and $10 `unfinished';

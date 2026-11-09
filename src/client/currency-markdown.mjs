@@ -34,8 +34,8 @@ export function escapeAmbiguousCurrencyMath(text) {
   let i = 0;
   let lineStart = true;
   let fence = null;
-  // Cache the next closing angle bracket per line. Without this, repeated '<'
-  // with no '>' causes quadratic rescanning on long model output.
+  // Cache the next closing angle bracket across lines. This avoids repeated
+  // scans of the suffix for both dense valid tags and unmatched brackets.
   let tagLineEnd = -1, tagClose = -1;
   while (i < text.length) {
     if (lineStart) {
@@ -101,13 +101,12 @@ export function escapeAmbiguousCurrencyMath(text) {
       if (i >= tagLineEnd) {
         const newline = text.indexOf('\n', i);
         tagLineEnd = newline < 0 ? text.length : newline;
-        tagClose = -1;
       }
       if (tagClose < 0 || tagClose <= i) {
-        const offset = text.slice(i + 1, tagLineEnd).indexOf('>');
-        tagClose = offset < 0 ? Infinity : i + 1 + offset;
+        const next = text.indexOf('>', i + 1);
+        tagClose = next < 0 ? Infinity : next;
       }
-      if (tagClose !== Infinity) { finish(i); i = tagClose + 1; continue; }
+      if (tagClose < tagLineEnd) { finish(i); i = tagClose + 1; continue; }
     }
     // Skip a Markdown link/image destination, which is not rendered as text.
     if (char === ']' && text[i + 1] === '(') {
