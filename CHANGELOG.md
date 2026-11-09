@@ -2,13 +2,14 @@
 
 各版本详细说明统一收在 [版本说明目录](docs/releases/README.md)，根目录只保留本更新日志作为入口。
 
-> 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；`0.8.16-pre.1` 曾获授权用于日用；当前已完成统一命名，日用为 `@wangmo-bit/ds-link@0.8.16-pre.3`，均未公开发布。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
+> 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；`0.8.16-pre.1` 曾获授权用于日用；当前已完成统一命名，日用为 `@wangmo-bit/ds-link@0.8.16-pre.5`，均未公开发布。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
 
 ## 0.8.16-pre.5 — 未发布 / Unreleased
 
 - 气泡模式对明显的多处美元金额采用保守显示修正，避免宿主把两个 `$` 之间的文字误解析为公式；不改原消息、复制或引用，常见数学公式保留。
 - 仅处理可识别的同段货币表达，卡片模式仍沿用宿主原生渲染，个别含糊写法无法自动判断；详见[已知限制](docs/known-issues.md)。
 - Bubble display prevents obvious dollar amounts from becoming unintended inline math, without changing stored text, copy or quote. Ambiguous syntax and native card-mode rendering remain subject to the Host parser.
+- 已通过官方入口安装日用；独立审查、隔离回归及合成浏览器验证结果见[本版说明](docs/releases/RELEASE_NOTES-0.8.16-pre.5.md)。
 
 ## 0.8.16-pre.3 — 未发布 / Unreleased
 

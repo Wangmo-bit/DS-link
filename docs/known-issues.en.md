@@ -14,7 +14,7 @@
 - **User-row plugin decorations missing:** rc.1 child-slot adaptation can suppress before decorations. Test combinations such as LiveShare separately.
 - **Stale receipts:** observer failures may stop real-time evidence. Queued does not mean read; preserve the record and report the issue.
 - **Scrolling / browser differences:** older scroll protection is not fully ported to rc.1. The bridge uses CSS @scope; Chromium is the primary verified browser path.
-- **Currency rendered as math:** bubble mode applies a conservative display-only fix for obvious same-paragraph currency prose; the source, copy and quote remain unchanged. Native chat in card mode and ambiguous cases can still be affected by the Host parser. When needed, escape the currency sign as `\$` or write USD.
+- **Currency rendered as math:** bubble mode applies a conservative display-only fix for obvious same-paragraph currency prose; the source, copy and quote remain unchanged. Native chat in card mode and ambiguous cases can still be affected by the Host parser. Messages with unmatched backticks or link parentheses are left unchanged to protect the original. When needed, escape the currency sign as `\$` or write USD.
 - **Rollback:** package/config backups are materials, not proof that a newer ledger and pending queue can safely be downgraded.
 
 ## Report installation trouble
