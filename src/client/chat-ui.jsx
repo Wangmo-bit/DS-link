@@ -5,6 +5,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives';
 import { createExchangePager, readExchangePage } from './exchange-page.mjs';
 import { callApi, visibleMessageState, textOf } from './model.js';
+import { escapeAmbiguousCurrencyMath } from './currency-markdown.mjs';
 
 export const MARKDOWN_LABELS = { code: { copyLabel: '复制', copiedLabel: '已复制' }, footnotes: '脚注' };
 
@@ -12,7 +13,7 @@ export function MessageText({ text = '', streaming = false, mentions }) {
   // Agent messages are for reading, not previews: never trim them based on
   // length, whether this is the main transcript, a relay or the exchange.
   return <div className="sl-chat-text" data-i18n-skip="">
-    <MarkdownText text={text} streaming={streaming} variant="compact" labels={MARKDOWN_LABELS} fileMentions={mentions}/>
+    <MarkdownText text={streaming ? text : escapeAmbiguousCurrencyMath(text)} streaming={streaming} variant="compact" labels={MARKDOWN_LABELS} fileMentions={mentions}/>
   </div>;
 }
 

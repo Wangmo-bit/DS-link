@@ -472,6 +472,20 @@ test('when the scoped flow adapter exists, native assistant and process renderer
   fixture.injections.find(item=>item.name==='conversation.chat.flow.adapter').cleanup();
 });
 
+test('card mode keeps every native chat node unwrapped', () => {
+  const saved = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  try {
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => 'card' } });
+    const fixture = installFixture(makeNativeEntries().entries, { adapter: true });
+    const nodeEntries = fixture.registers.filter(({ options }) => options.name === 'conversation.chat.node');
+    assert.deepEqual(nodeEntries, []);
+    fixture.injections.find(item => item.name === 'conversation.chat.flow').cleanup();
+    fixture.injections.find(item => item.name === 'conversation.chat.flow.adapter').cleanup();
+  } finally {
+    if (saved) Object.defineProperty(globalThis, 'localStorage', saved); else delete globalThis.localStorage;
+  }
+});
+
 test('native inject receives the session id string and its hooks survive', () => {
   const { entries, hooks, keyedHooks, injectArgs } = makeNativeEntries();
   const fixture = installFixture(entries);

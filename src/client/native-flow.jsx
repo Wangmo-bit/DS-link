@@ -17,6 +17,7 @@ import { MessageBubble, ThinkingDots } from './chat-ui.jsx';
 import { formatTurnSummary } from './chat-skin-model.mjs';
 import { AGENT_STATE, agentBadges, agentStateOf, agentsByTurn, planNativeFlow, processNeedsInput, subagentReuseSignature, teamDispatchSignature, teamRosterSignature, turnWindows, turnWindowSignature } from './native-flow-plan.mjs';
 import { useDisplayMode } from './display-mode.mjs';
+import { currencySafeAssistantNode } from './currency-markdown.mjs';
 
 export const FLOW_SLOT = 'conversation.chat.flow.adapter';
 const normalizedPolicies = new WeakMap();
@@ -174,8 +175,14 @@ function TeamDispatchProbe({ sessionId, turn, nodes, onReport, onReuse }) {
 const EMPTY_INPUTS = Object.freeze([]), SINGLETONS = new WeakMap();
 function singleton(entry) { let value = SINGLETONS.get(entry); if (!value) { value = [entry]; SINGLETONS.set(entry, value); } return value; }
 function entryKey(entry) { return JSON.stringify([entry.kind,entry.key,entry.groupPart ?? null]); }
-function NoRunningFlow({ NativeFlow, flow, entries, pendingInputs = EMPTY_INPUTS, usePresentation }) {
-  return <NativeFlow {...flow} entries={entries} pendingInputs={pendingInputs} usePresentation={usePresentation ?? flow.usePresentation} slSuppressRunning/>;
+function NoRunningFlow({ NativeFlow, flow, entries, pendingInputs = EMPTY_INPUTS, usePresentation, fixCurrency = false }) {
+  // Preserve the Host's original node registration and its child-slot rights.
+  // Only the bubble response's read view is adapted; the store is untouched.
+  const useSafeNode = useCallback((key, selector) => {
+    const value = flow.useChatNode(key, selector);
+    return useMemo(() => selector === undefined ? currencySafeAssistantNode(value) : value, [selector, value]);
+  }, [flow.useChatNode]);
+  return <NativeFlow {...flow} entries={entries} pendingInputs={pendingInputs} usePresentation={usePresentation ?? flow.usePresentation} useChatNode={fixCurrency ? useSafeNode : flow.useChatNode} slSuppressRunning/>;
 }
 // Keeps a node key resolvable for navigation without drawing a visible row.
 function AnchorOnly({ entry }) {
@@ -226,7 +233,7 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
       : endedLine || terminalLine ? <EndedHeading turn={turn} control={controlNode} agents={agents} action={terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
-        ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation}/>
+        ? <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.response)} usePresentation={inlinePresentation} fixCurrency/>
         : runningLine ? <ThinkingDots/> : null}
       {showTerminal && <TerminalDetail flow={flow} NativeFlow={NativeFlow} entries={terminal}/>}
     </MessageBubble>

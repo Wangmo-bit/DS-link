@@ -29,6 +29,23 @@ test('a turn with several text segments shows one bubble per utterance and one s
  const rendered=text(tree);
  assert.equal(rendered.split('耗时 20 秒').length-1,1,'the turn total appears exactly once in the rendered output');
 });
+test('native bubble response receives a display-only currency view, not a replacement native component',()=>{
+ const previous=nodes.get('r1');
+ const source='你的 $60 是 **额度**，不是无限。估计 $0.30/M。';
+ const node={kind:'assistant-step',key:'r1',location:{kind:'turn',turn:closed},data:{turn:7,status:'settled',blocks:[{kind:'text',text:source}]}};
+ nodes.set('r1',node);
+ const received=[];
+ try {
+  const NativeFlow=props=>{if(props.entries?.some(e=>e.key==='r1'))received.push({node:props.useChatNode('r1'),selected:props.useChatNode('r1', n=>n.data.blocks[0].text),props});return null;};
+  render(React.createElement(mod.exports.NativeFlowAdapter,{...base,NativeFlow,entries:[{kind:'node',key:'c1'},{kind:'group',key:'ga',slFlowTurn:7},{kind:'node',key:'r1',groupPart:'response'}]}));
+  assert.equal(received.length,1);
+  assert.equal(received[0].node.data.blocks[0].text,'你的 \\$60 是 **额度**，不是无限。估计 $0.30/M。');
+  assert.equal(received[0].node.key,node.key);
+  assert.equal(node.data.blocks[0].text,source,'original source remains unchanged');
+  assert.equal(received[0].selected,source,'selector-based access remains unmodified');
+ } finally {nodes.set('r1',previous);}
+});
+
 test('a turn that ends without text keeps exactly one statistics-only bubble',()=>{
  const tree=render(React.createElement(mod.exports.NativeFlowAdapter,{...base,entries:[{kind:'node',key:'c1'},{kind:'group',key:'ga',slFlowTurn:7}]}));
  const flat=[];const walk=v=>{if(!v||typeof v!=='object')return;if(Array.isArray(v)){v.forEach(walk);return;}flat.push(v);walk(v.children);};walk(tree);
