@@ -43,7 +43,8 @@ test('the native-flow view transforms only settled assistant text without mutati
 
 test('does not erase real math adjacent to currency prose', () => {
   const source = 'Formula $2+3$; amounts $5 and $10. Next $x+y$.';
-  assert.equal(display(source), 'Formula $2+3$; amounts \\$5 and $10. Next $x+y$.');
+  assert.equal(display(source), 'Formula $2+3$; amounts \\$5 and \\$10. Next $x+y$.');
+  assert.equal(display('价格 $5，公式 $x^2$'), '价格 \\$5，公式 $x^2$');
   assert.equal(display(null), null);
   assert.equal(display('plain text'), 'plain text');
 });

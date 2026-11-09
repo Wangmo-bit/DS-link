@@ -20,7 +20,11 @@ export function escapeAmbiguousCurrencyMath(text) {
       // delimiter such as `$2 + 3$` therefore remains a real math span. If we
       // preserve a pair, consume both tokens: its closing delimiter must not
       // later be mistaken for a new price in e.g. `$2$3 is $5`.
-      if (numberAfterDollar(text, a) && numberAfterDollar(text, b) && proseBetween(text.slice(a + 1, b))) {
+      const next = dollars[n + 2];
+      const nextLooksLikeMath = next !== undefined && !numberAfterDollar(text, b)
+        && !/\s/u.test(text[b + 1] ?? '') && text[b + 1] !== '$';
+      if (numberAfterDollar(text, a) && proseBetween(text.slice(a + 1, b))
+        && (numberAfterDollar(text, b) || nextLooksLikeMath)) {
         escapes.add(a);
         n++;
       } else n += 2;

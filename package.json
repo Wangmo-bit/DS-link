@@ -1,6 +1,6 @@
 {
   "name": "@wangmo-bit/ds-link",
-  "version": "0.8.16-pre.4",
+  "version": "0.8.16-pre.5",
   "private": true,
   "description": "DS-link: local session collaboration with bubble and card views for DeepSeek Harness",
   "repository": {
@@ -27,8 +27,8 @@
     "dsh": "0.2.1-rc.5 || 0.2.2-rc.1"
   },
   "exports": {
-    ".": "./src/host/entry-0.8.16-pre.4.js",
-    "./runtime-0.8.16-pre.4": "./src/host/entry-0.8.16-pre.4.js",
+    ".": "./src/host/entry-0.8.16-pre.5.js",
+    "./runtime-0.8.16-pre.5": "./src/host/entry-0.8.16-pre.5.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },
