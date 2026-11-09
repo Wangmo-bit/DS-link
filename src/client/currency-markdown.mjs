@@ -34,6 +34,9 @@ export function escapeAmbiguousCurrencyMath(text) {
   let i = 0;
   let lineStart = true;
   let fence = null;
+  // Cache the next closing angle bracket per line. Without this, repeated '<'
+  // with no '>' causes quadratic rescanning on long model output.
+  let tagLineEnd = -1, tagClose = -1;
   while (i < text.length) {
     if (lineStart) {
       const end = text.indexOf('\n', i);
@@ -74,9 +77,10 @@ export function escapeAmbiguousCurrencyMath(text) {
         if (text.slice(at, after) === marker) { end = after; break; }
         end = after;
       }
-      // Unclosed inline backticks are literal; don't hide the rest of text.
       if (end >= 0) { finish(i); i = end; continue; }
-      i = endTicks; continue;
+      // An unmatched delimiter is ambiguous. Leave the entire source alone,
+      // rather than rescan a long malformed message or risk modifying code.
+      return text;
     }
     if (char === '<') {
       // Preserve literal HTML code/pre blocks and comments, including dollars
@@ -94,8 +98,16 @@ export function escapeAmbiguousCurrencyMath(text) {
         const end = text.indexOf('-->', i + 4);
         finish(i); i = end < 0 ? text.length : end + 3; continue;
       }
-      const end = text.indexOf('>', i + 1);
-      if (end >= 0 && !text.slice(i, end).includes('\n')) { finish(i); i = end + 1; continue; }
+      if (i >= tagLineEnd) {
+        const newline = text.indexOf('\n', i);
+        tagLineEnd = newline < 0 ? text.length : newline;
+        tagClose = -1;
+      }
+      if (tagClose < 0 || tagClose <= i) {
+        const offset = text.slice(i + 1, tagLineEnd).indexOf('>');
+        tagClose = offset < 0 ? Infinity : i + 1 + offset;
+      }
+      if (tagClose !== Infinity) { finish(i); i = tagClose + 1; continue; }
     }
     // Skip a Markdown link/image destination, which is not rendered as text.
     if (char === ']' && text[i + 1] === '(') {
@@ -107,6 +119,9 @@ export function escapeAmbiguousCurrencyMath(text) {
         end++;
       }
       if (!depth) { finish(i); i = end; continue; }
+      // Malformed nested destinations are ambiguous; fail safe and do not
+      // repeatedly scan the remaining message from every unmatched opener.
+      return text;
     }
     if (char === '$') {
       if (text[i + 1] === '$') {

@@ -25,6 +25,15 @@ test('math, code, link destinations, escaped dollars and fences stay untouched',
   for (const source of cases) assert.equal(display(source), source, source);
 });
 
+test('long malformed Markdown fails safe without quadratic rescans', () => {
+  const source = '<'.repeat(100_000) + '\n' + '<'.repeat(100_000) + ' $1';
+  assert.equal(display(source), source);
+  const links = ']('.repeat(30_000) + ' $5 and $10';
+  assert.equal(display(links), links);
+  const unclosedCode = '金额 $5 and $10 `unfinished';
+  assert.equal(display(unclosedCode), unclosedCode);
+});
+
 test('the native-flow view transforms only settled assistant text without mutating the node', () => {
   const raw = '你的 $60 是 **额度**，估计 $0.30。';
   const node = { key:'node-1', kind:'assistant-step', data: { status:'settled', blocks:[{ kind:'text', text:raw }, { kind:'image', attachment:{ id:'a' } }] }, location:{ turn:1 } };
