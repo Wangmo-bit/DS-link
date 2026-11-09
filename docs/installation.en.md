@@ -1,6 +1,6 @@
 # Installation, compatibility and upgrades
 
-[简体中文](installation.md) · [Home](../README_EN.md) · [First use](quickstart.en.md) · [Known issues](known-issues.en.md)
+[简体中文](installation.md) · [Home](../README.md) · [First use](quickstart.en.md) · [Known issues](known-issues.en.md)
 
 ## What exists, and what does not
 

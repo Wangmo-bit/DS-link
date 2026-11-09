@@ -1,6 +1,6 @@
 # 安装、兼容与升级
 
-[English](installation.en.md) · [首页](../README.md) · [第一次使用](quickstart.md) · [已知问题](known-issues.md)
+[English](installation.en.md) · [首页](../README_ZH.md) · [第一次使用](quickstart.md) · [已知问题](known-issues.md)
 
 ## 先说清楚：现在有什么、没有什么
 

@@ -1,6 +1,6 @@
 # 为什么做 DS-link / Why DS-link
 
-[首页](../README.md) · [English home](../README_EN.md)
+[English home](../README.md) · [中文首页](../README_ZH.md)
 
 ## 少传话，也少费力看懂
 

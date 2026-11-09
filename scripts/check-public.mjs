@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, extname } from 'node:path';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const errors = [];
-const required = ['README.md','README_EN.md','PRD.md','LICENSE','THIRD_PARTY_NOTICES.md','ASSETS.md','CONTRIBUTING.md','CONTRIBUTING.en.md','SECURITY.md','SECURITY.en.md','TESTING.md','RELEASING.md','docs/installation.md','docs/installation.en.md','docs/quickstart.md','docs/quickstart.en.md','docs/settings.md','docs/settings.en.md','docs/known-issues.md','docs/known-issues.en.md','docs/security-model.md','docs/open-source-readiness.md'];
+const required = ['README.md','README_ZH.md','PRD.md','LICENSE','THIRD_PARTY_NOTICES.md','ASSETS.md','CONTRIBUTING.md','CONTRIBUTING.en.md','SECURITY.md','SECURITY.en.md','TESTING.md','RELEASING.md','docs/installation.md','docs/installation.en.md','docs/quickstart.md','docs/quickstart.en.md','docs/settings.md','docs/settings.en.md','docs/known-issues.md','docs/known-issues.en.md','docs/security-model.md','docs/open-source-readiness.md'];
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const lock = JSON.parse(await readFile(join(root, 'package-lock.json'), 'utf8'));
 if (pkg.version !== lock.version || pkg.version !== lock.packages[''].version) errors.push('package/lock version mismatch');
@@ -47,7 +47,7 @@ for (const file of sources) {
 if (process.argv.includes('--pack')) {
   const [manifest] = JSON.parse(execFileSync('npm', ['pack','--ignore-scripts','--dry-run','--json'], { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
   const files = manifest.files.map(item => item.path);
-  for (const file of files) if (!/^(?:src\/(?:core|host)\/|dist\/client\.js$|assets\/icon\.svg$|cordis\.patch\.yml$|package\.json$|README(?:_EN)?\.md$|LICENSE$|THIRD_PARTY_NOTICES\.md$|TESTING\.md$)/u.test(file)) errors.push(`Unexpected packed file: ${file}`);
+  for (const file of files) if (!/^(?:src\/(?:core|host)\/|dist\/client\.js$|assets\/icon\.svg$|cordis\.patch\.yml$|package\.json$|README(?:_ZH)?\.md$|LICENSE$|THIRD_PARTY_NOTICES\.md$|TESTING\.md$)/u.test(file)) errors.push(`Unexpected packed file: ${file}`);
   for (const name of ['LICENSE','THIRD_PARTY_NOTICES.md','dist/client.js',pkg.exports['.'].replace(/^\.\//u,'')]) if (!files.includes(name)) errors.push(`Required packed file missing: ${name}`);
   console.log(`Pack allowlist checked: ${files.length} files (lifecycle scripts not executed by this check).`);
 }

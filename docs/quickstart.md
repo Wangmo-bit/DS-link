@@ -1,6 +1,6 @@
 # 第一次使用
 
-[English](quickstart.en.md) · [回首页](../README.md)
+[English](quickstart.en.md) · [回首页](../README_ZH.md)
 
 ## 先准备两个会话
 

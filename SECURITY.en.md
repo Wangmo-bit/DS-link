@@ -36,7 +36,7 @@ Model behavior, provider latency, the DSH Host itself and third-party services a
 
 ## Supported versions
 
-Security fixes are promised only for the latest tagged release; earlier versions are not covered. See [README_EN.md](README_EN.md) for the DSH/Node compatibility range.
+Security fixes are promised only for the latest tagged release; earlier versions are not covered. See [README.md](README.md) for the DSH/Node compatibility range.
 
 ## Handling and disclosure
 

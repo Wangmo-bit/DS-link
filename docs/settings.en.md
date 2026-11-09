@@ -1,6 +1,6 @@
 # Settings: start with defaults
 
-[简体中文](settings.md) · [Home](../README_EN.md)
+[简体中文](settings.md) · [Home](../README.md)
 
 Open DS-link in the sidebar, then Settings. There is no manual send form.
 

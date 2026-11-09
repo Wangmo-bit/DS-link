@@ -1,6 +1,6 @@
 # First use
 
-[简体中文](quickstart.md) · [Home](../README_EN.md)
+[简体中文](quickstart.md) · [Home](../README.md)
 
 ## Start with two ordinary sessions
 

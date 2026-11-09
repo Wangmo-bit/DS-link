@@ -1,6 +1,6 @@
 # 已知限制与排障
 
-[English](known-issues.en.md) · [安装](installation.md) · [首页](../README.md)
+[English](known-issues.en.md) · [安装](installation.md) · [首页](../README_ZH.md)
 
 | 现象 / 限制 | 怎么处理 |
 | --- | --- |

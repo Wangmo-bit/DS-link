@@ -1,6 +1,6 @@
 # Known limits and troubleshooting
 
-[简体中文](known-issues.md) · [Installation](installation.en.md) · [Home](../README_EN.md)
+[简体中文](known-issues.md) · [Installation](installation.en.md) · [Home](../README.md)
 
 - **Full bubble flow / Agent hints missing:** the stock Host lacks the optional composition seam. Check the compatibility matrix; never force-patch an unknown bundle. Card mode is available without the bridge; node-level bubble fallback is not full support.
 - **Host upgrade changes the UI:** upgrades may replace the bridge. Re-check the exact version and bytes; do not automatically reinstall an old bridge.

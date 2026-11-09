@@ -1,6 +1,6 @@
 # 参与贡献
 
-[English](CONTRIBUTING.en.md) · [项目首页](README.md)
+[English](CONTRIBUTING.en.md) · [项目首页](README_ZH.md)
 
 欢迎用 Issue 反馈问题、提使用场景和改进建议，也欢迎在方向聊清楚后提交 PR。本仓库目前是**私有预发布**，是否公开、何时公开由项目所有者决定。
 

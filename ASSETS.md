@@ -1,6 +1,6 @@
 # 演示与截图素材说明 / Asset notes
 
-[首页](README.md) · [第三方声明](THIRD_PARTY_NOTICES.md) · [渲染脚本](scripts/render-doc-assets.mjs)
+[首页](README_ZH.md) · [第三方声明](THIRD_PARTY_NOTICES.md) · [渲染脚本](scripts/render-doc-assets.mjs)
 
 ## `docs/assets/` 是什么
 

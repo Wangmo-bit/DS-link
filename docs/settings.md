@@ -1,6 +1,6 @@
 # 设置：先用默认值，需要时再调
 
-[English](settings.en.md) · [首页](../README.md)
+[English](settings.en.md) · [首页](../README_ZH.md)
 
 从左侧“DS-link”进入，打开“设置”。这里没有人工发消息表单。
 

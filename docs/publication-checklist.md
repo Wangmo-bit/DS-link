@@ -1,6 +1,6 @@
 # 最后开门前 / Before pulling the trigger
 
-[发布说明](../RELEASING.md) · [准备验收](open-source-readiness.md) · [首页](../README.md)
+[发布说明](../RELEASING.md) · [准备验收](open-source-readiness.md) · [首页](../README_ZH.md)
 
 > 当前仓库仍为私有。合入主分支不是安装插件，也不是公开发布。本页不授予历史重写、强推、创建 Release、上传包、npm publish 或改变可见性的许可。
 

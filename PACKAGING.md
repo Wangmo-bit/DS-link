@@ -5,7 +5,7 @@
 ## 包边界
 
 - `package.json` 的 `files` 是显式白名单：`src/core`、`src/host`、`dist`、`cordis.patch.yml`、`THIRD_PARTY_NOTICES.md`、`TESTING.md`、`assets/icon.svg`。
-- npm 按自身规则会带上根 `package.json`、`README.md`、`LICENSE` 等基础文件；`README_EN.md` 当前不在自动包含范围。以实际 `npm pack --dry-run --json` 的文件列表为准，不用旧清单推断。
+- npm 按自身规则会带上根 `package.json`、`README.md`、`LICENSE` 等基础文件；默认 `README.md` 为英文；中文 `README_ZH.md` 当前不在自动包含范围。以实际 `npm pack --dry-run --json` 的文件列表为准，不用旧清单推断。
 - `prepack` 只运行本地 `npm run build`（esbuild），不联网、不读取 DSH profile、不安装插件。
 - `dist/client.js` 是构建产物；改源码后重新构建，不要手改 `dist/`。
 - **Host 桥接工具不随包分发**：`scripts/dsh-web-flow-bridge-rc1.mjs`、`scripts/install-host-flow-bridge-rc1.mjs` 不在 `files` 里，也不应打进 tgz。它们是精确版本、源码内、单独授权的 Host 维护工具，不是插件安装的一部分。
