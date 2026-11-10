@@ -18,7 +18,7 @@
 ### 1. 历史身份（已完成，2026-11-10）
 
 - 所有者单独授权后已执行历史重写：author/committer 全部改为 `Wangmo-bit <Wangmo-bit@users.noreply.github.com>`，覆盖 `main`、`prep/open-source-20261108` 和 `v0.8.17` 标签。
-- 历史文件中的 `/home/<user>`、`/path/to/...`、`internal-project` 已替换为占位符（`/home/<user>`、`/path/to/...`、`internal-project`）；当前代码树与重写前一致。
+- 历史文件中的本机用户目录、内部项目根目录和内部项目名已替换为占位符；当前代码树与重写前一致。
 - 重写前完整 bundle 保存在私有备份区；仓库无 fork、无 Pages、无 Actions artifact。提交编号已变化，旧 SHA 引用失效。
 - `王墨` 是公开笔名而非真名，只从当前测试夹具移除；历史 PRD 中的笔名保留为公开署名，不构成真名泄露。
 - GitHub 可能在一段时间内仍能通过已知旧 SHA 访问缓存对象；仓库从未公开、无 fork，外部不知道旧 SHA，风险有限。公开后如需彻底清理缓存，需另行联系 GitHub Support。

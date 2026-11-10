@@ -42,7 +42,7 @@ const credentials = /\b(?:gh[pousr]_[A-Za-z0-9]{25,}|sk-[A-Za-z0-9]{25,}|AIza[A-
 for (const file of sources) {
   const text = await readFile(file, 'utf8');
   if (credentials.test(text)) errors.push(`Credential-shaped value needs private review: ${file.slice(root.length)}`);
-  if (file.startsWith(join(root, 'src/')) && /\/home\/wangmo\/|\/srv\/data\/projects\//u.test(text)) errors.push(`Maintainer-specific runtime identity/path: ${file.slice(root.length)}`);
+  if (file.startsWith(join(root, 'src/')) && /\/(?:home|Users)\/[^/\s]+\//u.test(text)) errors.push(`Maintainer-specific runtime identity/path: ${file.slice(root.length)}`);
 }
 if (process.argv.includes('--pack')) {
   const [manifest] = JSON.parse(execFileSync('npm', ['pack','--ignore-scripts','--dry-run','--json'], { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
