@@ -78,6 +78,7 @@ import { ExchangeLink } from './chat-ui.jsx';
 import { receiverHint } from './delivery-indicator.mjs';
 import { useDisplayMode } from './display-mode.mjs';
 import { createCapsuleGroupStore } from './capsule-group-store.mjs';
+import { capsuleStatusKey } from './capsule-status.mjs';
 
 const KIND = 'session-link-card';
 const SCAN_DEBOUNCE_MS = 200;
@@ -574,22 +575,28 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         const relay = data?.source;
         if (isStandardRelaySource(relay) && typeof data?.id === 'string') {
           const row = verified.get(scopeKey(sessionId, data.id));
-          if (row !== undefined && row.to === sessionId) {
+          // Use the same identity/surface/peer-claim gate as actual rendering.
+          // A relay that falls back to native text is visible and breaks a run.
+          if (row !== undefined && match(event) !== null) {
             items.push({
               kind: 'received', seq: event.seq, time: event.time,
               sender: relay.senderSessionId, messageKind: row.kind,
-              status: row.status, turn: Number.isSafeInteger(row.turn) ? row.turn : turn,
+              status: capsuleStatusKey(row, freshness.get(scopeKey(sessionId, data.id))), turn,
             });
-          }
-          // Unverified relay events are not visible yet; they must not split a run.
+          } else items.push({ kind: 'break' });
           continue;
         }
         if (relay?.kind === 'time-context') continue;
         items.push({ kind: 'break' });
         continue;
       }
-      if (event.type === 'tool/call' && (data?.name === 'session_link_send' || data?.name === 'session_link_reply')) {
-        items.push({ kind: 'sent', seq: event.seq, time: event.time });
+      if (event.type === 'tool/call') {
+        if (['session_link_send', 'session_link_reply', 'session_link_create'].includes(data?.name)) {
+          items.push({ kind: 'sent', seq: event.seq, time: event.time });
+        } else if (['ask_user_question', 'exit_plan_mode', 'reqpool_request_key_state'].includes(data?.name)) {
+          // These controls remain visible even when routine process is hidden.
+          items.push({ kind: 'break' });
+        }
         continue;
       }
       if (event.type === 'assistant/message') {
@@ -768,10 +775,6 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
           }
         : null;
     const fresh = sessionId !== '' ? freshness.get(scopeKey(sessionId, durableMessageId)) : undefined;
-    if (sessionId !== '' && !groupStore.has(sessionId)) {
-      const binding = sessions.binding(sessionId);
-      if (binding?.eventSource !== undefined) refreshCapsuleGroups(sessionId, binding.eventSource, { notify: false });
-    }
     const { seq, time, event: _event, ...rest } = state;
     return {
       key: context.key,
@@ -879,6 +882,8 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     if (row.from !== previous.from) return; // identity drift → ignore
     verified.set(key, row);
     freshness.set(key, { asOf: Date.now(), stale: false });
+    const source = sessions.binding(row.to)?.eventSource;
+    if (source) refreshCapsuleGroups(row.to, source);
     if (displayChanged(previous, row)) reregister();
   }
 
@@ -1127,13 +1132,23 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         }
       }
 
+      if (!disposed) {
+        // Initialize even a sent-only static window. Receiving a ledger row is
+        // not a prerequisite for grouping the sender history on first open.
+        const groupSessions = new Set([...fullSessions, ...deltaSessions, ...bySession.keys()]);
+        if (refreshChanged) for (const id of refreshBySession.keys()) groupSessions.add(id);
+        if (scopeChanged) for (const id of sourceStops.keys()) groupSessions.add(id);
+        for (const id of groupSessions) {
+          const source = sessions.binding(id)?.eventSource;
+          if (source) refreshCapsuleGroups(id, source);
+        }
+      }
       if ((newlyVerified > 0 || scopeChanged || refreshChanged) && !disposed) {
         // One dispose+register pair per batch → the registry listener coalesces
         // a single rebuild (public API; no private assembler access).
         // scopeChanged also rebuilds: a shared/forked event object must drop any
         // earlier exclusive claim and fall back native even when lookups miss.
         // refreshChanged rebuilds so as-of/stale/status text re-renders.
-        for (const [sessionId, state] of sourceStops) refreshCapsuleGroups(sessionId, state.source);
         reregister();
       }
     } finally {
@@ -1227,9 +1242,10 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
       const entry = change.entry;
       if (entry?.type === 'event' && entry.event?.type === 'user/message') {
         dirtyFull.add(sessionId);
-        refreshCapsuleGroups(sessionId, source);
         scheduleScan();
       }
+      // Durable assistant text can introduce a visible boundary after streaming.
+      refreshCapsuleGroups(sessionId, source);
       return;
     }
     // Unknown future change kind: conservative single-session re-walk.
@@ -1240,6 +1256,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
 
   /** Revoke per-session identity/caches tied to one eventSource generation. */
   function revokeSession(sessionId) {
+    groupStore.removeSession(sessionId);
     const prefix = `${sessionId}\n`;
     for (const key of [...verified.keys()]) if (key.startsWith(prefix)) verified.delete(key);
     for (const key of [...freshness.keys()]) if (key.startsWith(prefix)) freshness.delete(key);

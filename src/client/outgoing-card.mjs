@@ -26,6 +26,7 @@
 
 import { extractResultIds } from './outgoing-card-verify.mjs';
 import { statusDisplay } from './outgoing-status.mjs';
+import { capsuleStatusKey } from './capsule-status.mjs';
 
 export const CARD_KIND = 'session-link-sender-card';
 const OUR_TOOLS = new Set(['session_link_send', 'session_link_reply', 'session_link_create']);
@@ -185,7 +186,7 @@ export function createSenderCardDefinition({ windowScope, verifier, claim = 'coe
       const event = match.event;
       if (event.type === 'tool/call') {
         return {
-          call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq, time: event.time },
+          call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq, time: event.time, turn: event.data.turn },
           result: null,
         };
       }
@@ -200,11 +201,14 @@ export function createSenderCardDefinition({ windowScope, verifier, claim = 'coe
       if (event.type === 'tool/call') {
         if (state.call === null) {
           return {
-            call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq, time: event.time },
+            call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq, time: event.time, turn: event.data.turn },
             result: state.result,
           };
         }
-        return { ...state, call: { ...state.call, argsRaw: event.data.arguments, name: event.data.name ?? state.call.name } };
+        // A streaming start is provisional. Grouping, anchors and evidence all
+        // bind to the durable call, not to its earlier live-chunk sequence.
+        return { ...state, call: { ...state.call, argsRaw: event.data.arguments,
+          name: event.data.name ?? state.call.name, seq: event.seq, time: event.time, turn: event.data.turn } };
       }
       if (event.type === 'tool/result') {
         const message = event.data.message;
@@ -318,7 +322,8 @@ export function createSenderCardDefinition({ windowScope, verifier, claim = 'coe
         bodyCollapsed: true,
         status: labels.length === 1 ? labels[0] : '多目标状态',
         time: call.time ?? result.time ?? null,
-        turn: context.start?.location?.turn?.turn ?? null,
+        turn: call.turn ?? context.start?.location?.turn?.turn ?? null,
+        capsuleStatus: rows.length === 1 ? capsuleStatusKey(rows[0], fresh[0]) : null,
         // Earliest known lookup, or NO precise time when any target is unknown.
         statusAsOf: allAsOfKnown ? Math.min(...asOfs) : null,
         // Any failed refresh OR any target without a valid asOf → 状态未更新/需核对.

@@ -1034,8 +1034,11 @@ test('mutual pre-check does not recurse: peer calls our match back, exactly one 
   });
   install(ctx);
   await waitFor(() => (registered.registrations ?? 0) >= 2, 'verification');
+  // Group planning also consults the renderer's identity/conflict gate. Each
+  // independent check must evaluate the peer once, never recurse into it.
+  const beforeExplicitCheck = nestedCalls;
   assert.equal(registered.def.match['user/message'](RELAY_EVENT), null, 'we decline under mutual pre-check');
-  assert.equal(nestedCalls, 1, 'peer evaluated once, no recursion');
+  assert.equal(nestedCalls - beforeExplicitCheck, 1, 'peer evaluated once per check, no recursion');
 });
 
 /* ── exclusive-claim conflict guard against the REAL dispatcher ─────────── */

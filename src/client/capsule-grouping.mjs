@@ -1,72 +1,51 @@
-// Bubble-mode capsule grouping (owner decision 2026-11-10).
-//
-// Only *visible* timeline items are passed in. A `break` item resets the run
-// (assistant text, human message, turn boundary, approval/question). Received
-// and sent capsules never merge with each other: the direction is part of the
-// key. Received capsules merge only when every key below matches; request vs
-// notification is deliberately part of the key so a request is never hidden
-// inside a notification count. Sent capsules merge only when the sent-side view
-// registered a single-target meta (multi-target sends stay separate).
+// Bubble-mode presentation only. Preserve event order and every message record.
+// A run needs positive evidence for turn, peer, kind, status and time. Unknown
+// evidence is a separate capsule, not permission to join two unknown values.
 export const CAPSULE_GROUP_WINDOW_MS = 5 * 60 * 1000;
+const MESSAGE_KINDS = new Set(['request', 'notification', 'reply']);
+const present = value => typeof value === 'string' && value.length > 0;
+const knownTurn = value => Number.isSafeInteger(value) && value >= 0;
 
-/**
- * @param {Array<{kind:'received'|'sent'|'break', seq?:number, time?:number,
- *   sender?:string, messageKind?:string, status?:string, turn?:number|null}>} items
- * @param {{windowMs?:number, sentMeta?:Map<number,{target:string,kind:string,status:string,turn:number|null,multiTarget?:boolean}>}} [options]
- * @returns {Map<number, {head:boolean, count:number}>} keyed by event seq
- */
+/** Adjacent-gap window (not total run duration); returns info by durable seq. */
 export function groupCapsules(items, { windowMs = CAPSULE_GROUP_WINDOW_MS, sentMeta } = {}) {
   const bySeq = new Map();
   let run = null;
-  const extend = (item) => {
-    run.count += 1;
-    run.lastTime = item.time;
-    run.members.push(item.seq);
-    for (const seq of run.members) bySeq.set(seq, { head: seq === run.headSeq, count: run.count });
+  // Fill each member once, when its run ends: linear work for long bursts.
+  const flush = () => {
+    if (!run) return;
+    const count = run.members.length;
+    for (let i = 0; i < count; i++) bySeq.set(run.members[i], { head: i === 0, count });
+    run = null;
   };
   for (const item of items) {
-    if (item.kind === 'break') { run = null; continue; }
-    if (!Number.isSafeInteger(item.seq)) continue;
+    if (item.kind === 'break') { flush(); continue; }
+    if (!Number.isSafeInteger(item.seq) || item.seq < 0) { flush(); continue; }
+    let turn, peer, kind, status;
     if (item.kind === 'sent') {
       const meta = sentMeta?.get(item.seq);
-      if (meta === undefined || meta.multiTarget === true) {
-        bySeq.set(item.seq, { head: true, count: 1 });
-        run = null;
-        continue;
+      if (meta && !meta.multiTarget) {
+        ({ turn, target: peer, kind, status } = meta);
       }
-      const gap = run === null ? Infinity : item.time - run.lastTime;
-      const same = run !== null
-        && run.direction === 'sent'
-        && run.turn === meta.turn
-        && run.peer === meta.target
-        && run.messageKind === meta.kind
-        && run.status === meta.status
-        && gap <= windowMs;
-      if (!same) {
-        run = {
-          direction: 'sent', headSeq: item.seq, turn: meta.turn, peer: meta.target,
-          messageKind: meta.kind, status: meta.status, lastTime: item.time, count: 1, members: [item.seq],
-        };
-        bySeq.set(item.seq, { head: true, count: 1 });
-      } else extend(item);
+    } else if (item.kind === 'received') {
+      ({ turn, sender: peer, messageKind: kind, status } = item);
+    } else { flush(); continue; }
+    if (!knownTurn(turn) || !present(peer) || !MESSAGE_KINDS.has(kind)
+      || !present(status) || !Number.isFinite(item.time)) {
+      flush();
+      bySeq.set(item.seq, { head: true, count: 1 });
       continue;
     }
-    if (item.kind !== 'received') continue;
-    const gap = run === null ? Infinity : item.time - run.lastTime;
-    const same = run !== null
-      && run.direction === 'received'
-      && run.turn === item.turn
-      && run.peer === item.sender
-      && run.messageKind === item.messageKind
-      && run.status === item.status
-      && gap <= windowMs;
+    const gap = run ? item.time - run.lastTime : Infinity;
+    const same = run && run.direction === item.kind && run.turn === turn
+      && run.peer === peer && run.messageKind === kind && run.status === status
+      && gap >= 0 && gap <= windowMs;
     if (!same) {
-      run = {
-        direction: 'received', headSeq: item.seq, turn: item.turn, peer: item.sender,
-        messageKind: item.messageKind, status: item.status, lastTime: item.time, count: 1, members: [item.seq],
-      };
-      bySeq.set(item.seq, { head: true, count: 1 });
-    } else extend(item);
+      flush();
+      run = { direction: item.kind, turn, peer, messageKind: kind, status, lastTime: item.time, members: [] };
+    }
+    run.members.push(item.seq);
+    run.lastTime = item.time;
   }
+  flush();
   return bySeq;
 }

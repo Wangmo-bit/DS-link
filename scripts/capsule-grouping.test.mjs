@@ -12,7 +12,7 @@ const received = (seq, time, extra = {}) => ({
 const sent = (seq, time) => ({ kind: 'sent', seq, time: t(time) });
 const brk = () => ({ kind: 'break' });
 
-test('the real REQ-6 sequence becomes 4 capsules: request, notification, sent, five notifications', () => {
+test('a request, notification, sent reply and five adjacent notifications become four capsules', () => {
   const groups = groupCapsules([
     received(1, '16:20:44', { messageKind: 'request' }),
     received(2, '16:21:18'),

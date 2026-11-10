@@ -591,6 +591,7 @@ export function apply(ctx) {
     console.warn('[session-link] Subagent messages unavailable; native chat remains.', error);
   }
   const capsuleGroups = createCapsuleGroupStore();
+  ctx.effect(() => () => capsuleGroups.dispose(), 'session-link-capsule-groups: teardown');
   try {
     installIncomingCards(ctx, { groupStore: capsuleGroups });
   } catch {

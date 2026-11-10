@@ -210,12 +210,13 @@ export function createSenderCardView({ onRefresh, groupStore } = {}) {
     const target = singleTarget ? data.to[0] : '';
     const groupSnapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
     const groupInfo = store.info(groupSnapshot, data?.from, seq);
+    const groupGeneration = store.generationOf?.(groupSnapshot, data?.from) ?? 0;
     useEffect(() => {
       if (!Number.isSafeInteger(seq) || typeof data?.from !== 'string') return;
       store.setSentMeta(data.from, seq, {
-        target, kind: data.kind, status: data.status, turn: data.turn ?? null, multiTarget: !singleTarget,
+        target, kind: data.kind, status: data.capsuleStatus, turn: data.turn ?? null, multiTarget: !singleTarget,
       });
-    }, [store, data?.from, seq, target, data?.kind, data?.status, data?.turn, singleTarget]);
+    }, [store, data?.from, seq, target, data?.kind, data?.capsuleStatus, data?.turn, singleTarget, groupGeneration]);
     const hidden = mode !== 'card' && groupInfo.head === false;
     const capsuleCount = groupInfo.count;
     if (!data) return null;
@@ -224,7 +225,7 @@ export function createSenderCardView({ onRefresh, groupStore } = {}) {
     const names = Array.isArray(data.toDisplay) ? data.toDisplay : [];
     const states = Array.isArray(data.targetStatus) ? data.targetStatus : [];
     if (hidden) return null;
-    return <div className="sl-chat-event" data-session-link-card={data.callId} data-session-link-i18n-root="" data-session-link-direction="sent">
+    return <div className="sl-chat-event" data-session-link-card={data.callId} data-session-link-i18n-root="" data-session-link-direction="sent" data-capsule-count={capsuleCount > 1 ? capsuleCount : undefined}>
       {targets.map((target, index) => {
         const item = states.find(entry => entry.target === target);
         const status = item ? (item.stale || typeof item.asOf !== 'number' ? '状态未更新' : item.label) : (data.statusStale ? '状态未更新' : data.status);
