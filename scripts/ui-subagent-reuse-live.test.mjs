@@ -59,13 +59,17 @@ function fixture(){
   const chats={one:chat('one'),two:chat('two')};let sessionId='one';
   const prior={running:false,projectionValues:{subagentTiming:{lastTurnCompleted:true},turnOutline:[{turn:1}]}};
   let sessions={byId:{one:{title:'One'},two:{title:'Two'},old:prior,fresh:prior,team:prior},projectionsBySession:{one:{values:{subagentCatalog:[{id:'old',label:'worker',mode:'continuable',createdAt:120}]}},two:{values:{subagentCatalog:[]}}}};
-  const flow={NativeFlow:()=>null,pendingInputs:[],lastInputTurn:0,useChat:selector=>selector({nodes:chats[sessionId].nodes,timeline:chats[sessionId].timeline}),useSessions:selector=>selector(sessions),useChatNode:(key,selector=x=>x)=>selector(chats[sessionId].nodes.get(key)),useChatGroup:()=>undefined,usePresentation:selector=>selector({foldCompletedTurns:true,stepGrouping:'collapsed'})};
+  let statuses=new Map();const statusListeners=new Set();
+  const statusSource={getSnapshot:()=>statuses,subscribe:fn=>{statusListeners.add(fn);return()=>statusListeners.delete(fn);}};
+  const flow={NativeFlow:()=>null,pendingInputs:[],lastInputTurn:0,sessionStatusSource:()=>statusSource,useChat:selector=>selector({nodes:chats[sessionId].nodes,timeline:chats[sessionId].timeline}),useSessions:selector=>selector(sessions),useChatNode:(key,selector=x=>x)=>selector(chats[sessionId].nodes.get(key)),useChatGroup:()=>undefined,usePresentation:selector=>selector({foldCompletedTurns:true,stepGrouping:'collapsed'})};
   const root=()=>React.createElement(mod.exports.NativeFlowAdapter,{...flow,sessionId,entries:chats[sessionId].entries});let renderer=createRenderer(root);
   const values=(id,next)=>{const prev=sessions.projectionsBySession[id]?.values??{};sessions={...sessions,projectionsBySession:{...sessions.projectionsBySession,[id]:{values:{...prev,...next}}}};renderer.invalidate();};
   return {chats,
     catalog(id,list){values(id,{subagentCatalog:list});},
     roster(id){values(id,{agentTeam:{members:[{id:'team',name:'teammate',role:'teammate',phase:'active'}]}});},
     status(id,running,since=225){sessions={...sessions,byId:{...sessions.byId,[id]:{running,projectionValues:{subagentTiming:{lastTurnCompleted:true,...(running?{active:{since,through:since}}:{})},turnOutline:[{turn:1},{turn:2}]}}}};renderer.invalidate();},
+    live(id,running){statuses=new Map(statuses);statuses.set(id,{running});for(const fn of [...statusListeners])fn();renderer.invalidate();},
+    open(id,turn){const prior=chats[id].timeline,updated={...prior.turns.get(turn),status:'open',end:undefined};chats[id].timeline={...prior,turns:new Map([...prior.turns].map(([n,value])=>[n,n===turn?updated:value]))};renderer.invalidate();},
     switchTo(id){sessionId=id;renderer.invalidate();},refresh(){renderer.unmount();renderer=createRenderer(root);},
     view(){return badges(renderer.flush());},get renders(){return renderer.renders;},close(){renderer.unmount();}};
 }
@@ -83,6 +87,25 @@ test('live ordinary ask_agent reuse stays in its turn after completion and refre
     // Failure, truncated call head and non-direct-child ids cannot create a turn-2 badge.
     src.publish([result('old',{error:true}),result('old',{head:false}),result('stranger')]);
     v=f.view();assert.deepEqual([...v.keys()],[1]);
+  }finally{f.close();}
+});
+
+test('a reused child already running before this turn asked it is blue on the open turn',()=>{
+  const f=fixture();try{
+    f.catalog('one',[{id:'old',label:'worker',mode:'continuable',createdAt:120}]);
+    f.open('one',2);
+    const src=f.chats.one.sources.get(2);
+    // The real screenshot case: the Host says running, but the activation began
+    // before this turn's ask. The old rule required a fresh start inside the turn
+    // and painted it gray even though the agent was working.
+    f.status('old',true,150);
+    src.publish([start('old')]);
+    let v=f.view();
+    assert.deepEqual([...v.keys()],[1,2]);
+    state(v,2,'running');
+    // Completion still needs this turn's evidence: a successful follow-up.
+    src.publish([result('old')]);f.status('old',false);
+    v=f.view();state(v,2,'done');
   }finally{f.close();}
 });
 

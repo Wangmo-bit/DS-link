@@ -62,7 +62,7 @@ function endedText({ turn, control }) {
   return base;
 }
 // Re-renders once a second so a running summary keeps moving, then stops.
-function RunningHeading({ turn, control, agents }) {
+function RunningHeading({ turn, control, agents, live = false }) {
   const start = turn?.start?.time;
   const [now,setNow] = useState(Date.now);
   useEffect(() => {
@@ -71,7 +71,7 @@ function RunningHeading({ turn, control, agents }) {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [start]);
-  return <span className="sl-chat-summary sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}{agents?.length ? <><span className="sl-summary-divider" aria-hidden="true">·</span><AgentBadges badges={agents}/></> : null}</span>;
+  return <span className="sl-chat-summary sl-heading-process" data-sl-running="">{runningText({ turn, control, now })}{agents?.length ? <><span className="sl-summary-divider" aria-hidden="true">·</span><AgentBadges badges={agents} live={live}/></> : null}</span>;
 }
 function SummaryHeading({ turn, control, running, agents }) {
   return running ? <RunningHeading turn={turn} control={control} agents={agents}/> : <EndedHeading turn={turn} control={control} agents={agents}/>;
@@ -101,20 +101,25 @@ function AgentIcon({ state }) {
 }
 const AGENT_STATE_LABEL = { running: '运行中', done: '已完成', failed: '失败', idle: '未确认' };
 // A turn with no dispatched agent renders nothing at all — no placeholder.
-function AgentBadges({ badges }) {
+// `live` marks the open turn's row: it reports what the parent has working right
+// now, which may include a child this turn did not dispatch. That row must not
+// say "本轮" about work another turn started.
+function AgentBadges({ badges, live = false }) {
   if (!badges?.length) return null;
   const total = badges.reduce((sum, badge) => sum + badge.count, 0);
   const spoken = badges.map(badge => `${AGENT_STATE_LABEL[badge.state]} ${badge.count} 个`).join('，');
+  const scope = live ? '' : '本轮 ';
   // One agent needs no count: the single icon already says "one", and the spoken
   // form drops the count too so it matches what is on screen.
   if (total === 1) {
     const only = badges[0];
-    const single = `本轮 1 个 agent，${AGENT_STATE_LABEL[only.state]}`;
+    const single = `${scope}1 个 agent，${AGENT_STATE_LABEL[only.state]}`;
     return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={single} title={single}>
       <AgentIcon state={only.state}/>
     </span>;
   }
-  return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={`本轮 ${total} 个 agent，${spoken}`} title={`本轮 ${total} 个 agent，${spoken}`}>
+  const label = `${scope}${total} 个 agent，${spoken}`;
+  return <span className="sl-agent-badges" data-sl-agent-badges="" role="img" aria-label={label} title={label}>
     {badges.map(badge => <span className="sl-agent-badge" key={badge.state} data-state={badge.state}>
       <AgentIcon state={badge.state}/><span className="sl-agent-count">{badge.count}</span>
     </span>)}
@@ -173,6 +178,11 @@ function TeamDispatchProbe({ sessionId, turn, nodes, onReport, onReuse }) {
   return null;
 }
 const EMPTY_INPUTS = Object.freeze([]), SINGLETONS = new WeakMap();
+// The Host's live running map (the one its own subagent menu reads) is optional:
+// when the service is unavailable, the list summary remains the fallback.
+const EMPTY_SESSION_STATUS = new Map();
+const EMPTY_STATUS_SUBSCRIBE = () => () => {};
+const EMPTY_STATUS_SNAPSHOT = () => EMPTY_SESSION_STATUS;
 function singleton(entry) { let value = SINGLETONS.get(entry); if (!value) { value = [entry]; SINGLETONS.set(entry, value); } return value; }
 function entryKey(entry) { return JSON.stringify([entry.kind,entry.key,entry.groupPart ?? null]); }
 function NoRunningFlow({ NativeFlow, flow, entries, pendingInputs = EMPTY_INPUTS, usePresentation, fixCurrency = false }) {
@@ -191,7 +201,7 @@ function AnchorOnly({ entry }) {
 // A process segment plus its own response. Segments are grouped by the Host, so
 // the text that finishes a turn may arrive in a later segment: `turnHasText`
 // keeps earlier text-less segments from drawing an empty bubble.
-function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention, agents, terminal }) {
+function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, turnHasText, carrySummary, attention, agents, agentsLive, terminal }) {
   const [terminalOpen, setTerminalOpen] = useState(false);
   const firstEntry = plan.groups[0], groupKey = firstEntry?.kind === 'group' ? firstEntry.key : '';
   const groupTurn = flow.useChatGroup(groupKey, group => group?.data.turn);
@@ -229,7 +239,7 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
     {plan.first && plan.control && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={plan.control.key} data-chat-anchor-key={`sl-control-node:${plan.control.key}`}/>}
     {firstKey && <span className="sl-native-anchor" aria-hidden="true" data-chat-node-key={firstKey} data-chat-anchor-key={`sl-process-node:${firstKey}`}/>}
     <MessageBubble author={author} bodyless={!(hasText || runningLine || attentionLine || showTerminal)} heading={runningLine
-      ? <RunningHeading turn={turn} control={controlNode} agents={agents}/>
+      ? <RunningHeading turn={turn} control={controlNode} agents={agents} live={agentsLive}/>
       : endedLine || terminalLine ? <EndedHeading turn={turn} control={controlNode} agents={agents} action={terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {hasText
@@ -241,7 +251,7 @@ function MessageSurface({ plan, flow, NativeFlow, author, inlinePresentation, tu
 }
 // A turn whose loaded window holds no other material: the live bubble while it
 // runs, or a statistics-only bubble once it ended without producing text.
-function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention, agents, terminal }) {
+function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attention, agents, agentsLive, terminal }) {
   const [terminalOpen, setTerminalOpen] = useState(false);
   const node = flow.useChatNode(plan.entry.key);
   if (!node) return <NoRunningFlow NativeFlow={NativeFlow} flow={flow} entries={singleton(plan.entry)}/>;
@@ -255,7 +265,7 @@ function ControlSurface({ plan, flow, NativeFlow, author, carrySummary, attentio
   const showTerminal = terminalOpen && terminalLine;
   return <div data-chat-turn={plan.turn} data-chat-flow-kind="turn-process" data-chat-node-key={plan.entry.key} data-chat-flow-key={plan.entry.key} data-chat-anchor-key={`sl-control:${plan.entry.key}`}>
     <MessageBubble author={author} bodyless={!(runningLine || attentionLine || showTerminal)} heading={runningLine
-      ? <RunningHeading turn={turn} control={node} agents={agents}/>
+      ? <RunningHeading turn={turn} control={node} agents={agents} live={agentsLive}/>
       : endedLine || terminalLine ? <EndedHeading turn={turn} control={node} agents={agents} action={terminalLine ? <TerminalDisclosure open={terminalOpen} onToggle={() => setTerminalOpen(value => !value)}/> : null}/> : null}>
       {attentionLine && <p className="sl-bubble-attention" role="status">有需要你操作的事项</p>}
       {runningLine ? <ThinkingDots/> : null}
@@ -299,6 +309,15 @@ function BubbleFlow({ NativeFlow, ...flow }) {
         Array.isArray(outline) ? outline.length : ''].join('\u0000');
     }).join('\u0001');
   });
+  // The Host publishes live running state separately from the session list; its
+  // own subagent menu reads this map first and only falls back to the summary.
+  // A summary row can lag or be a synthesized row, so the badges read the same
+  // source instead of treating a missing `running` as "not running".
+  const sessionStatus = flow.sessionStatusSource?.();
+  const sessionStatuses = useSyncExternalStore(
+    sessionStatus?.subscribe ?? EMPTY_STATUS_SUBSCRIBE,
+    sessionStatus?.getSnapshot ?? EMPTY_STATUS_SNAPSHOT,
+    sessionStatus?.getSnapshot ?? EMPTY_STATUS_SNAPSHOT);
   const teamSignature = flow.useSessions(snapshot => teamRosterSignature(snapshot, flow.sessionId));
   const [teamDispatches, setTeamDispatches] = useState(() => new Map());
   const [reuseDispatches, setReuseDispatches] = useState(() => new Map());
@@ -351,10 +370,12 @@ function BubbleFlow({ NativeFlow, ...flow }) {
   // grows by turn, so a later re-render can still finalise the badge.
   const observedRunsRef = useRef(new Map());
   // Agent badges: the parent's catalog projection lists every direct child with
-  // its creation time and label; each child's own summary carries running and the
-  // latest-turn outcome the Host folds (subagentTiming.lastTurnCompleted).
-  const agentBadgesByTurn = useMemo(() => {
-    const badges = new Map();
+  // its creation time and label; each child's own summary carries the latest-turn
+  // outcome the Host folds (subagentTiming.lastTurnCompleted). Running state comes
+  // from the Host's live session-status map when it is available — the same source
+  // its subagent menu reads — and only falls back to the list summary.
+  const { agentBadgesByTurn, backgroundTurns } = useMemo(() => {
+    const badges = new Map(), backgroundTurns = new Set();
     const catalog = agentSignature ? agentSignature.split('\u0001').map(row => {
       const [id, label, createdAt, running, completed, failed, mode, since, turnCount] = row.split('\u0000');
       return { id, label: label || undefined, createdAt: Number(createdAt), running: running === 'r', completed: completed === 'c', failed: failed === 'f', mode,
@@ -367,7 +388,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     const byId = new Map([...catalog, ...members].map(entry => [entry.id, entry]));
     const teamIds = new Set(members.map(member => member.id));
     const windows = turnWindows(turnSignature), targetsByTurn = new Map(), reuseByTurn = new Map();
-    if (!windows.length) return badges;
+    if (!windows.length) return { agentBadgesByTurn: badges, backgroundTurns };
     for (const window of windows) {
       const key = teamTurnKey(flow.sessionId, window.turn), signature = teamDispatches.get(key), reuse = reuseDispatches.get(key);
       if (signature) targetsByTurn.set(window.turn, JSON.parse(signature));
@@ -395,16 +416,44 @@ function BubbleFlow({ NativeFlow, ...flow }) {
         if (!prior || from > prior.from || (from === prior.from && turn > prior.turn)) latestTeamTurn.set(id, { turn, from });
       }
     }
-    for (const [turn, agents] of groups) {
-      // Blue means this turn's dispatch started a run that is still going.
-      // Green needs positive evidence that this turn's work finished: the child
-      // was created in this turn, an explicit follow-up returned successfully,
-      // or we saw that child running here. A bare Team admission or an
-      // unrelated historical completion is not evidence. Red stays reserved for
-      // a real failure fact; the Host folds cancellation and error into the same
-      // boolean today, so an interrupted or failed run remains gray "未确认"
-      // rather than being mislabelled as failure.
-      const window = windowsByTurn.get(turn);
+    // Live running children of this parent. Only ordinary direct children are
+    // folded here: a Team send is an admission, so a teammate that was already
+    // running from an earlier turn still cannot be called "working on this
+    // message" just because the send was accepted.
+    const liveRunning = new Set();
+    for (const entry of catalog) {
+      const live = sessionStatuses?.get?.(entry.id);
+      if ((live?.running ?? entry.running) === true) liveRunning.add(entry.id);
+    }
+    const activeTurn = windows.filter(window => !Number.isFinite(window.to)).at(-1)?.turn;
+    // The live bubble reports what the parent has working right now, including a
+    // child this turn only asked again or did not dispatch at all. Its own turn
+    // attribution stays untouched: later reuse never recolours an old turn, and
+    // these background children are dropped from the badge as soon as they stop.
+    const renderGroups = new Map(groups);
+    if (activeTurn !== undefined) {
+      const listed = groups.get(activeTurn) ?? [];
+      const known = new Set(listed.flatMap(agent => agent.ids));
+      const extras = [];
+      for (const entry of catalog) {
+        if (!liveRunning.has(entry.id) || known.has(entry.id)) continue;
+        extras.push({ label: entry.label ?? '子智能体', ids: [entry.id], count: 1, background: true });
+        known.add(entry.id);
+      }
+      if (extras.length) { renderGroups.set(activeTurn, [...listed, ...extras]); backgroundTurns.add(activeTurn); }
+    }
+    for (const [turn, agents] of renderGroups) {
+      // Blue means the agent is running now. On the open turn that is the live
+      // fact itself, even when the run began before this turn asked it. On a
+      // closed turn only a run this turn started still counts, so a later
+      // wake-up cannot recolour history. Green needs positive evidence that this
+      // turn's work finished: the child was created in this turn, an explicit
+      // follow-up returned successfully, or we saw that child running here. A
+      // bare Team admission or an unrelated historical completion is not
+      // evidence. Red stays reserved for a real failure fact; the Host folds
+      // cancellation and error into the same boolean today, so an interrupted or
+      // failed run remains gray "未确认" rather than being mislabelled as failure.
+      const window = windowsByTurn.get(turn), liveTurn = turn === activeTurn;
       const states = agents.map(agent => ({
         label: agent.label,
         state: agentStateOf(agent.ids.map(id => {
@@ -422,15 +471,18 @@ function BubbleFlow({ NativeFlow, ...flow }) {
           // child only proves a later activation started, never an earlier one.
           const startedHere = Number.isFinite(activeSince) && activeSince < window.to &&
             (createdHere ? activeSince >= createdAt : Number.isFinite(firstDispatch) && activeSince > firstDispatch);
-          // A directly-created ordinary child reports its own run; a reused or
-          // Team member needs the activation to be proven inside this turn.
-          const running = entry?.running === true && (!isManaged || startedHere);
+          // Live running covers ordinary catalog children only: a Team send is
+          // an admission, so a teammate that was already running still needs
+          // this turn's activation proof.
+          const liveRun = liveRunning.has(id);
+          const hostRunning = liveRun || entry?.running === true;
+          const running = (liveTurn && liveRun) || (hostRunning && (!isManaged || startedHere));
           const observedHere = observedRunsRef.current.get(turn)?.has(id) === true;
           const reuseConfirmedHere = reuseConfirmed.get(turn)?.has(id) === true;
           const createdHereAlone = createdHere && entry?.turnCount === 1;
-          const proven = !older && entry?.running !== true &&
+          const proven = !hostRunning && !older &&
             (!isManaged || createdHereAlone || reuseConfirmedHere || observedHere);
-          if (running) {
+          if (running && agent.background !== true) {
             let seen = observedRunsRef.current.get(turn);
             if (!seen) observedRunsRef.current.set(turn, seen = new Set());
             seen.add(id);
@@ -443,8 +495,8 @@ function BubbleFlow({ NativeFlow, ...flow }) {
       }));
       badges.set(turn, agentBadges(states));
     }
-    return badges;
-  }, [agentSignature, teamSignature, turnSignature, teamDispatches, reuseDispatches, flow.sessionId]);
+    return { agentBadgesByTurn: badges, backgroundTurns };
+  }, [agentSignature, teamSignature, turnSignature, teamDispatches, reuseDispatches, flow.sessionId, sessionStatuses]);
   // Statistics belong to the turn, not to one segment. Exactly one bubble per
   // turn carries them: the turn's last bubble with text, otherwise its last
   // bubble at all (a turn that produced no text keeps a statistics-only bubble).
@@ -514,8 +566,8 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     if (early && plan.kind === 'control' && plan.entry.key === tail?.key) rows.push(<NoRunningFlow key={`echo:${early.requestId}`} NativeFlow={NativeFlow} flow={flow} entries={EMPTY_INPUTS} pendingInputs={[early]}/>);
     const attention = attentionOf(plan.turn);
     rows.push(plan.kind === 'control'
-      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)} terminal={terminalByTurn.get(plan.turn)}/>
-      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)} terminal={terminalByTurn.get(plan.turn)}/>);
+      ? <ControlSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)} agentsLive={backgroundTurns.has(plan.turn)} terminal={terminalByTurn.get(plan.turn)}/>
+      : <MessageSurface key={key} plan={plan} flow={flow} NativeFlow={NativeFlow} author={author} inlinePresentation={inlinePresentation} turnHasText={turnsWithText.has(plan.turn)} carrySummary={summaryCarrier.get(plan.turn) === plan} attention={attention} agents={agentBadgesByTurn.get(plan.turn)} agentsLive={backgroundTurns.has(plan.turn)} terminal={terminalByTurn.get(plan.turn)}/>);
   }
   // If an unexpected projection removed the opening controller, show its echo
   // at the tail rather than silently losing it.
@@ -526,11 +578,21 @@ export function NativeFlowAdapter({ NativeFlow, ...flow }) {
   const mode = useDisplayMode();
   return mode === 'card' ? <NativeFlow {...flow}/> : <BubbleFlow NativeFlow={NativeFlow} {...flow}/>;
 }
+// The live session-status observable is owned by the Host's ui-session service.
+// Reading it lazily keeps this optional: a Host without that service falls back
+// to the session-list summary instead of failing to load the flow adapter.
+function sessionStatusSource(ctx) {
+  return () => {
+    try { return ctx.get?.('uiSession')?.sessionStatus; } catch { return undefined; }
+  };
+}
 export function installNativeFlowAdapter(ctx, onAvailability = () => {}) {
   // The Host owns this optional child slot. No flow props or callbacks are
   // installed on the browser global; when absent, the Host renders natively.
+  const statusSource = sessionStatusSource(ctx);
+  const Adapter = props => <NativeFlowAdapter {...props} sessionStatusSource={statusSource}/>;
   return ctx.slots.inject(FLOW_SLOT, () => {
-    const stop = ctx.slots.register({ name: FLOW_SLOT, priority: -5 }, NativeFlowAdapter);
+    const stop = ctx.slots.register({ name: FLOW_SLOT, priority: -5 }, Adapter);
     onAvailability(true);
     return () => { stop(); onAvailability(false); };
   });

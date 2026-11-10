@@ -8,7 +8,7 @@ English · [简体中文](README_ZH.md)
 
 You already have development, product and research sessions. DS-link lets those sessions exchange messages, ask for help and receive explicit replies. Choose **bubble or card mode** to read results and inspect work your way. No new bot team, and less copying between chat windows.
 
-> **Private preview; not publicly released.** Repository collaborators can use the [private prerelease](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6). There is no public npm package, and a release does not update your installed plugin. Full bubble behavior has a separate Host adaptation requirement; read [installation and compatibility](docs/installation.en.md).
+> **Private release; not publicly released.** Repository collaborators can use the [private release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16). There is no public npm package, and a release does not update your installed plugin. Full bubble behavior has a separate Host adaptation requirement; read [installation and compatibility](docs/installation.en.md).
 
 ![Bubble mode: Development consults Product discussion and continues with the answer](docs/assets/bubble-en.png)
 
@@ -94,7 +94,7 @@ Display mode and your bubble display name are separate browser-local preferences
 
 ## Install and start
 
-Repository collaborators can download the `.tgz` from the [private prerelease](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16-pre.6) and follow [installation](docs/installation.en.md). There is no public npm package or anonymously accessible Release. **Building from source** is also supported. Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web.
+Repository collaborators can download the `.tgz` from the [private release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16) and follow [installation](docs/installation.en.md). There is no public npm package or anonymously accessible Release. **Building from source** is also supported. Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web.
 
 ```sh
 git clone https://github.com/Wangmo-bit/DS-link.git

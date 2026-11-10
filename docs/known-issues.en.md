@@ -7,7 +7,7 @@
 - **No quote icon on my own message:** the added action uses the assistant action slot. Select user text and use the Host's quote action instead.
 - **Only the start of a long reply was quoted:** quotes over 1,200 code points use a marked opening excerpt. Select a later passage explicitly when needed.
 - **Markdown in the preview:** source text preserves formatting markers; the preview is not promised to be rich text.
-- **Agent reuse not counted:** name-only reuse or automatic resumes may lack persistent identity evidence. Grey means uncertain, not necessarily failed.
+- **Agent hint undercounts running children:** the live turn shows the direct children that parent is working on now, using the same live source as the Host menu (a Team send still only counts as admission). Historical turns keep their own dispatch and completion evidence; name-only reuse or automatic resumes may lack persistent identity evidence. Grey means uncertain, not necessarily failed.
 - **Busy target:** delivery waits for a step boundary and does not interrupt the active tool batch; no maximum busy-time latency is promised.
 - **Unknown / timeout:** unknown is never automatically resent; timeout does not cancel work. Verify before acting.
 - **Paused chain without a resume button:** per-chain pause/resume/close UI is not implemented; use existing qualified tools/owner controls, not the global pause switch.

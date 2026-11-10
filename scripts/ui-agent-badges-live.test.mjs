@@ -71,7 +71,9 @@ function fixture() {
   let timeline={turns:new Map(), turnOrder:[]}, entries=[], sessionId='one';
   let chatSelectors=[];
   let sessions={byId:{one:{title:'One'},two:{title:'Two'}},projectionsBySession:{one:{values:{subagentCatalog:[]}},two:{values:{subagentCatalog:[]}}}};
-  const flow={pendingInputs:[], lastInputTurn:0, NativeFlow:()=>null,
+  let statuses=new Map();
+  const statusSource={getSnapshot:()=>statuses,subscribe:()=>()=>{}};
+  const flow={pendingInputs:[], lastInputTurn:0, NativeFlow:()=>null, sessionStatusSource:()=>statusSource,
     useChat:selector=>{chatSelectors.push(selector); return selector({nodes,timeline});}, useSessions:selector=>selector(sessions),
     useChatNode:(key,selector=x=>x)=>selector(nodes.get(key)), useChatGroup:()=>undefined,
     usePresentation:selector=>selector({foldCompletedTurns:true,stepGrouping:'collapsed'})};
@@ -87,6 +89,7 @@ function fixture() {
       timeline={turns:new Map(turns.map(t=>[t.turn,t])),turnOrder:turns.map(t=>t.turn)};
     },
     setTimeline(turns) {timeline={turns:new Map(turns.map(t=>[t.turn,t])),turnOrder:turns.map(t=>t.turn)};},
+    live(id,running){statuses=new Map(statuses);statuses.set(id,{running});},
     switchTo(id) {sessionId=id; this.load([]);},
     selection() {return chatSelectors.map(selector=>({selector,value:selector({nodes,timeline})}));},
     selectionChanged(previous) {return previous.some(({selector,value})=>!Object.is(value,selector({nodes,timeline})));},
@@ -139,6 +142,37 @@ test('catalog before live timeline, ending, historical prepend, and session swit
   assert.deepEqual([...badges.keys()],[2]);
   assert.match(badges.get(2).label,/本轮 1 个 agent，未确认/);
   assert.ok(badges.get(2).icons[0].includes('--idle'));
+});
+
+test('the live turn reports a running child this turn did not dispatch, and drops it when it stops',()=>{
+  const f=fixture();
+  // Created in the earlier turn, still running while the parent works on turn 2.
+  f.catalog('one',[{id:'bg',label:'验货',createdAt:120}],{bg:{running:true}});
+  f.load([turn(1,100,190),turn(2,200)]);
+  let badges=f.view();
+  assert.deepEqual([...badges.keys()],[1,2]);
+  // The open row says what is working now, so it must not claim "本轮".
+  assert.match(badges.get(2).label,/^1 个 agent，运行中$/);
+  assert.ok(badges.get(2).icons[0].includes('--running'));
+  assert.match(badges.get(1).label,/^本轮 1 个 agent，运行中$/,'a child created in turn 1 and still running keeps that turn honest');
+  // Once it stops, the open row must not invent a completion for work it never
+  // dispatched; the badge disappears instead of turning green.
+  f.catalog('one',[{id:'bg',label:'验货',createdAt:120}],{bg:{running:false}});
+  badges=f.view();
+  assert.deepEqual([...badges.keys()],[1]);
+  assert.ok(badges.get(1).icons[0].includes('--idle'));
+});
+
+test('the Host live running map wins over a stale summary row',()=>{
+  const f=fixture();
+  // The list summary says false (synthesized row), the live map says running.
+  f.catalog('one',[{id:'live',label:'worker',createdAt:2200}],{live:{running:false}});
+  f.live('live',true);
+  f.load([turn(2,2000)]);
+  const badges=f.view();
+  assert.deepEqual([...badges.keys()],[2]);
+  assert.match(badges.get(2).label,/^本轮 1 个 agent，运行中$/);
+  assert.ok(badges.get(2).icons[0].includes('--running'));
 });
 
 test('a turn ending updates its attribution without a catalog change',()=>{
