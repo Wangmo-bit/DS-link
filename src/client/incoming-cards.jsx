@@ -71,12 +71,13 @@
  *     identity always falls back native. Never claims 已读/已处理/完成.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-shell.mjs';
 import { ExchangeLink } from './chat-ui.jsx';
 import { receiverHint } from './delivery-indicator.mjs';
 import { useDisplayMode } from './display-mode.mjs';
+import { groupCapsules } from './capsule-grouping.mjs';
 
 const KIND = 'session-link-card';
 const SCAN_DEBOUNCE_MS = 200;
@@ -401,7 +402,39 @@ export function SessionLinkCardLayout({ data, open = false, body = null, onToggl
  * aborted on collapse/unmount; the pure layout above owns the shared shell.
  * @param {{ fetchCardBody: ReturnType<typeof createBodyFetcher>, onFreshRow?: (row: Record<string, any>) => void }} deps
  */
-export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
+const EMPTY_GROUP = { head: true, count: 1 };
+const NOOP_SNAPSHOT = { version: 0, sessions: new Map() };
+const NOOP_GROUP_STORE = {
+  subscribe: () => () => {},
+  getSnapshot: () => NOOP_SNAPSHOT,
+  info: () => EMPTY_GROUP,
+  set: () => {},
+  has: () => false,
+};
+
+/** Tiny external store so one group head re-renders when a later capsule joins. */
+function createCapsuleGroupStore() {
+  let snapshot = { version: 0, sessions: new Map() };
+  const listeners = new Set();
+  return {
+    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    getSnapshot() { return snapshot; },
+    info(snap, sessionId, seq) {
+      return snap.sessions.get(sessionId)?.get(seq) ?? EMPTY_GROUP;
+    },
+    set(sessionId, bySeq, notify = true) {
+      const sessions = new Map(snapshot.sessions);
+      sessions.set(sessionId, bySeq);
+      snapshot = { version: snapshot.version + 1, sessions };
+      if (notify) for (const fn of [...listeners]) fn();
+    },
+    has(sessionId) { return snapshot.sessions.has(sessionId); },
+  };
+}
+
+export function createSessionLinkCardView({ fetchCardBody, onFreshRow, groupStore }) {
+  const store = groupStore ?? NOOP_GROUP_STORE;
+
   /** @param {{ node?: { data?: Record<string, any> } }} props */
   function SessionLinkCardView({ node }) {
     const [body, setBody] = useState(null);
@@ -409,6 +442,10 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     const [cardOpen, setCardOpen] = useState(false);
     const mode = useDisplayMode();
     const data = node?.data ?? {};
+    const groupSnapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    const groupInfo = store.info(groupSnapshot, data.capsuleSessionId, data.capsuleSeq);
+    if (mode !== 'card' && groupInfo.head === false) return null;
+    const capsuleCount = groupInfo.count;
     const durableId = typeof data.durableMessageId === 'string' ? data.durableMessageId : '';
     const sessionId = typeof data.row?.to === 'string' ? data.row.to : '';
     const senderSessionId = typeof data.senderSessionId === 'string' ? data.senderSessionId : '';
@@ -471,8 +508,8 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow }) {
     // real waiting state is a recorded message still waiting to enter context;
     // every other state is already "received" and stays glyph-free.
     const marker = status ? receiverHint(status) : null;
-    return <div className="sl-chat-event" data-session-link-i18n-root="" data-session-link-direction="received" data-session-link-notice="">
-      <ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from} title={marker?.title}>收到消息，来自 {from}{marker ? <span className={`sl-delivery-indicator sl-delivery-indicator--${marker.kind}`} role="status" aria-label={marker.title} title={marker.title}><span className="sl-delivery-spinner" aria-hidden="true"/></span> : null}</ExchangeLink>
+    return <div className="sl-chat-event" data-session-link-i18n-root="" data-session-link-direction="received" data-session-link-notice="" data-capsule-count={capsuleCount > 1 ? capsuleCount : undefined}>
+      <ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from} title={marker?.title}>{capsuleCount > 1 ? `收到消息 ×${capsuleCount}，来自 ${from}` : `收到消息，来自 ${from}`}{marker ? <span className={`sl-delivery-indicator sl-delivery-indicator--${marker.kind}`} role="status" aria-label={marker.title} title={marker.title}><span className="sl-delivery-spinner" aria-hidden="true"/></span> : null}</ExchangeLink>
     </div>;
   }
   return SessionLinkCardView;
@@ -529,6 +566,60 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
   const retryIds = new Map();
 
   const scopeKey = (sessionId, durableId) => `${sessionId}\n${durableId}`;
+
+  /** Bubble-mode capsule groups: sessionId → Map(seq → {head,count}). */
+  const groupStore = createCapsuleGroupStore();
+
+  /** Build the visible capsule timeline from one session's public window. */
+  function refreshCapsuleGroups(sessionId, source, { notify = true } = {}) {
+    if (typeof source?.getSnapshot !== 'function') return;
+    let snap;
+    try { snap = source.getSnapshot(); } catch { return; }
+    const items = [];
+    let turn = null;
+    for (const entry of snap.entries ?? []) {
+      if (entry?.type !== 'event') continue;
+      const event = entry.event;
+      const data = event?.data;
+      if (!event || typeof event.seq !== 'number') continue;
+      if (event.type === 'turn/start') {
+        if (Number.isSafeInteger(data?.turn)) turn = data.turn;
+        items.push({ kind: 'break' });
+        continue;
+      }
+      if (event.type === 'turn/end') { items.push({ kind: 'break' }); turn = null; continue; }
+      if (Number.isSafeInteger(data?.turn)) turn = data.turn;
+      if (event.type === 'user/message') {
+        const relay = data?.source;
+        if (isStandardRelaySource(relay) && typeof data?.id === 'string') {
+          const row = verified.get(scopeKey(sessionId, data.id));
+          if (row !== undefined && row.to === sessionId) {
+            items.push({
+              kind: 'received', seq: event.seq, time: event.time,
+              sender: relay.senderSessionId, messageKind: row.kind,
+              status: row.status, turn: Number.isSafeInteger(row.turn) ? row.turn : turn,
+            });
+          }
+          // Unverified relay events are not visible yet; they must not split a run.
+          continue;
+        }
+        if (relay?.kind === 'time-context') continue;
+        items.push({ kind: 'break' });
+        continue;
+      }
+      if (event.type === 'tool/call' && (data?.name === 'session_link_send' || data?.name === 'session_link_reply')) {
+        items.push({ kind: 'sent', seq: event.seq, time: event.time });
+        continue;
+      }
+      if (event.type === 'assistant/message') {
+        const parts = data?.message?.content;
+        const hasText = Array.isArray(parts)
+          && parts.some(part => part?.type === 'text' && String(part.text ?? '').trim() !== '');
+        if (hasText) items.push({ kind: 'break' });
+      }
+    }
+    groupStore.set(sessionId, groupCapsules(items), notify);
+  }
 
   /** Public registry handle: route-table pre-check for exclusive conflicts. */
   const eventRegistry = ctx.uiConversation.events;
@@ -696,6 +787,10 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
           }
         : null;
     const fresh = sessionId !== '' ? freshness.get(scopeKey(sessionId, durableMessageId)) : undefined;
+    if (sessionId !== '' && !groupStore.has(sessionId)) {
+      const binding = sessions.binding(sessionId);
+      if (binding?.eventSource !== undefined) refreshCapsuleGroups(sessionId, binding.eventSource, { notify: false });
+    }
     const { seq, time, event: _event, ...rest } = state;
     return {
       key: context.key,
@@ -729,6 +824,8 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         statusAsOf: typeof fresh?.asOf === 'number' ? fresh.asOf : null,
         statusStale: fresh?.stale === true,
         isWindowCurrent,
+        capsuleSessionId: sessionId,
+        capsuleSeq: seq,
       },
     };
   }
@@ -1055,6 +1152,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         // scopeChanged also rebuilds: a shared/forked event object must drop any
         // earlier exclusive claim and fall back native even when lookups miss.
         // refreshChanged rebuilds so as-of/stale/status text re-renders.
+        for (const [sessionId, state] of sourceStops) refreshCapsuleGroups(sessionId, state.source);
         reregister();
       }
     } finally {
@@ -1107,11 +1205,16 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     const change = snap.change;
     if (change.kind === 'append') {
       let relevant = false;
+      let groupDirty = false;
       let bucket;
       for (const entry of change.entries ?? []) {
         if (entry?.type !== 'event') continue; // transient assistant rows
         const event = entry.event;
         const type = event?.type;
+        if (type === 'user/message' || type === 'tool/call' || type === 'assistant/message'
+          || type === 'turn/start' || type === 'turn/end' || type === 'step/start' || type === 'step/end') {
+          groupDirty = true;
+        }
         if (type === 'user/message') {
           if (event.surfaceOp !== 'append' || !isStandardRelaySource(event.data?.source)) continue;
           if (typeof event.data.id !== 'string' || event.data.id.length === 0) continue;
@@ -1124,6 +1227,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
           relevant = true;
         }
       }
+      if (groupDirty) refreshCapsuleGroups(sessionId, source);
       if (relevant) scheduleScan();
       return;
     }
@@ -1132,6 +1236,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
       // re-walk this one session, never every session.
       dirtyFull.add(sessionId);
       pendingDelta.delete(sessionId);
+      refreshCapsuleGroups(sessionId, source);
       scheduleScan();
       return;
     }
@@ -1141,12 +1246,14 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
       const entry = change.entry;
       if (entry?.type === 'event' && entry.event?.type === 'user/message') {
         dirtyFull.add(sessionId);
+        refreshCapsuleGroups(sessionId, source);
         scheduleScan();
       }
       return;
     }
     // Unknown future change kind: conservative single-session re-walk.
     dirtyFull.add(sessionId);
+    refreshCapsuleGroups(sessionId, source);
     scheduleScan();
   }
 
@@ -1290,7 +1397,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     reconcileSources();
 
     const fetchCardBody = createBodyFetcher({ url: apiUrl('api/session-link/api'), fetchImpl: doFetch });
-    const CardView = createSessionLinkCardView({ fetchCardBody, onFreshRow });
+    const CardView = createSessionLinkCardView({ fetchCardBody, onFreshRow, groupStore });
     slotStops.push(
       ctx.slots.inject('conversation.chat.node', () =>
         ctx.slots.register({ name: 'conversation.chat.node', key: KIND }, CardView),
