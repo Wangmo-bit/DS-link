@@ -219,6 +219,24 @@ test('a prior activation cannot prove a later accepted message has begun',()=>{
   } finally {f.close();}
 });
 
+test('a running teammate listed in the catalog still needs this turn start proof',()=>{
+  const f=fixture();
+  try {
+    f.roster('one');
+    // A teammate can also appear as a direct catalog child; the live-running
+    // override must not turn an older run into this message's run.
+    f.catalog('one',[{id:'member-a',label:'worker',createdAt:120,mode:'continuable'}]);
+    f.chats.one.sources.get(2).publish([send('worker')]);
+    f.status(true,150,1); // running since the previous parent turn
+    f.open('one',2);
+    let view=f.view();
+    assert.ok(view.get(2).icons[0].includes('--idle'),'an older run is not this message\'s run');
+    f.status(true,220,2);
+    view=f.view();
+    assert.ok(view.get(2).icons[0].includes('--running'),'a start after the send is provable');
+  } finally {f.close();}
+});
+
 test('a child start at or after a closed parent end cannot prove in-turn activity',()=>{
   const f=fixture();
   try {

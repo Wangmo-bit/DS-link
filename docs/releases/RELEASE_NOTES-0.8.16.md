@@ -1,3 +1,5 @@
+> **Superseded by v0.8.17** for one narrow correction: a Team member that also appears in the subagent catalog must still not treat an older run as this turn's run. Everything else is unchanged.
+
 # DS-link v0.8.16 — Private release / 私有正式版
 
 This is an **owner-authorized GitHub release in a private repository**, not a public release. The repository stays private; only collaborators with access can view and download it. Nothing is published to npm, and existing installations are not automatically updated.

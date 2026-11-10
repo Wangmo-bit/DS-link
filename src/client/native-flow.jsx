@@ -422,6 +422,7 @@ function BubbleFlow({ NativeFlow, ...flow }) {
     // message" just because the send was accepted.
     const liveRunning = new Set();
     for (const entry of catalog) {
+      if (teamIds.has(entry.id)) continue;
       const live = sessionStatuses?.get?.(entry.id);
       if ((live?.running ?? entry.running) === true) liveRunning.add(entry.id);
     }

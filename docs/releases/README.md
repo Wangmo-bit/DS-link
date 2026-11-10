@@ -10,7 +10,10 @@ Detailed notes live here. They are records, not proof of a public release, downl
 
 ## 私有正式版 / Private release
 
-- [0.8.16 — 修复运行中子智能体显示灰色，仓库不公开、不发 npm](RELEASE_NOTES-0.8.16.md) · [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16)
+- [0.8.17 — 修正 Team 成员实时运行边界，仓库不公开、不发 npm](RELEASE_NOTES-0.8.17.md) · [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.17)
+- [0.8.16 — 修复运行中子智能体显示灰色（已由 0.8.17 取代）](RELEASE_NOTES-0.8.16.md) · [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16)
+
+## 私有正式版 / Private release
 
 ## 私有预发布 / Private prereleases
 

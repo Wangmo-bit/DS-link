@@ -8,7 +8,7 @@
 
 你已经有开发、产品、调研等会话。DS-link 让这些会话互发消息、请求协作、收取明确回复；提供**气泡与卡片两种显示模式**，按自己的习惯看结果和过程。不必重新建立 Bot 团队，也不必在几个聊天框里来回转述。
 
-> **私有正式版，尚未公开发布。** 有仓库访问权限的成员可使用[私有正式版](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16)。尚无公开 npm 包，Release 不会自动改变你已安装的版本。完整气泡效果另有宿主适配条件，见[安装与兼容性](docs/installation.md)。
+> **私有正式版，尚未公开发布。** 有仓库访问权限的成员可使用[私有正式版](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.17)。尚无公开 npm 包，Release 不会自动改变你已安装的版本。完整气泡效果另有宿主适配条件，见[安装与兼容性](docs/installation.md)。
 
 ![气泡模式：开发会话联系产品会话、收到回复，再继续工作](docs/assets/bubble-zh.png)
 
@@ -94,7 +94,7 @@
 
 ## 安装和第一次使用
 
-有仓库访问权限的成员可从[私有正式版](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.16)下载 `.tgz`，按[安装说明](docs/installation.md)安装。尚无公开 npm 包或可匿名下载的 Release；也支持下方的**源码构建路径**。需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。
+有仓库访问权限的成员可从[私有正式版](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.17)下载 `.tgz`，按[安装说明](docs/installation.md)安装。尚无公开 npm 包或可匿名下载的 Release；也支持下方的**源码构建路径**。需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。
 
 ```sh
 git clone https://github.com/Wangmo-bit/DS-link.git
