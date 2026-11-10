@@ -1,6 +1,6 @@
 # 发布准备（不自动发布）
 
-本文是**所有者/获授权维护者**的发布检查单，不是发布授权。准备内容已获准合入 `main`；所有者可另外授权私有预发布，但这不代表公开 Release 或 npm 包，也不改动已安装的生产 profile。当前 CI、npm 预演、历史邮箱与扣扳机前的事项见[最后开门前](docs/publication-checklist.md)。
+本文是**所有者/获授权维护者**的发布检查单，不是发布授权。0.8.18 起为公开版本：npm 包与 GitHub Release 均公开；仓库可见性由所有者最后切换。发布仍不自动执行，也不改动已安装的生产 profile。当前状态见[最后开门前](docs/publication-checklist.md)。
 
 ## 授权边界
 
@@ -17,14 +17,13 @@
   git rev-parse HEAD
   ```
 
-- 准备分支的 `package.json` 仍为 `"private": true`；`npm publish` 会被拒绝，这是有意的。
-- pre-release 候选号本身不证明已有 GitHub Release；只有实际创建并核验后才能称为已发布的预览，不能冒充稳定版或公开可下载。
-- 私有仓库可以在所有者明确授权后创建 tag 和 GitHub Pre-release，下载权限仍随仓库；不需要公开仓库或去掉 `package.json` 的 `private`。
-- 改变仓库可见性、去掉 `private` 或发布 npm 包仍分别需要所有者明确授权；这些动作本指南不执行。
+- `package.json` 不设 `private`；版本以它为准。
+- 发布新版本时同时更新 npm 与 GitHub Release；只有实际创建并核验后才能称为已发布。
+- 仓库可见性由所有者最后切换；切换前 Release 下载仍受仓库权限限制。
 
 ## A. GitHub 源码
 
-- 仓库：`https://github.com/Wangmo-bit/DS-link`（当前私有；公开可见性由所有者操作）。
+- 仓库：`https://github.com/Wangmo-bit/DS-link`（公开后匿名可访问；可见性由所有者最后操作）。
 - 目标 commit 上确认：README 中英、安装说明中英、LICENSE、THIRD_PARTY_NOTICES、`package.json`/lock 的版本与许可证一致。
 - 在目标 commit 跑源码检查，确认没有真实会话、凭据、个人路径或私有运维材料；公开前提交历史和远端设置仍需人工复核。
 - 不把公开可见性、分支保护或私密漏洞报告的启用说成“已完成”，这些都要实际核验；见 [SECURITY.md](SECURITY.md)。
@@ -74,11 +73,12 @@
 
 5. 所有者确认后创建 tag/Release 并上传 tgz/SHA；本仓不自动上传。
 
-## C. npm（未发布）
+## C. npm（已发布）
 
-- `private: true` 会阻止 `npm publish`；当前没有公开 npm 包，也不提供 registry/npx 安装链接。不要用猜的地址测试“发布是否成功”。
-- 发布 npm 是所有者的独立动作：需另行确认版本、包内容、许可证/声明、tag/commit 与 registry 身份，并在实际发布后核对可匿名安装的包。本仓不记录或读取发布凭据，不自动登录。
-- 如果只做源码构建，用 `npm ci` / `npm run build` / `npm pack`；不要把“本地 pack 成功”说成“npm 已发布”。
+- 包名 `@wangmo-bit/ds-link`，0.8.18 为首次公开发布；安装走官方 `dsh plugin` 入口或 `npm install`。
+- 发布新版本：先更新版本、跑 CI、构建并校验包内容，再执行 `npm publish --access public`；发布后实际核对 registry 页面与匿名安装。
+- 发布 npm 是所有者的独立动作：需确认版本、包内容、许可证/声明、tag/commit 与 registry 身份。本仓不记录或读取发布凭据，不自动登录。
+- 只做源码构建时用 `npm ci` / `npm run build` / `npm pack`；不要把“本地 pack 成功”说成“npm 已发布”。
 
 ## 回退
 

@@ -2,12 +2,21 @@
 
 [简体中文](installation.md) · [Home](../README.md) · [First use](quickstart.en.md) · [Known issues](known-issues.en.md)
 
-## What exists, and what does not
+## What exists
 
-- The current supported path is **build from source and install locally**. Building, testing and packaging happen in the source repository.
-- **There is no public npm package and no public GitHub Release download.** Do not install through `npx @wangmo-bit/ds-link`, a guessed registry URL or an imagined Release link.
-- The repository's `package.json` still has `private: true`, so `npm publish` is refused by design. That is a release gate, not an installation failure.
+- Public install paths: the **npm package `@wangmo-bit/ds-link`**, the `.tgz` attached to the GitHub release, or a source build.
 - Install through DSH's official `dsh plugin` entry point. This repository does not auto-install, auto-patch the Host or auto-restart anything.
+- Installing the plugin is not the same as applying the optional Host bridge; the bridge is a separate maintenance action, described below.
+
+## Install from npm
+
+Back up the target profile first; use an isolated profile for the first try:
+
+```sh
+dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.18
+```
+
+You can also download `wangmo-bit-ds-link-0.8.18.tgz` from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18) and install that file through the same `dsh plugin ... add <path>` entry.
 
 ## Compatibility
 
@@ -45,7 +54,7 @@ dsh plugin --profile sl-test add "$TGZ"
 Notes:
 
 - Read the tarball name and version from `package.json`; do not hand-write an old version. Replace `sl-test` with your own isolated profile name.
-- If the repository is still private, cloning requires owner-granted access. Never put access credentials in commands, scripts or commits.
+- Never put access credentials in commands, scripts or commits.
 - Different DSH versions may need extra `dsh plugin` arguments; follow that version's actual help. **Do not hand-copy files into an installed package.**
 - After installing, check the **actually loaded plugin and client**, not just the version on disk. Client-only changes may appear after a browser refresh; Host-side or configuration changes may require a separately authorized DSH restart. Neither this guide nor the install command restarts anything automatically.
 
@@ -103,7 +112,7 @@ The external names are **DS-link**, **`Wangmo-bit/DS-link`** and **`@wangmo-bit/
 
 ## When installation fails
 
-- `npm publish` refused or registry package not found: that is the expected result of `private: true` and “not published yet”; there is no public npm package.
+- Registry package not found or the network fails: check the package name and version against the official registry; do not install from a guessed URL.
 - Wrong `npm pack` filename: use `VERSION=$(node -p ...)` above to read it from `package.json`; do not type an old version from memory.
 - Plugin installed but full bubbles are incomplete: first check whether you actually need the bridge, then read [known issues](known-issues.en.md). Never force-patch an unknown version.
 - When reporting a problem, include the plugin, DSH and Node versions, OS/browser, display mode, whether the bridge was installed, and minimal steps. Redact logs; never include tokens, cookies, private keys, real conversations or a full profile.

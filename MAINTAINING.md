@@ -12,8 +12,8 @@
 ## 分支与版本
 
 - `main` 保持可构建、可打包；开发分支短生命周期，合并前按改动面评审。
-- 版本遵循 SemVer。仓库在公开准备阶段保留 `package.json` 的 `"private": true`；**pre-release 版本不是公开 Release**，候选版本号以 `package.json` 为准，不从旧文档或旧产物推断。
-- 只有所有者明确决定公开后，才考虑去掉 `private` 和发布；本指南不把任何候选号写成已发布版本。
+- 版本遵循 SemVer，以 `package.json` 为准；不从旧文档或旧产物推断。
+- 0.8.18 起为公开版本；发布 npm 与 GitHub Release 按 [RELEASING.md](RELEASING.md) 执行，不把任何候选号写成已发布版本。
 - 每个发布 tag 应对应从目标 commit 实际构建并核对过的 tgz；不在 CI 自动创建 tag 或上传制品。
 
 ## 变更评审

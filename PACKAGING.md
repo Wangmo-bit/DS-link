@@ -19,8 +19,8 @@
   VERSION=$(node -p "require('./package.json').version")
   ```
 
-- 公开准备阶段保留 `"private": true`；`npm publish` 会被拒绝，这是有意的发布门。不要在打包阶段擅自改成 `false`，也不要因为本地能 pack 就宣称已发布。
-- 候选可以是 pre-release 号，但 **pre-release 不是公开 Release**；是否发布、何时发布由所有者单独授权。
+- 公开发布版不设 `private`；打包只负责产出可安装 tgz，是否发布由所有者按 [RELEASING.md](RELEASING.md) 执行。不要因为本地能 pack 就宣称已发布。
+- 版本号以 `package.json` 为准；是否发布、何时发布由所有者按发布流程执行。
 - 包名/scope 为 `@wangmo-bit/ds-link`，仓库为 `Wangmo-bit/DS-link`。
 
 ## 构建与检查
@@ -35,7 +35,7 @@ npm pack --pack-destination ./output
 
 - `npm ci` 只装开发依赖，不安装插件、不修改 profile。
 - 先看 dry-run 的文件数和路径，再产出 tgz；产物名从包元数据生成，例如 `wangmo-bit-ds-link-<version>.tgz`。
-- `npm run check:public -- --pack` 会检查公开准备必需文件、文档相对链接、包白名单，以及版本/`private`/许可证元数据；它是窄检查，不替代 Git 历史、远端设置和人工许可复核。
+- `npm run check:public -- --pack` 会检查公开准备必需文件、文档相对链接、包白名单，以及版本/许可证元数据；它是窄检查，不替代 Git 历史、远端设置和人工许可复核。
 - 产物的 SHA-256 应单独记录并在发布说明中对应到构建 commit；不要用旧 SHA 或旧 manifest 套新包。
 - `npm pack` 会执行 `prepack` 构建；若用 `--ignore-scripts` 检查清单，先手动 `npm run build` 并明确知道此举跳过生命周期脚本。
 

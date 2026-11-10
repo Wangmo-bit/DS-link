@@ -2,7 +2,14 @@
 
 各版本详细说明统一收在 [版本说明目录](docs/releases/README.md)，根目录只保留本更新日志作为入口。
 
-> 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；`0.8.16-pre.1` 曾获授权用于日用；当前已完成统一命名；日用仍为 `@wangmo-bit/ds-link@0.8.16-pre.5`，仓库内已发布私有 `0.8.17`，均未公开。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
+> 版本口径：0.5.0–0.8.15 的若干候选曾用于维护者日用，不等于已有公共 Release；`0.8.16-pre.1` 曾获授权用于日用；日用为 `@wangmo-bit/ds-link@0.8.17`。0.8.18 是首个公开版本，同步发布到 npm 与 GitHub Release；更早版本为私有历史。安装、源码与运行态不得混为一谈。当前产品要求见 [PRD.md](PRD.md)。
+
+## 0.8.18 — 公开正式版 / Public release
+
+- 首个公开版本：npm 包 `@wangmo-bit/ds-link@0.8.18` 与 GitHub Release 同步发布；运行时代码与 0.8.17 相同，变化集中在打包身份、文档和安装入口。
+- 去掉 `package.json` 的 `private` 门；中英首页、安装说明、发布/打包文档改为公开安装口径。
+- 仓库 topics：`multi-agent`、`deepseek-harness`、`dsh-plugin`、`dsh`、`agent-collaboration`、`local-first`。
+- [本版说明](docs/releases/RELEASE_NOTES-0.8.18.md) · [Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18)。
 
 ## 0.8.17 — 私有正式版 / Private release
 
@@ -46,7 +53,7 @@
 - 定位明确为当前本机 link；团队内 link、全网 Agent 邮箱式 link 属未来探索，先后未定，不宣传成已实现。
 - 保留现有包名、工具名、数据及偏好标识，不改变通信行为和权限，不自动升级日用安装。
 - Public-facing rename only; existing technical identifiers stay compatible. Local links work today; team/global links are future exploration, not implemented features.
-- [本版说明](docs/releases/RELEASE_NOTES-0.8.16-pre.2.md) · [路线图](docs/roadmap.md)。
+- [本版说明](docs/releases/RELEASE_NOTES-0.8.16-pre.2.md)。
 
 ## 0.8.16-pre.1 — 2026-11-08 · 未发布 / Unreleased
 

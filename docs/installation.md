@@ -2,12 +2,21 @@
 
 [English](installation.en.md) · [首页](../README_ZH.md) · [第一次使用](quickstart.md) · [已知问题](known-issues.md)
 
-## 先说清楚：现在有什么、没有什么
+## 先说清楚：现在有什么
 
-- 当前支持**从源码构建并安装**；构建、测试和打包都在源码仓进行。
-- **没有公开的 npm 包，也没有公开的 GitHub Release 下载。** 不要用 `npx @wangmo-bit/ds-link`、猜的 registry 地址或假想 Release 链接来安装。
-- 仓库的 `package.json` 仍保留 `private: true`，因此 `npm publish` 会被拒绝。这是有意的发布门，不是安装故障。
+- 公开安装方式：**npm 包 `@wangmo-bit/ds-link`**，或 GitHub Release 里的 `.tgz`；也支持从源码构建。
 - 插件安装走 DSH 官方 `dsh plugin` 入口；本仓库不会自动安装、自动修改 Host 或自动重启服务。
+- 安装插件不等于应用可选 Host 桥接；桥接是独立维护动作，见下文。
+
+## 从 npm 安装
+
+先备份目标 profile；第一次建议用隔离 profile：
+
+```sh
+dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.18
+```
+
+也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18) 下载 `wangmo-bit-ds-link-0.8.18.tgz`，用同一个 `dsh plugin ... add <文件路径>` 安装。
 
 ## 兼容范围
 
@@ -45,7 +54,7 @@ dsh plugin --profile sl-test add "$TGZ"
 说明：
 
 - tarball 名和版本从 `package.json` 读取，不要手写旧版本号。安装命令里的 `sl-test` 要换成你自己的隔离 profile 名。
-- 如果仓库还未公开，clone 需要所有者授权；不要把访问凭据写进命令、脚本或提交。
+- 不要把访问凭据写进命令、脚本或提交。
 - 不同 DSH 版本的 `dsh plugin` 可能需要额外参数；以该版本的实际帮助为准，但**不要复制已安装包里的文件**。
 - 安装后要核对**实际加载的插件和客户端**，不能只看磁盘上的版本。纯客户端变化可能刷新浏览器后生效；涉及宿主侧或配置的变化，可能需要另行授权的 DSH 重启。本指南和执行安装命令都不会自动重启。
 
@@ -103,7 +112,7 @@ node scripts/install-host-flow-bridge-rc1.mjs \
 
 ## 安装失败时
 
-- `npm publish` 被拒、registry 找不到包：这是 `private: true` 和“尚未发布”的正常结果；当前没有公开 npm 包。
+- registry 找不到包或网络失败：确认包名和版本号，使用官方 registry；不要用猜的地址安装。
 - `npm pack` 产物名不对：用文中的 `VERSION=$(node -p ...)` 从 `package.json` 读取，不要凭记忆写版本。
 - 插件装上了但完整气泡不完整：先确认是否确实需要桥接，再看[已知问题](known-issues.md)；不要对未知版本强打补丁。
 - 需要报告问题时，附插件版本、DSH/Node 版本、OS/浏览器、显示模式、是否安装桥接和最小步骤；只贴脱敏日志，不要贴 token、Cookie、私钥、真实会话或完整 profile。
