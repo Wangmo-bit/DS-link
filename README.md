@@ -8,7 +8,7 @@ English · [简体中文](README_ZH.md)
 
 You already have development, product and research sessions. DS-link lets them exchange messages, ask for help and receive explicit replies. You no longer have to carry questions and answers between chat windows, and you do not need to build a separate bot team.
 
-> **Install:** `dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.18`. You can also download the same package from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18). Installing does not restart the Host or apply the optional bridge.
+> **Install:** `dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.19`. You can also download the same package from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.19). Installing does not restart the Host or apply the optional bridge.
 
 ![Bubble mode: Development consults Product discussion and continues with the answer](docs/assets/bubble-en.png)
 
@@ -89,10 +89,10 @@ Display mode and "my bubble display name" are separate browser-local preferences
 Requires Node.js 24, DSH and pnpm; verified environments are primarily Linux Web. For the first install, use an isolated profile and back up the target profile's `package.json`, `pnpm-lock.yaml` and `cordis.patch.yml`.
 
 ```sh
-dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.18
+dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.19
 ```
 
-You can also download the `.tgz` from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18), or build from source:
+You can also download the `.tgz` from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.19), or build from source:
 
 ```sh
 git clone https://github.com/Wangmo-bit/DS-link.git

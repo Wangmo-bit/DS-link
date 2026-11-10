@@ -4,12 +4,13 @@
 
 各版详细说明统一放在这里。通常看更新日志即可，需要检查某次变更、验证范围或升级注意事项时，再打开对应版本。
 
-除 **0.8.18** 外，这些文件是历史版本记录，**不代表存在同名公开 Release、可下载包，或已经安装到你的环境**；历史方案以当前[产品规范](../../PRD.md)和较新决定为准。
+除 **0.8.18**、**0.8.19** 外，这些文件是历史版本记录，**不代表存在同名公开 Release、可下载包，或已经安装到你的环境**；历史方案以当前[产品规范](../../PRD.md)和较新决定为准。
 
-Except for **0.8.18**, these notes are historical records, not proof of a public release, downloadable package or installed version. See the changelog for the overview.
+Except for **0.8.18** and **0.8.19**, these notes are historical records, not proof of a public release, downloadable package or installed version. See the changelog for the overview.
 
 ## 公开正式版 / Public release
 
+- [0.8.19 — 气泡胶囊分组修复：收发统一合并规则，回执/身份/轮次边界收紧](RELEASE_NOTES-0.8.19.md) · [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.19)
 - [0.8.18 — 首个公开版本：npm 与 GitHub Release 同步发布，运行时代码与 0.8.17 相同](RELEASE_NOTES-0.8.18.md) · [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18)
 
 ## 私有正式版 / Private release

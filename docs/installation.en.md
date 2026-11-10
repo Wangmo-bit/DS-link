@@ -13,10 +13,10 @@
 Back up the target profile first; use an isolated profile for the first try:
 
 ```sh
-dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.18
+dsh plugin --profile <your-profile> add @wangmo-bit/ds-link@0.8.19
 ```
 
-You can also download `wangmo-bit-ds-link-0.8.18.tgz` from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.18) and install that file through the same `dsh plugin ... add <path>` entry.
+You can also download `wangmo-bit-ds-link-0.8.19.tgz` from the [GitHub release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.19) and install that file through the same `dsh plugin ... add <path>` entry.
 
 ## Compatibility
 
