@@ -20,7 +20,7 @@ function roles(value) {
 }
 function view(targetStatus) {
   const ref=React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher, previous=ref.current;
-  ref.current={useSyncExternalStore:(_subscribe,get)=>get(),useState:value=>[value,()=>{}]};
+  ref.current={useSyncExternalStore:(_subscribe,get)=>get(),useState:value=>[value,()=>{}],useEffect:()=>{}};
   try { return render({node:{data:{callId:'call',from:'A',fromDisplay:'甲',to:['B','C'],toDisplay:['乙','丙'],status:'多目标状态',targetStatus}}}); }
   finally { ref.current=previous; }
 }

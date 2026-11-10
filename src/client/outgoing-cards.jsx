@@ -33,7 +33,7 @@
  *     No module-level test hooks: tests inject through `options.onReady`.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { translateText } from './i18n.js';
 import { CARD_KIND, createSenderCardDefinition } from './outgoing-card.mjs';
 import { createWindowScope } from './outgoing-window-scope.mjs';
@@ -190,16 +190,40 @@ export function SenderCardLayout({ data, open = false, onToggle, onRefresh, insp
  * per-target failure/uncertainty remains visible and is never treated as safe
  * to resend. Selecting a recipient opens the bounded exchange reader. */
 
-export function createSenderCardView({ onRefresh } = {}) {
+const NOOP_SNAPSHOT = { version: 0, sessions: new Map() };
+const NOOP_GROUP_STORE = {
+  subscribe: () => () => {},
+  getSnapshot: () => NOOP_SNAPSHOT,
+  info: () => ({ head: true, count: 1 }),
+  setSentMeta: () => {},
+  has: () => false,
+};
+
+export function createSenderCardView({ onRefresh, groupStore } = {}) {
+  const store = groupStore ?? NOOP_GROUP_STORE;
   return function SenderCardView({ node, inspectCall } = {}) {
     const mode = useDisplayMode();
     const [open, setOpen] = useState(false);
     const data = node?.data;
+    const seq = data?.evidence?.callSeq;
+    const singleTarget = Array.isArray(data?.to) && data.to.length === 1;
+    const target = singleTarget ? data.to[0] : '';
+    const groupSnapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    const groupInfo = store.info(groupSnapshot, data?.from, seq);
+    useEffect(() => {
+      if (!Number.isSafeInteger(seq) || typeof data?.from !== 'string') return;
+      store.setSentMeta(data.from, seq, {
+        target, kind: data.kind, status: data.status, turn: data.turn ?? null, multiTarget: !singleTarget,
+      });
+    }, [store, data?.from, seq, target, data?.kind, data?.status, data?.turn, singleTarget]);
+    const hidden = mode !== 'card' && groupInfo.head === false;
+    const capsuleCount = groupInfo.count;
     if (!data) return null;
     if (mode === 'card') return <SenderCardLayout data={data} open={open} onToggle={() => setOpen(value => !value)} onRefresh={onRefresh} inspectCall={inspectCall}/>;
     const targets = Array.isArray(data.to) ? data.to : [];
     const names = Array.isArray(data.toDisplay) ? data.toDisplay : [];
     const states = Array.isArray(data.targetStatus) ? data.targetStatus : [];
+    if (hidden) return null;
     return <div className="sl-chat-event" data-session-link-card={data.callId} data-session-link-i18n-root="" data-session-link-direction="sent">
       {targets.map((target, index) => {
         const item = states.find(entry => entry.target === target);
@@ -211,7 +235,7 @@ export function createSenderCardView({ onRefresh } = {}) {
         // capsule button; its meaning is exposed through the button's描述.
         const indicatorText = indicator.kind === 'received' ? '✓' : indicator.kind === 'failed' ? '×' : indicator.kind === 'pending' ? '' : '?';
         return <span className="sl-chat-event-target" key={target}>
-          <ExchangeLink selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'} title={indicator.title}>已发消息给 {names[index] || '目标会话'}<span className={`sl-delivery-indicator sl-delivery-indicator--${indicator.kind}`} role="status" aria-label={indicator.title} title={indicator.title}>{indicator.kind === 'pending' ? <span className="sl-delivery-spinner" aria-hidden="true"/> : <span aria-hidden="true">{indicatorText}</span>}</span></ExchangeLink>
+          <ExchangeLink selfId={data.from} peerId={target} selfName={data.fromDisplay || '当前会话'} peerName={names[index] || '目标会话'} title={indicator.title}>已发消息给 {names[index] || '目标会话'}{capsuleCount > 1 ? ` ×${capsuleCount}` : ''}<span className={`sl-delivery-indicator sl-delivery-indicator--${indicator.kind}`} role="status" aria-label={indicator.title} title={indicator.title}>{indicator.kind === 'pending' ? <span className="sl-delivery-spinner" aria-hidden="true"/> : <span aria-hidden="true">{indicatorText}</span>}</span></ExchangeLink>
         </span>;
       })}
     </div>;
@@ -306,7 +330,7 @@ export const inject = ['sessions', 'uiConversation', 'slots'];
  * @param options.onReady - test seam: receives {scan, stats} of the internal
  *   coordinator (production never passes it; no module-level hooks exist).
  */
-export function installOutgoingCards(ctx, { fetchImpl, onReady } = {}) {
+export function installOutgoingCards(ctx, { fetchImpl, onReady, groupStore } = {}) {
   const sessions = ctx.sessions;
   const windowScope = createWindowScope({ sessions });
   const verifier = createCardVerifier({ fetchImpl });
@@ -407,6 +431,7 @@ export function installOutgoingCards(ctx, { fetchImpl, onReady } = {}) {
     // Expanding the card body forces ONE batched refresh for exactly its ids.
     const SenderCardView = createSenderCardView({
       onRefresh: ({ sessionId, ids }) => verifier.refresh(sessionId, ids, { force: true, signal: aborter.signal }),
+      groupStore,
     });
     slotStops.push(
       ctx.slots.inject('conversation.chat.node', () =>

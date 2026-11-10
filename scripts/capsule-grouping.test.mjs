@@ -76,7 +76,25 @@ test('visible text, human message and turn boundary break the run', () => {
   for (const seq of [1, 2, 3]) assert.deepEqual(groups.get(seq), { head: true, count: 1 });
 });
 
-test('sent capsules break a received run and are never merged', () => {
+test('sent capsules group with matching sent-side meta; multi-target stays separate', () => {
+  const meta = new Map([
+    [2, { target: 'peer-a', kind: 'reply', status: '已进入上下文', turn: 620 }],
+    [3, { target: 'peer-a', kind: 'reply', status: '已进入上下文', turn: 620 }],
+    [4, { target: 'peer-a', kind: 'reply', status: '已进入上下文', turn: 620, multiTarget: true }],
+  ]);
+  const groups = groupCapsules([
+    received(1, '10:00:00'),
+    sent(2, '10:00:10'),
+    sent(3, '10:00:20'),
+    sent(4, '10:00:30'),
+  ], { sentMeta: meta });
+  assert.deepEqual(groups.get(1), { head: true, count: 1 });
+  assert.deepEqual(groups.get(2), { head: true, count: 2 });
+  assert.deepEqual(groups.get(3), { head: false, count: 2 });
+  assert.deepEqual(groups.get(4), { head: true, count: 1 });
+});
+
+test('sent capsules without meta break a received run and are never merged', () => {
   const groups = groupCapsules([
     received(1, '10:00:00'),
     sent(2, '10:00:10'),

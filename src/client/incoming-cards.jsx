@@ -77,7 +77,7 @@ import { CARD_PARTY, cardClass, directionAttribute, toggleText } from './card-sh
 import { ExchangeLink } from './chat-ui.jsx';
 import { receiverHint } from './delivery-indicator.mjs';
 import { useDisplayMode } from './display-mode.mjs';
-import { groupCapsules } from './capsule-grouping.mjs';
+import { createCapsuleGroupStore } from './capsule-group-store.mjs';
 
 const KIND = 'session-link-card';
 const SCAN_DEBOUNCE_MS = 200;
@@ -412,26 +412,6 @@ const NOOP_GROUP_STORE = {
   has: () => false,
 };
 
-/** Tiny external store so one group head re-renders when a later capsule joins. */
-function createCapsuleGroupStore() {
-  let snapshot = { version: 0, sessions: new Map() };
-  const listeners = new Set();
-  return {
-    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
-    getSnapshot() { return snapshot; },
-    info(snap, sessionId, seq) {
-      return snap.sessions.get(sessionId)?.get(seq) ?? EMPTY_GROUP;
-    },
-    set(sessionId, bySeq, notify = true) {
-      const sessions = new Map(snapshot.sessions);
-      sessions.set(sessionId, bySeq);
-      snapshot = { version: snapshot.version + 1, sessions };
-      if (notify) for (const fn of [...listeners]) fn();
-    },
-    has(sessionId) { return snapshot.sessions.has(sessionId); },
-  };
-}
-
 export function createSessionLinkCardView({ fetchCardBody, onFreshRow, groupStore }) {
   const store = groupStore ?? NOOP_GROUP_STORE;
 
@@ -444,7 +424,7 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow, groupStor
     const data = node?.data ?? {};
     const groupSnapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
     const groupInfo = store.info(groupSnapshot, data.capsuleSessionId, data.capsuleSeq);
-    if (mode !== 'card' && groupInfo.head === false) return null;
+    const hidden = mode !== 'card' && groupInfo.head === false;
     const capsuleCount = groupInfo.count;
     const durableId = typeof data.durableMessageId === 'string' ? data.durableMessageId : '';
     const sessionId = typeof data.row?.to === 'string' ? data.row.to : '';
@@ -508,6 +488,7 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow, groupStor
     // real waiting state is a recorded message still waiting to enter context;
     // every other state is already "received" and stays glyph-free.
     const marker = status ? receiverHint(status) : null;
+    if (hidden) return null;
     return <div className="sl-chat-event" data-session-link-i18n-root="" data-session-link-direction="received" data-session-link-notice="" data-capsule-count={capsuleCount > 1 ? capsuleCount : undefined}>
       <ExchangeLink selfId={sessionId} peerId={senderSessionId} selfName={to} peerName={from} title={marker?.title}>{capsuleCount > 1 ? `收到消息 ×${capsuleCount}，来自 ${from}` : `收到消息，来自 ${from}`}{marker ? <span className={`sl-delivery-indicator sl-delivery-indicator--${marker.kind}`} role="status" aria-label={marker.title} title={marker.title}><span className="sl-delivery-spinner" aria-hidden="true"/></span> : null}</ExchangeLink>
     </div>;
@@ -517,7 +498,7 @@ export function createSessionLinkCardView({ fetchCardBody, onFreshRow, groupStor
 
 export const inject = ['sessions', 'uiConversation', 'slots'];
 
-export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS, onReady } = {}) {
+export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS, onReady, groupStore: sharedGroupStore } = {}) {
   const sessions = ctx.sessions;
   // Capture the fetch function at install time (no late global lookup): a
   // disposed install can never reach a later-injected global fetch.
@@ -568,7 +549,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
   const scopeKey = (sessionId, durableId) => `${sessionId}\n${durableId}`;
 
   /** Bubble-mode capsule groups: sessionId → Map(seq → {head,count}). */
-  const groupStore = createCapsuleGroupStore();
+  const groupStore = sharedGroupStore ?? createCapsuleGroupStore();
 
   /** Build the visible capsule timeline from one session's public window. */
   function refreshCapsuleGroups(sessionId, source, { notify = true } = {}) {
@@ -618,7 +599,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         if (hasText) items.push({ kind: 'break' });
       }
     }
-    groupStore.set(sessionId, groupCapsules(items), notify);
+    groupStore.setItems(sessionId, items, notify);
   }
 
   /** Public registry handle: route-table pre-check for exclusive conflicts. */

@@ -36,6 +36,7 @@ import css from './style.css';
 import { CARD_CSS } from './card-shell.mjs';
 import { installIncomingCards } from './incoming-cards.jsx';
 import { installOutgoingCards } from './outgoing-cards.jsx';
+import { createCapsuleGroupStore } from './capsule-group-store.mjs';
 import { installChatSkin } from './chat-skin.jsx';
 import { createQuoteMessageAction } from './message-quote-action.jsx';
 import { MessageBubble, CopyMessage, ExchangeLink } from './chat-ui.jsx';
@@ -589,14 +590,15 @@ export function apply(ctx) {
   } catch (error) {
     console.warn('[session-link] Subagent messages unavailable; native chat remains.', error);
   }
+  const capsuleGroups = createCapsuleGroupStore();
   try {
-    installIncomingCards(ctx);
+    installIncomingCards(ctx, { groupStore: capsuleGroups });
   } catch {
     // A failed card setup must not take the existing settings entry down.
     console.warn('[session-link] Incoming cards unavailable; native chat remains available.');
   }
   try {
-    installOutgoingCards(ctx);
+    installOutgoingCards(ctx, { groupStore: capsuleGroups });
   } catch {
     console.warn('[session-link] Outgoing cards unavailable; native chat remains available.');
   }

@@ -185,12 +185,12 @@ export function createSenderCardDefinition({ windowScope, verifier, claim = 'coe
       const event = match.event;
       if (event.type === 'tool/call') {
         return {
-          call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq },
+          call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq, time: event.time },
           result: null,
         };
       }
       return {
-        call: { callId: String(event.data.chunk.id), name: event.data.chunk.name, argsRaw: '', seq: event.seq },
+        call: { callId: String(event.data.chunk.id), name: event.data.chunk.name, argsRaw: '', seq: event.seq, time: event.time },
         result: null,
       };
     },
@@ -200,7 +200,7 @@ export function createSenderCardDefinition({ windowScope, verifier, claim = 'coe
       if (event.type === 'tool/call') {
         if (state.call === null) {
           return {
-            call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq },
+            call: { callId: String(event.data.callId), name: event.data.name, argsRaw: event.data.arguments, seq: event.seq, time: event.time },
             result: state.result,
           };
         }
@@ -317,6 +317,8 @@ export function createSenderCardDefinition({ windowScope, verifier, claim = 'coe
         body: bodyCandidate,
         bodyCollapsed: true,
         status: labels.length === 1 ? labels[0] : '多目标状态',
+        time: call.time ?? result.time ?? null,
+        turn: context.start?.location?.turn?.turn ?? null,
         // Earliest known lookup, or NO precise time when any target is unknown.
         statusAsOf: allAsOfKnown ? Math.min(...asOfs) : null,
         // Any failed refresh OR any target without a valid asOf → 状态未更新/需核对.
