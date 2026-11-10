@@ -6,13 +6,9 @@
 
 ## 当前状态与报告渠道
 
-0.8.18 起为公开版本。GitHub 的私密漏洞报告（Private vulnerability reporting）**只能在仓库公开后启用**：当前仓库仍为私有，advisory 入口返回 404；`SECURITY.md` 文件本身不会启用该功能。
+0.8.18 起为公开版本。GitHub 私密漏洞报告（Private vulnerability reporting）已启用，并在 2026-11-10 实际验收：仓库公开后 advisory 入口可用，API 返回 `enabled: true`。
 
-**仓库公开前**：通过你已有的私有协作渠道联系项目所有者，或使用所有者另行指定的私密渠道。不要在公开 Issue 里描述漏洞或贴利用细节。
-
-**仓库公开后（所有者动作）**：所有者需要立即启用 GitHub 私密漏洞报告，并实际打开 [Security Advisories](https://github.com/Wangmo-bit/DS-link/security/advisories) 页面，验收 **Report a vulnerability** 入口可用。验收通过后，才把该入口写成本项目承诺的报告渠道。
-
-**仓库公开后（报告者）**：如果 Security Advisories 页面有 **Report a vulnerability** 入口，请使用该入口私密提交。如果入口暂时不可用，请只开一个**询问如何私密联系维护者**的 Issue，等待私密联系方式；不要在该 Issue 中描述漏洞、附复现数据或公开受影响的部署地址。
+**报告者**：请打开 [Security Advisories](https://github.com/Wangmo-bit/DS-link/security/advisories) 页面，使用 **Report a vulnerability** 私密提交。如果入口暂时不可用，请只开一个**询问如何私密联系维护者**的 Issue，等待私密联系方式；不要在该 Issue 中描述漏洞、附复现数据或公开受影响的部署地址。
 
 ## 报告里写什么
 

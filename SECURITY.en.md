@@ -6,13 +6,9 @@ Do not post exploit details, keys, private keys, real conversation content, real
 
 ## Current status and reporting channel
 
-Release 0.8.18 is public. GitHub private vulnerability reporting can **only be enabled after the repository becomes public**: while the repository is still private, the advisory endpoint returns 404. The `SECURITY.md` file itself does not enable this feature.
+Release 0.8.18 is public. GitHub private vulnerability reporting is enabled and was verified on 2026-11-10: after the repository became public the advisory entry worked and the API returned `enabled: true`.
 
-**Before the repository becomes public:** contact the project owner privately through the private collaboration channel you already have, or through another private channel the owner designates. Do not describe the vulnerability or post exploit details in a public issue.
-
-**After the repository becomes public (owner action):** the owner must enable GitHub private vulnerability reporting immediately and open the [Security Advisories](https://github.com/Wangmo-bit/DS-link/security/advisories) page to verify that the **Report a vulnerability** entry works. Only after that verification may the entry be described as the project's reporting channel.
-
-**After the repository is public (reporters):** if the Security Advisories page shows **Report a vulnerability**, use it to submit a private report. If the entry is unavailable, open an issue that **only asks how to contact the maintainer privately**, then wait for a private contact route. Do not describe the vulnerability, attach reproduction data or identify an affected deployment in that issue.
+**Reporters:** open the [Security Advisories](https://github.com/Wangmo-bit/DS-link/security/advisories) page and use **Report a vulnerability** to submit a private report. If the entry is temporarily unavailable, open an issue that **only asks how to contact the maintainer privately**, then wait for a private contact route. Do not describe the vulnerability, attach reproduction data or identify an affected deployment in that issue.
 
 ## What to include
 
