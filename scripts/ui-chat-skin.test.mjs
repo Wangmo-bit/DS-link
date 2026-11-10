@@ -555,8 +555,8 @@ test('install effect owns one removable style node and never decorates chat rows
 
 test('MessageBubble keeps the author header as a sibling of exactly one bubble', () => {
   markdownCalls.length = 0;
-  const view = mount(ui.MessageBubble, { author: '王墨', direction: 'sent', text: 'hello' });
-  const { bubble } = assertSingleBubbleSibling(view.tree, '王墨');
+  const view = mount(ui.MessageBubble, { author: '测试用户', direction: 'sent', text: 'hello' });
+  const { bubble } = assertSingleBubbleSibling(view.tree, '测试用户');
   assert.match(textOf(bubble), /hello/);
   assert.equal(findAll(view.tree, (node) => hasProp(node, 'data-sl-bubble')).length, 1);
 });
@@ -800,7 +800,7 @@ test('renderers and slot registration do not touch the DOM', () => {
     const userView = mount(skin.createUserSkin(user.Native), user.props);
     const assistant = makeAssistantFixture({ blocks: [{ kind: 'text', text: 'short' }], skinAuthor: '设计评审' });
     const assistantView = mount(skin.createAssistantSkin(), assistant.props);
-    const messageView = mount(ui.MessageBubble, { author: '王墨', text: 'short' });
+    const messageView = mount(ui.MessageBubble, { author: '测试用户', text: 'short' });
     const turnView = mount(skin.TurnProcessSkin, { node: makeTurnNode(), turnProcess: makeTurnProcess() });
     assert.ok(userView.tree.length > 0);
     assert.ok(assistantView.tree.length > 0);
