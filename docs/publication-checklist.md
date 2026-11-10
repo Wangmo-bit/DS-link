@@ -15,12 +15,13 @@
 
 ## 仍需决定或提供的条件
 
-### 1. 隐藏旧历史中的个人邮箱
+### 1. 历史身份（已完成，2026-11-10）
 
-- 之后的提交可使用 GitHub noreply 地址；GitHub 的隐藏邮箱设置不追溯修改旧提交。
-- 已有历史若不希望随仓公开，需要**重写 author 与 committer 邮箱元数据**，不改文件内容；提交编号会改变，需要检查和更新旧引用。
-- 实施前保存私有完整备份，在隔离镜像中预演映射，确认分支、标签、PR 等旧引用和 GitHub 缓存的处置。普通合并、`.mailmap` 或只改个人设置不能保证原邮箱从原始提交里消失。
-- 真实历史重写与受保护的远端更新需要所有者**单独明确同意**，当前尚未执行；不会修改日用安装、Host 或会话数据。
+- 所有者单独授权后已执行历史重写：author/committer 全部改为 `Wangmo-bit <Wangmo-bit@users.noreply.github.com>`，覆盖 `main`、`prep/open-source-20261108` 和 `v0.8.17` 标签。
+- 历史文件中的 `/home/<user>`、`/path/to/...`、`internal-project` 已替换为占位符（`/home/<user>`、`/path/to/...`、`internal-project`）；当前代码树与重写前一致。
+- 重写前完整 bundle 保存在私有备份区；仓库无 fork、无 Pages、无 Actions artifact。提交编号已变化，旧 SHA 引用失效。
+- `王墨` 是公开笔名而非真名，只从当前测试夹具移除；历史 PRD 中的笔名保留为公开署名，不构成真名泄露。
+- GitHub 可能在一段时间内仍能通过已知旧 SHA 访问缓存对象；仓库从未公开、无 fork，外部不知道旧 SHA，风险有限。公开后如需彻底清理缓存，需另行联系 GitHub Support。
 
 ### 2. npm 身份与 scope
 
@@ -41,4 +42,4 @@ GitHub 仓库公开、GitHub Release 上传和 npm 实际发布都分别是对�
 
 ## English summary
 
-The preparation branch was fast-forwarded to main after real GitHub CI passed; main CI passed too (491/491, no skips). GitHub remains private. The owner has separately authorized the private v0.8.17 GitHub release; final assets and checksums are listed on its Release page. Repository visibility, npm publication, video uploads and daily-use installation updates remain outside that authorization. The npm dry-run used a temporary manifest, while source retains private:true. The CLI has since authenticated as wangmo-bit; final package scope and publication permissions still need review. The same verified candidate was separately authorized for daily-use installation; its client was smoke-tested without a service restart. Hiding the historical personal email requires separately authorized metadata history rewriting and old-reference/cache review; changing profile settings or a mailmap alone is insufficient. Publishing npm exposes packaged source even if GitHub stays private. Actual publication and daily-use upgrades remain separate owner decisions.
+The preparation branch was fast-forwarded to main after real GitHub CI passed; main CI passed too (491/491, no skips). GitHub remains private. The owner separately authorized the private v0.8.17 GitHub release; final assets and checksums are listed on its Release page. Repository visibility, npm publication, video uploads and daily-use installation updates remain outside that authorization. The npm dry-run used a temporary manifest, while source retains private:true. The CLI has since authenticated as wangmo-bit; final package scope and publication permissions still need review. The same verified candidate was separately authorized for daily-use installation; its client was smoke-tested without a service restart. On 2026-11-10 the owner authorized a full history rewrite: author/committer metadata now uses the GitHub noreply address, and historical local paths were replaced with placeholders across main, the prep branch and the tag. Old commit SHAs are invalid; a pre-rewrite bundle remains in private backup. Wangmo is a public pen name, not a real name. Publishing npm exposes packaged source even if GitHub stays private. Actual publication and daily-use upgrades remain separate owner decisions.
