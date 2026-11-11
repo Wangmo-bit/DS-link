@@ -191,7 +191,8 @@ function makeCtx({ sessions, lookup }) {
       return cleanup;
     },
   };
-  return { ctx, registered, fetchCalls, bindings, cleanups, fetchImpl };
+  const notifyList = () => { for (const fn of [...listSubscribers]) fn(); };
+  return { ctx, registered, fetchCalls, bindings, cleanups, fetchImpl, notifyList };
 }
 
 /** Install the real receiver with the shared store; returns the test seam. */
@@ -697,4 +698,35 @@ test('outgoing Definition keeps the durable call seq/time in evidence after live
   assert.equal(node.data.evidence.callSeq, CALL_SEQ, 'evidence.callSeq must be the durable tool/call seq, not the live-chunk seq');
   assert.equal(node.data.time, CALL_TIME, 'card time must be the durable tool/call time, not the live-chunk time');
   assert.equal(node.data.evidence.resultSeq, RESULT_SEQ, 'result seq stays the durable result seq');
+});
+
+/* ── 9. returning to a session must not blank already-verified capsules ─── */
+
+test('eventSource generation swap keeps verified identity claimable immediately', async (t) => {
+  const rows = [ledgerRow({ id: 'd-701', turn: 8 })];
+  const event = relayEvent({ seq: 701, time: T0, id: 'd-701', turn: 8 });
+  const env = install({
+    sessions: [{ id: SESSION, entries: [event] }],
+    lookup: rowsFor(rows),
+  });
+  t.after(() => env.dispose());
+
+  await scanOnce(env, { label: 'initial verification' });
+  assert.ok(env.registered.def.match['user/message'](event), 'initial verified relay is claimed');
+
+  const replacementEvent = relayEvent({ seq: 701, time: T0, id: 'd-701', turn: 8 });
+  const replacement = makeEventSource([replacementEvent]);
+  env.bindings.set(SESSION, { sessionId: SESSION, eventSource: replacement });
+  env.notifyList();
+  await delay(10);
+
+  // A return to a cached session must render from durable identity right away;
+  // the background refresh may still issue a status request, but it cannot
+  // require a blank re-verification round trip first.
+  assert.ok(
+    env.registered.def.match['user/message'](replacementEvent),
+    'verified identity must remain claimable across an eventSource generation swap',
+  );
+  await scanOnce(env, { expectRebuild: false, label: 'rebind scan' });
+  assertGroups(env, { 701: { head: true, count: 1 } }, 'cache retained after rebind');
 });

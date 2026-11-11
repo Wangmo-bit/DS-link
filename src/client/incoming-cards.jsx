@@ -1254,17 +1254,61 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     scheduleScan();
   }
 
-  /** Revoke per-session identity/caches tied to one eventSource generation. */
-  function revokeSession(sessionId) {
+  /**
+   * Drop per-session window state. Durable identity rows are immutable, so a
+   * generation swap / temporary unbind may keep them: the next view can render
+   * already-verified capsules immediately and refresh status in the background.
+   * Full removal (dispose, archived/deleted session) still clears identity.
+   */
+  /** Map a newly bound generation's event objects to their one visible session
+   * without waiting for the debounced ledger scan. Identity remains gated by
+   * the retained verified rows; this only restores the session/event binding
+   * that `match` needs to claim an already-verified capsule immediately. */
+  function primeEventScopes(sessionId, source) {
+    let entries;
+    try { entries = source.getSnapshot()?.entries ?? []; } catch { return; }
+    for (const entry of entries) {
+      if (entry?.type !== 'event') continue;
+      const event = entry.event;
+      if (event === undefined || event === null) continue;
+      let scopes = eventScopes.get(event);
+      if (scopes === undefined) {
+        scopes = new Set();
+        eventScopes.set(event, scopes);
+      }
+      scopes.add(sessionId);
+    }
+  }
+
+  function hasVerifiedSession(sessionId) {
+    const prefix = `${sessionId}\n`;
+    for (const key of verified.keys()) if (key.startsWith(prefix)) return true;
+    return false;
+  }
+
+  function revokeSession(sessionId, { keepIdentity = false } = {}) {
     groupStore.removeSession(sessionId);
     const prefix = `${sessionId}\n`;
-    for (const key of [...verified.keys()]) if (key.startsWith(prefix)) verified.delete(key);
-    for (const key of [...freshness.keys()]) if (key.startsWith(prefix)) freshness.delete(key);
+    const verifiedKeys = keepIdentity
+      ? [...verified.keys()].filter((key) => key.startsWith(prefix))
+      : [];
+    if (!keepIdentity) {
+      for (const key of [...verified.keys()]) if (key.startsWith(prefix)) verified.delete(key);
+      for (const key of [...freshness.keys()]) if (key.startsWith(prefix)) freshness.delete(key);
+    } else {
+      // Keep freshness only for rows that remain verified; a row that could
+      // not be verified is re-queried, never silently trusted.
+      for (const key of [...freshness.keys()]) {
+        if (key.startsWith(prefix) && !verified.has(key)) freshness.delete(key);
+      }
+    }
+    // Always clear this so unknown/expired rows are re-checked after rebind.
     for (const key of [...queried]) if (key.startsWith(prefix)) queried.delete(key);
     windowIds.delete(sessionId);
     pendingDelta.delete(sessionId);
     dirtyFull.delete(sessionId);
     retryIds.delete(sessionId);
+    return verifiedKeys.length;
   }
 
   /**
@@ -1295,12 +1339,20 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
           // Already torn down.
         }
         sourceStops.delete(summary.id);
-        revokeSession(summary.id);
+        const kept = revokeSession(summary.id, { keepIdentity: true });
+        if (kept > 0) forceRefresh = true;
         changed = true;
       }
       try {
         const stop = source.subscribe(() => onWindowEvent(summary.id, source));
         sourceStops.set(summary.id, { source, stop });
+        // A returning view may already have verified rows. Bind the new event
+        // objects and republish the Definition now, so the first paint can
+        // claim those rows; the scheduled scan only refreshes status/grouping.
+        if (hasVerifiedSession(summary.id)) {
+          primeEventScopes(summary.id, source);
+          reregister();
+        }
         dirtyFull.add(summary.id); // first subscription → full walk
         changed = true;
       } catch {
@@ -1315,7 +1367,8 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
       } catch {
         // Already torn down.
       }
-      revokeSession(sessionId);
+      const kept = revokeSession(sessionId, { keepIdentity: true });
+      if (kept > 0) forceRefresh = true;
       changed = true;
     }
     scheduleScan();

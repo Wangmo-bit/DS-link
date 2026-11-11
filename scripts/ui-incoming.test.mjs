@@ -905,7 +905,7 @@ test('install is transactional: effect failure rolls back everything installed',
 
 /* ── generation replacement / unbind / unmount ─────────────────────────── */
 
-test('same-sessionId source swap: old feed unsubscribed, caches revoked, new feed works', async () => {
+test('same-sessionId source swap: old feed unsubscribed, cached identity survives, new feed works', async () => {
   const { ctx, registered, fetchCalls, bindings, replaceSource } = makeCtx({
     sessions: [{ id: 'sess-B', entries: [RELAY_EVENT] }],
     lookup: (sessionId, ids) => ({
