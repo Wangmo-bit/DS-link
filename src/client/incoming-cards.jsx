@@ -1229,7 +1229,9 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     }
     if (change.kind === 'replace' || change.kind === 'prepend') {
       // Window content changed wholesale (compaction / paging / fork rebind):
-      // re-walk this one session, never every session.
+      // re-walk this one session, never every session. Bind the new event
+      // objects before the first render so cached capsules can claim at once.
+      primeEventScopes(sessionId, source);
       dirtyFull.add(sessionId);
       pendingDelta.delete(sessionId);
       refreshCapsuleGroups(sessionId, source);
@@ -1245,6 +1247,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         scheduleScan();
       }
       // Durable assistant text can introduce a visible boundary after streaming.
+      primeEventScopes(sessionId, source);
       refreshCapsuleGroups(sessionId, source);
       return;
     }
@@ -1254,12 +1257,6 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     scheduleScan();
   }
 
-  /**
-   * Drop per-session window state. Durable identity rows are immutable, so a
-   * generation swap / temporary unbind may keep them: the next view can render
-   * already-verified capsules immediately and refresh status in the background.
-   * Full removal (dispose, archived/deleted session) still clears identity.
-   */
   /** Map a newly bound generation's event objects to their one visible session
    * without waiting for the debounced ledger scan. Identity remains gated by
    * the retained verified rows; this only restores the session/event binding
@@ -1286,8 +1283,14 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
     return false;
   }
 
-  function revokeSession(sessionId, { keepIdentity = false } = {}) {
-    groupStore.removeSession(sessionId);
+  /**
+   * Drop per-session window state. Durable identity rows are immutable, so a
+   * generation swap / temporary unbind may keep them: the next view can render
+   * already-verified capsules immediately and refresh status in the background.
+   * Full removal (dispose, archived/deleted session) still clears identity.
+   */
+  function revokeSession(sessionId, { keepIdentity = false, keepGroups = false } = {}) {
+    if (!keepGroups) groupStore.removeSession(sessionId);
     const prefix = `${sessionId}\n`;
     const verifiedKeys = keepIdentity
       ? [...verified.keys()].filter((key) => key.startsWith(prefix))
@@ -1339,7 +1342,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
           // Already torn down.
         }
         sourceStops.delete(summary.id);
-        const kept = revokeSession(summary.id, { keepIdentity: true });
+        const kept = revokeSession(summary.id, { keepIdentity: true, keepGroups: true });
         if (kept > 0) forceRefresh = true;
         changed = true;
       }
@@ -1349,10 +1352,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
         // A returning view may already have verified rows. Bind the new event
         // objects and republish the Definition now, so the first paint can
         // claim those rows; the scheduled scan only refreshes status/grouping.
-        if (hasVerifiedSession(summary.id)) {
-          primeEventScopes(summary.id, source);
-          reregister();
-        }
+        if (hasVerifiedSession(summary.id)) primeEventScopes(summary.id, source);
         dirtyFull.add(summary.id); // first subscription → full walk
         changed = true;
       } catch {
@@ -1367,7 +1367,7 @@ export function installIncomingCards(ctx, { fetchImpl, refreshIntervalMs = DEFAU
       } catch {
         // Already torn down.
       }
-      const kept = revokeSession(sessionId, { keepIdentity: true });
+      const kept = revokeSession(sessionId, { keepIdentity: true, keepGroups: true });
       if (kept > 0) forceRefresh = true;
       changed = true;
     }

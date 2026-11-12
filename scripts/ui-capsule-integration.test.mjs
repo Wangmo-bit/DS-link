@@ -716,17 +716,50 @@ test('eventSource generation swap keeps verified identity claimable immediately'
 
   const replacementEvent = relayEvent({ seq: 701, time: T0, id: 'd-701', turn: 8 });
   const replacement = makeEventSource([replacementEvent]);
+  const registrationsBeforeSwap = env.registered.registrations;
   env.bindings.set(SESSION, { sessionId: SESSION, eventSource: replacement });
   env.notifyList();
   await delay(10);
 
   // A return to a cached session must render from durable identity right away;
   // the background refresh may still issue a status request, but it cannot
-  // require a blank re-verification round trip first.
+  // require a blank re-verification round trip first, nor rebuild the card
+  // definition just because the window generation changed.
+  assert.equal(
+    env.registered.registrations,
+    registrationsBeforeSwap,
+    'a cached return must not rebuild the card definition',
+  );
   assert.ok(
     env.registered.def.match['user/message'](replacementEvent),
     'verified identity must remain claimable across an eventSource generation swap',
   );
   await scanOnce(env, { expectRebuild: false, label: 'rebind scan' });
   assertGroups(env, { 701: { head: true, count: 1 } }, 'cache retained after rebind');
+});
+
+
+test('grouping snapshot survives a generation swap until the refresh arrives', async (t) => {
+  const rows = [
+    ledgerRow({ id: 'd-801', turn: 8 }),
+    ledgerRow({ id: 'd-802', turn: 8 }),
+  ];
+  const first = relayEvent({ seq: 801, time: T0, id: 'd-801', turn: 8 });
+  const second = relayEvent({ seq: 802, time: T0 + 1000, id: 'd-802', turn: 8 });
+  const env = install({ sessions: [{ id: SESSION, entries: [first, second] }], lookup: rowsFor(rows) });
+  t.after(() => env.dispose());
+
+  await scanOnce(env, { label: 'group before swap' });
+  assertGroups(env, { 801: { head: true, count: 2 }, 802: { head: false, count: 2 } }, 'before swap');
+
+  const nextFirst = relayEvent({ seq: 801, time: T0, id: 'd-801', turn: 8 });
+  const nextSecond = relayEvent({ seq: 802, time: T0 + 1000, id: 'd-802', turn: 8 });
+  const replacement = makeEventSource([nextFirst, nextSecond]);
+  env.bindings.set(SESSION, { sessionId: SESSION, eventSource: replacement });
+  env.notifyList();
+  await delay(10);
+
+  // The old group is still a valid statement about the same durable seqs; the
+  // first render must not flash two separate capsules while the scan refreshes.
+  assertGroups(env, { 801: { head: true, count: 2 }, 802: { head: false, count: 2 } }, 'retained snapshot');
 });
