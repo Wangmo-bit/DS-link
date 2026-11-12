@@ -2,7 +2,16 @@
 
 [发布说明](../RELEASING.md) · [准备验收](open-source-readiness.md) · [首页](../README_ZH.md)
 
-> 0.8.19 已公开发布：仓库公开、npm latest 与 GitHub Release 同步上线、匿名下载与隔离安装通过。本页保留发布与验收记录。
+> 0.8.20 已公开发布：仓库公开、npm latest 与 GitHub Release 同步上线、匿名下载与隔离安装通过。本页保留发布与验收记录。
+
+## 0.8.20 发布记录（2026-11-12）
+
+- **源码提交**：`a89dbdd`，tag `v0.8.20`；发布说明见 [RELEASE_NOTES-0.8.20.md](releases/RELEASE_NOTES-0.8.20.md)。
+- **制品**：44 文件，`wangmo-bit-ds-link-0.8.20.tgz`，SHA-256 `e1aac037c1f8d67b93bd60ee28d03fabd8add834e48a07a153409fe573332d4a`。
+- **GitHub Release**：`https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.20`，非草稿、非预发布；匿名下载 SHA-256 与本地一致。
+- **npm**：`@wangmo-bit/ds-link@0.8.20` 已上线并成为 latest；registry tarball SHA-256 与 GitHub 资产一致，隔离 profile 从 registry 安装通过。
+- **验证**：隔离容器 525/525 通过、0 跳过；本地预览重启实测切回会话胶囊即时显示，双向分组与卡片模式正常。
+- **日用**：已切换到 npm 正式 0.8.20；客户端 bundle 需重启 Host 后加载。
 
 ## 0.8.19 发布记录（2026-11-10）
 
@@ -32,6 +41,8 @@
 - 仍存在的历史缓存说明：GitHub 可能通过已知旧 SHA 返回旧提交；仓库从未提前公开、无 fork，外部不知道旧 SHA。如需彻底清理缓存，联系 GitHub Support。
 
 ## English summary
+
+Release 0.8.20 is public: the source commit is `a89dbdd` (tag `v0.8.20`), the npm package is latest, and the GitHub release tarball is anonymously downloadable. The registry and GitHub tarballs have the same SHA-256 (`e1aac037…32d4a`) and the same 44 files; an isolated registry install passed, and the full suite passed 525/525 in the isolated container. The change keeps verified capsule identity across session switches so returning views paint immediately and refresh status in the background. The repository remains public.
 
 Release 0.8.19 is public: the source commit is `409e658` (tag `v0.8.19`), the npm package is latest, and the GitHub release tarball is anonymously downloadable. The registry and GitHub tarballs have the same SHA-256 (`03073d7a…c0bf80`) and the same 43 files; an isolated registry install passed, and the full suite passed 524/524 in the isolated container. The repository remains public.
 
