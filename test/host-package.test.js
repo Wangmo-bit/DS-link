@@ -49,7 +49,7 @@ test('package excludes internal handoffs and the experimental hot-activation hel
   const [packed] = JSON.parse(stdout)
   const names = packed.files.map(file => file.path)
   assert.ok(names.includes('README.md'))
-  assert.ok(names.includes('src/host/entry-0.8.20-pre.1.js'))
+  assert.ok(names.includes('src/host/entry-0.8.20.js'))
   assert.ok(names.includes('assets/icon.svg'), 'plugin icon is shipped')
   assert.deepEqual(names.filter(name => /^docs\/[^/]*STATUS[^/]*\.md$/i.test(name)), [])
   assert.ok(!names.includes('scripts/activate-profile-entry.mjs'))
