@@ -8,7 +8,7 @@
 
 你已经有开发、产品、调研等会话。DS-link 让它们直接互发消息、请求协作、收取明确回复；你不用在几个聊天窗口之间来回转述，也不用另建一套 Bot 团队。
 
-> **安装：** `dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.20`。也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.20) 下载同一个包。安装不会重启宿主，也不会自动应用可选桥接。
+> **安装：** `dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.21`。也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.21) 下载同一个包。安装不会重启宿主，也不会自动应用可选桥接。
 
 ![气泡模式：开发会话联系产品会话、收到回复，再继续工作](docs/assets/bubble-zh.png)
 
@@ -89,10 +89,10 @@
 需要 Node.js 24、DSH 和 pnpm；已验证环境以 Linux Web 为主。第一次建议用隔离 profile，并先备份目标 profile 的 `package.json`、`pnpm-lock.yaml` 和 `cordis.patch.yml`。
 
 ```sh
-dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.20
+dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.21
 ```
 
-也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.20) 下载 `.tgz` 后安装该文件，或从源码构建：
+也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.21) 下载 `.tgz` 后安装该文件，或从源码构建：
 
 ```sh
 git clone https://github.com/Wangmo-bit/DS-link.git

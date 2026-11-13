@@ -13,10 +13,10 @@
 先备份目标 profile；第一次建议用隔离 profile：
 
 ```sh
-dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.20
+dsh plugin --profile <你的profile> add @wangmo-bit/ds-link@0.8.21
 ```
 
-也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.20) 下载 `wangmo-bit-ds-link-0.8.20.tgz`，用同一个 `dsh plugin ... add <文件路径>` 安装。
+也可以从 [GitHub Release](https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.21) 下载 `wangmo-bit-ds-link-0.8.21.tgz`，用同一个 `dsh plugin ... add <文件路径>` 安装。
 
 ## 兼容范围
 
