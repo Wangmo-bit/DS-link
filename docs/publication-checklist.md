@@ -2,7 +2,16 @@
 
 [发布说明](../RELEASING.md) · [准备验收](open-source-readiness.md) · [首页](../README_ZH.md)
 
-> 0.8.20 已公开发布：仓库公开、npm latest 与 GitHub Release 同步上线、匿名下载与隔离安装通过。本页保留发布与验收记录。
+> 0.8.21 已公开发布：仓库公开、npm latest 与 GitHub Release 同步上线、匿名下载与隔离安装通过。本页保留发布与验收记录。
+
+## 0.8.21 发布记录（2026-11-14）
+
+- **源码提交**：`d77bd2c`，tag `v0.8.21`；发布说明见 [RELEASE_NOTES-0.8.21.md](releases/RELEASE_NOTES-0.8.21.md)。
+- **制品**：46 文件，`wangmo-bit-ds-link-0.8.21.tgz`，SHA-256 `5332fedfd711de3ad2ec35f0b374ac761f76edcb9ee83ac4f5fed8ee896315d1`。
+- **GitHub Release**：`https://github.com/Wangmo-bit/DS-link/releases/tag/v0.8.21`，非草稿、非预发布；匿名下载 SHA-256 与本地一致。
+- **npm**：`@wangmo-bit/ds-link@0.8.21` 已上线并成为 latest；registry tarball SHA-256 与 GitHub 资产一致，隔离 profile 从 registry 安装通过。
+- **验证**：隔离容器 526/526 通过、0 跳过；安装预览切回时胶囊与原生同屏（327ms vs 302ms），收发胶囊与卡片模式正常。
+- **日用**：已切换到 npm 正式 0.8.21；客户端 bundle 需重启 Host 后加载。
 
 ## 0.8.20 发布记录（2026-11-12）
 
@@ -41,6 +50,8 @@
 - 仍存在的历史缓存说明：GitHub 可能通过已知旧 SHA 返回旧提交；仓库从未提前公开、无 fork，外部不知道旧 SHA。如需彻底清理缓存，联系 GitHub Support。
 
 ## English summary
+
+Release 0.8.21 is public: the source commit is `d77bd2c` (tag `v0.8.21`), the npm package is latest, and the GitHub release tarball is anonymously downloadable. The registry and GitHub tarballs have the same SHA-256 (`5332fedf…15d1`) and the same 46 files; an isolated registry install passed, and the full suite passed 526/526 in the isolated container. Returning to a cached session now reuses the registered card Definition, pre-binds event ownership and keeps the grouping snapshot, so capsules paint with the first render. The repository remains public.
 
 Release 0.8.20 is public: the source commit is `a89dbdd` (tag `v0.8.20`), the npm package is latest, and the GitHub release tarball is anonymously downloadable. The registry and GitHub tarballs have the same SHA-256 (`e1aac037…32d4a`) and the same 44 files; an isolated registry install passed, and the full suite passed 525/525 in the isolated container. The change keeps verified capsule identity across session switches so returning views paint immediately and refresh status in the background. The repository remains public.
 
