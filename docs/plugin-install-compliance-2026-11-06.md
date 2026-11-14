@@ -1,7 +1,7 @@
 # 官方安装规范合规自查与整改（通信插件，2026-11-06）
 
 范围：仅本仓 `<repo>`。本轮为**只准备**：不安装、不重启、不改当前 web profile、不写仓外标准目录、不清空旧包。
-规范依据：`<public-handbook>/workflows/插件官方安装规范-草案.md`、`scripts/plugin-install-check.mjs`、`templates/插件安装自查表.md`（只读引用）。
+规范依据：`staff-handbook/rules/workflows/插件打包与安装规范.md`、`staff-handbook/tools/plugin-install-check.mjs`（只读引用）。
 
 > 后续更新：0.6.0（2026-11-06）在 0.5.0 基础上重定气泡模式信息架构，版本、入口与 mount id 均已升版；本文件记录的是 0.5.0 轮的合规自查，不随 0.6.0 自动更新。
 
