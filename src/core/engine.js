@@ -888,8 +888,13 @@ export class SessionLinkEngine {
         this.#queueReceiptRetry(targetId)
       }
       // A live event / new send can wake the same id while a stale read is in
-      // flight. Its successful read must not erase that newer wake.
-      if ((this.#receiptWake.get(targetId) ?? 0) !== wakeVersion) this.#queueReceiptRetry(targetId)
+      // flight. A later actual failure may have scheduled a fresh backoff, so
+      // preserve that failure's attempts but make the new wake due now.
+      if ((this.#receiptWake.get(targetId) ?? 0) !== wakeVersion) {
+        const entry = this.#receiptRetryTargets.get(targetId)
+        if (entry === undefined) this.#queueReceiptRetry(targetId)
+        else entry.nextAt = Math.min(entry.nextAt, this.clock())
+      }
     }
   }
 
@@ -987,7 +992,7 @@ export class SessionLinkEngine {
       this.#queueReceiptRetry(targetId)
       return
     }
-    existing.nextAt = this.clock()
+    existing.nextAt = Math.min(existing.nextAt, this.clock())
   }
 
   /**

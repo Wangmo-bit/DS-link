@@ -10,7 +10,8 @@
 - 补查目标按 `(nextAt, 稳定入队序)` 批处理；缺失/暂态分开退避；重复入队不重置计划，实际失败才推进 attempts。
 - tick 单飞，in-flight 读复用；新发送/live 事件只唤醒该 target，不让旧读取吞掉后来的消息。
 - 归档/旧格式可读目标继续核证；回执状态、协议、UI、权限不变。
-- 全量隔离测试 535/535 通过；真实 HostAdapter 合成 Host 测试确认补查路径 `readTitleSnapshots=0`、无关 `readSession/readSurface=0`。
+- 全量隔离测试 538/538 通过；真实 HostAdapter 合成 Host 测试确认补查路径 `readTitleSnapshots=0`、无关 `readSession/readSurface=0`。
+- 双审整改：旧 in-flight 失败不覆盖新唤醒；已到期目标 wake 保留原到期位置（17 目标公平性）；补真实 HostAdapter flush 失败回归。
 - 尚未 npm 发布、未安装到生产；待双审与所有者安装/发布授权。
 
 ## 0.8.21 — 公开正式版 / Public release

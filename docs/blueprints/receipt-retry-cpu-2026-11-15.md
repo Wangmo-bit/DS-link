@@ -1,7 +1,7 @@
-# 回执补查 CPU 修复蓝图 v3（冻结前，按 Lead 闭合条款）
+# 回执补查 CPU 修复蓝图 v4（最终候选冻结稿）
 
-- 状态：待调研负责人最终开工放行；**未开始实现**
-- v3：补齐 registered 语义、旧 MockAdapter 兼容、并发/计数口径、重复入队 vs 实际失败、flush 恢复可验
+- 状态：实现完成，待最终双审绑定此 HEAD；**尚未合主干/安装/发布**
+- v4：在 v3 基础上关门 P1（旧 in-flight 失败覆盖新唤醒）、P2（唤醒已到期目标导致 16 批饥饿）与版本阶段顺序；补真实 HostAdapter flush、17 目标公平性、旧失败分支回归
 - 仓：`Wangmo-bit/DS-link`（本地 `dsh-session-link-public-candidate`）
 - 基线：`main` / `a2a2ed7`（本地；`origin/main` 为 `2fa6054`，本地多一个 docs-only 公共指针提交）
 - 工作树：`output/worktrees/receipt-probe`（仓内，忽略目录）
@@ -129,15 +129,16 @@ async probeReceiptTargets(targetIds) -> Map<id, {
 - `src/core/engine.js`：仅重试表、批处理/单飞、退避、tick 保护、调用点。
 - `src/core/constants.js`：仅在确需共享退避常量时改；否则保持局部常量，避免扩散。
 - `test/core-receipt.test.js`：仅修误导测试名/补语义断言；不删覆盖。
-- `test/host-discovery.test.js`：**调研负责人/Lead 已批准的最小直测扩展**（约 40 行 probe 双命中），仅此新增；不借此扩功能或削原测试。
+- `test/host-discovery.test.js`：**调研负责人/Lead 已批准的直测扩展**（probe 双命中、归档可读、probe_failed 区分，共 3 个测试）；仅此新增，不借此扩功能或削原测试。
 - 新增 `test/host-receipt-cpu.test.js`（或同义文件名）。
 - `test/helpers.js`：仅为合成 fixture/spy 扩展，保持既有 helper 语义。
-- 本蓝图文件；最终版本的 `CHANGELOG.md`/`package.json`/入口文件在放行并完成双审后另行处理。
+- **版本元数据（Lead 已批准进入最终候选）**：`CHANGELOG.md`、`package.json`/`package-lock.json`、`cordis.patch.yml`、`src/core/constants.js` 的 `PLUGIN_VERSION`、`src/host/entry-0.8.22.js`（与旧入口等价的精确版本入口）、`test/core-dispose.test.js`/`core-settings.test.js`/`host-connection.test.js`/`host-package.test.js` 对应版本/入口期望值。
+- 本蓝图文件。
 
 禁区：
 
 - `src/client/**`、任何 UI/样式/胶囊渲染。
-- `src/host/entry-*`、Host 桥接、安装树/`node_modules`、生产 profile、生产 ledger、服务/watchdog。
+- Host 桥接、安装树/`node_modules`、生产 profile、生产 ledger、服务/watchdog；`src/host/entry-*` 仅允许新增/使用精确版本 `entry-0.8.22.js`，不得改宿主桥接/其他入口语义。
 - `output/` 证据、`artifacts/`、其他仓。
 - 不删除不可读回执、不改状态、不自动重发 unknown。
 - 不新增外部 adapter API；`probeReceiptTargets` 只作为内部方法。
@@ -156,11 +157,29 @@ async probeReceiptTargets(targetIds) -> Map<id, {
 - 版本：本地 `0.8.22-pre.1` 只用于隔离验证；正式 `0.8.22` 升版/打包后必须重绑双审候选，不以两个不同包冒充同一候选。
 - 顺序调整（Lead 已批准）：必要版本元数据（CHANGELOG、package/lock、cordis、PLUGIN_VERSION、entry-0.8.22、版本断言测试）可先组装进**最终候选**再双审；最终 verifier/coldreview 绑定同一最终 HEAD。
 
-## 7. 仍待确认的最小项
+## 7. v4 实现后验收矩阵（最终候选）
 
-已答复并纳入 v3：归档/旧格式按现行“可读即核证”；5m/1m 退避上限接受；内部 `probeReceiptTargets` 命名与每批 `<=1` 次 header-only `listSessions` 接受；正式版本按 `0.8.22` 准备（若占用先报告）。
+- 功能提交：`e03a6f4`；版本/计数提交之后形成最终 HEAD（以交付回报的 `git rev-parse HEAD` 为准）。
+- 最终全量隔离测试：**538 / 538 通过，0 失败，0 跳过**（`run-tests` 自动发现；不用固定数字替代发现）。
+- 新增/更新回归：
+  - `test/host-receipt-cpu.test.js`：真实 HostAdapter + 300 冷会话 + 缺失目标（readTitleSnapshots=0、无关 read/body=0、`list<=1`）；真实 HostAdapter live flush 失败（不读 log，恢复后重试）；probe 初始失败批次不逐目标重 probe；tick 单飞；旧成功读与旧失败读两条 in-flight wake 分支；17 目标到期公平性；later ids 不丢。
+  - `test/host-discovery.test.js`：probe `registered` 双命中（workspace AND header）、registry-only 不读、归档仍可读、probe_failed 不伪装缺失。
+  - `test/core-receipt.test.js`：旧退避测试改名并加 reads/clock 断言（start=1、未到期 tick 不增、到期 tick=2），去掉 stub 性能暗示。
+- v3 逐项对应：
+  - §A 目标探测/不读标题：真实 HostAdapter 测试 + probe 双命中。
+  - §B 退避/唤醒：backoff 时序、旧失败/旧成功 in-flight、新发送/live 唤醒、flush 失败恢复。
+  - §C 批处理/单飞：批 probe 失败短路、17 目标公平性、tick 单飞/异常后恢复、later ids。
+  - §D 语义不变：归档/旧格式可读、状态保持、无 fake received/unknown 重发。
+- P1/P2 整改：
+  - P1：旧读失败后若期间发生 wake，保留 attempts 但 `nextAt=min(existing, now)`；新增“old in-flight failure cannot overwrite newer same-id wake”。
+  - P2：wake 对已过期目标用 `min(existing.nextAt, now)`，不再把目标推后；新增 17 目标批次回归。
+- 正式双审仍必须绑定最终 HEAD；verifier/coldreview 旧报告（f76effa/d6f9f6e）只作为整改输入，不作为最终 PASS。
+
+## 8. 仍待确认的最小项
+
+已答复并纳入：归档/旧格式按现行“可读即核证”；5m/1m 退避上限接受；内部 `probeReceiptTargets` 命名与每批 `<=1` 次 header-only `listSessions` 接受；正式版本按 `0.8.22` 准备（未发现占用）。
 
 仅剩：
 
-1. 调研负责人结合 plan-review v2 结论做**最终开工放行**。
-2. 若 `0.8.22` 已被占用，按约定先报告，不自行改版本/发布。
+1. 调研负责人/Lead 对新冻结蓝图（v4 文件 SHA）与最终 HEAD 双审的确认。
+2. 双审绑定最终 HEAD 后 PASS；合主干/安装/发布仍按另行门禁。

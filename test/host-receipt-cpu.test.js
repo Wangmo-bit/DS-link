@@ -343,3 +343,171 @@ test('a stale read cannot swallow a same-id wake that failed its live flush', as
   assert.equal(reads, 2, 'same-id wake must schedule a controlled re-read')
   assert.equal(ledger.read().messages.find((entry) => entry.to === 'B').receipt.state, 'queued')
 })
+
+test('an old in-flight failure cannot overwrite a newer same-id wake', async (t) => {
+  const clock = new FakeClock()
+  const adapter = new MemoryAdapter({
+    clock,
+    autoReceive: false,
+    sessions: [sessionFixture({ id: 'A' }), sessionFixture({ id: 'B' })],
+  })
+  const root = await tempRoot()
+  const { ledger, engine } = await openEngine({ root, adapter, clock })
+  t.after(async () => {
+    await engine.dispose()
+    await ledger.close()
+  })
+
+  await engine.send({
+    from: 'A',
+    targets: ['B'],
+    kind: 'request',
+    text: 'old failure wake',
+    operationId: engine.mintOperation().operationId,
+  })
+
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  let reads = 0
+  const original = adapter.readTargetReceipts.bind(adapter)
+  adapter.readReceiptsError = 'probe_failed'
+  adapter.readTargetReceipts = async (...args) => {
+    reads += 1
+    if (reads === 4) {
+      await gate
+      return { readable: false, errorCode: 'probe_failed' }
+    }
+    return original(...args)
+  }
+
+  await engine.start()
+  await engine.drain()
+  assert.equal(reads, 1)
+  clock.advance(15_000)
+  await engine.tick()
+  assert.equal(reads, 2)
+  clock.advance(30_000)
+  await engine.tick()
+  assert.equal(reads, 3)
+  clock.advance(60_000)
+
+  // Fourth read is blocked on an old probe_failed result. A qualified live
+  // event arrives and fails its flush, which must wake this target.
+  const fourth = engine.tick()
+  while (reads < 4) await new Promise((resolve) => setImmediate(resolve))
+  const message = ledger.read().messages.find((entry) => entry.to === 'B')
+  adapter.receiptFlushResult = false
+  await adapter.emitReceiptEvent({
+    kind: 'message',
+    sessionId: 'B',
+    messageId: message.durableMessageId,
+    senderSessionId: 'A',
+    source: { kind: 'agent-message', form: 'relay', senderSessionId: 'A' },
+    seq: 1,
+    time: clock.read(),
+  })
+  adapter.readReceiptsError = undefined
+  release()
+  await fourth
+  await engine.drain()
+
+  await engine.tick()
+  await engine.drain()
+  assert.equal(reads, 5, 'the wake must make the target due immediately, not after the old 60s backoff')
+})
+
+test('waking an overdue target keeps its original due position in a 17-target batch', async (t) => {
+  const clock = new FakeClock()
+  const targets = Array.from({ length: 17 }, (_, index) => `T${index}`)
+  const adapter = new MemoryAdapter({
+    clock,
+    autoReceive: false,
+    sessions: [sessionFixture({ id: 'A' }), ...targets.map((id) => sessionFixture({ id }))],
+  })
+  const root = await tempRoot()
+  const { ledger, engine } = await openEngine({ root, adapter, clock })
+  t.after(async () => {
+    await engine.dispose()
+    await ledger.close()
+  })
+
+  await engine.send({
+    from: 'A',
+    targets,
+    kind: 'notification',
+    text: 'seventeen targets',
+    operationId: engine.mintOperation().operationId,
+  })
+  adapter.readReceiptsError = 'probe_failed'
+  await engine.start()
+  await engine.drain()
+  clock.advance(15_001)
+
+  // Wake the oldest target only after it is already overdue. Its original
+  // nextAt must be preserved, otherwise the 16-slot batch can freeze it out.
+  await engine.send({
+    from: 'A',
+    targets: ['T0'],
+    kind: 'notification',
+    text: 'wake overdue T0',
+    operationId: engine.mintOperation().operationId,
+  })
+  adapter.readReceiptsError = undefined
+  const order = []
+  const original = adapter.readTargetReceipts.bind(adapter)
+  adapter.readTargetReceipts = async (targetId, ...args) => {
+    order.push(targetId)
+    return original(targetId, ...args)
+  }
+  await engine.tick()
+  await engine.drain()
+  assert.equal(order.length, 16)
+  assert.equal(order.includes('T0'), true, 'the overdue target must not be pushed out by the wake')
+})
+
+test('real HostAdapter live flush failure is retried as transient without reading the target log', async (t) => {
+  const clock = new FakeClock()
+  const host = makeMockHost({
+    clock,
+    sessions: [sessionFixture({ id: 'A' }), sessionFixture({ id: 'B' })],
+  })
+  const adapter = new HostAdapter({
+    ctx: host.ctx,
+    createUserMessage: host.createUserMessage,
+    clock: () => clock.read(),
+    cacheMs: 0,
+  })
+  const root = await tempRoot()
+  const { ledger, engine } = await openEngine({ root, adapter, clock })
+  t.after(async () => {
+    await engine.dispose()
+    await ledger.close()
+  })
+  await engine.send({
+    from: 'A',
+    targets: ['B'],
+    kind: 'request',
+    text: 'live flush failure',
+    operationId: engine.mintOperation().operationId,
+  })
+
+  let reads = 0
+  const originalRead = host.ctx.sessionQuery.readSession.bind(host.ctx.sessionQuery)
+  host.ctx.sessionQuery.readSession = async (id) => { reads += 1; return originalRead(id) }
+  const originalFlush = host.ctx.sessions.flush.bind(host.ctx.sessions)
+  host.ctx.sessions.flush = async () => false
+
+  await engine.start()
+  await engine.drain()
+  assert.equal(reads, 0, 'flush_failed must return before readSession')
+  let message = ledger.read().messages.find((entry) => entry.to === 'B')
+  assert.equal(message.receipt.state, 'queued')
+
+  host.ctx.sessions.flush = originalFlush
+  clock.advance(15_000)
+  await engine.tick()
+  await engine.drain()
+  assert.equal(reads, 1, 'transient flush failure leaves a retry that reads after backoff')
+  message = ledger.read().messages.find((entry) => entry.to === 'B')
+  assert.equal(message.receipt.state, 'queued')
+})

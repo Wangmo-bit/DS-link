@@ -395,8 +395,8 @@ test('legacy rows accepted for the first time in 0.3 keep the 0.2 acceptedAt + t
   assert.ok(current.deadlineAt < LIMITS.MAX_DATE_MS)
 })
 
-test('a transient observation read failure is retried on tick without a full-history scan', async (t) => {
-  const { engine, ledger, adapter } = await setup(t, { autoReceive: false })
+test('a transient observation read failure retries only after its backoff, not on every tick', async (t) => {
+  const { engine, ledger, adapter, clock } = await setup(t, { autoReceive: false })
   const sent = await engine.send({
     from: 'A',
     targets: ['B'],
@@ -404,15 +404,26 @@ test('a transient observation read failure is retried on tick without a full-his
     text: 'retry me',
     operationId: operation(engine),
   })
+  let reads = 0
+  const original = adapter.readTargetReceipts.bind(adapter)
   adapter.readReceiptsError = 'temporary unreadable'
+  adapter.readTargetReceipts = async (...args) => {
+    reads += 1
+    return original(...args)
+  }
   await engine.start()
   await engine.drain()
+  assert.equal(reads, 1, 'start catch-up is the first real probe')
   let message = ledger.read().messages.find((entry) => entry.id === sent.results[0].id)
   assert.equal(message.receipt.state, 'queued')
 
+  await engine.tick()
+  assert.equal(reads, 1, 'not due yet, so a tick alone does not retry')
+  clock.advance(15_000)
   adapter.readReceiptsError = undefined
   await engine.tick()
   await engine.drain()
+  assert.equal(reads, 2, 'the due backoff causes exactly one retry')
   message = ledger.read().messages.find((entry) => entry.id === sent.results[0].id)
   assert.equal(message.receipt.state, 'queued')
   assert.ok(Number.isSafeInteger(message.receipt.timeoutMs))
