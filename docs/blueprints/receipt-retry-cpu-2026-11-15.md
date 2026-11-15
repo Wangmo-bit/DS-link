@@ -154,6 +154,7 @@ async probeReceiptTargets(targetIds) -> Map<id, {
 - coldreview：独立正确性审查，重点退避/唤醒、归档/旧格式语义、不可读/恢复、批处理/单飞/重入、安全边界、旧 ledger 兼容。
 - Lead：核对两审 PASS + 整改复审，合回 main；安装/发布按所有者授权流程，npm/重启不由 Agent 执行。
 - 版本：本地 `0.8.22-pre.1` 只用于隔离验证；正式 `0.8.22` 升版/打包后必须重绑双审候选，不以两个不同包冒充同一候选。
+- 顺序调整（Lead 已批准）：必要版本元数据（CHANGELOG、package/lock、cordis、PLUGIN_VERSION、entry-0.8.22、版本断言测试）可先组装进**最终候选**再双审；最终 verifier/coldreview 绑定同一最终 HEAD。
 
 ## 7. 仍待确认的最小项
 
