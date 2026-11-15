@@ -273,3 +273,89 @@ test('history keeps compacted raw text searchable, marks current/shadowed, exclu
     false,
   )
 })
+
+test('receipt target probe requires a live header record, not just workspace membership', async () => {
+  const clock = new FakeClock()
+  const sessions = [
+    sessionFixture({ id: 'plain', title: 'Plain Session', workspaceId: 'w-1' }),
+    sessionFixture({ id: 'subagent', title: 'Subagent', origin: 'subagent', workspaceId: 'w-1' }),
+  ]
+  const workspaces = [
+    { id: 'w-1', title: 'Workspace 1', path: '/tmp/w1', sessionIds: ['plain', 'subagent', 'ghost'] },
+  ]
+  const host = makeMockHost({ sessions, workspaces, clock })
+  const adapter = adapterFor(host)
+  let listCalls = 0
+  let titleCalls = 0
+  let readCalls = 0
+  const originalList = host.ctx.sessionQuery.listSessions.bind(host.ctx.sessionQuery)
+  const originalTitles = host.ctx.sessionQuery.readTitleSnapshots.bind(host.ctx.sessionQuery)
+  const originalRead = host.ctx.sessionQuery.readSession.bind(host.ctx.sessionQuery)
+  host.ctx.sessionQuery.listSessions = async () => { listCalls += 1; return originalList() }
+  host.ctx.sessionQuery.readTitleSnapshots = async (ids) => { titleCalls += 1; return originalTitles(ids) }
+  host.ctx.sessionQuery.readSession = async (id) => { readCalls += 1; return originalRead(id) }
+
+  const probes = await adapter.probeReceiptTargets(['plain', 'ghost', 'missing', 'subagent'])
+  assert.equal(probes.get('plain').registered, true)
+  assert.equal(probes.get('ghost').registered, false, 'workspace membership without a header record is not registration')
+  assert.equal(probes.get('missing').registered, false)
+  assert.equal(probes.get('subagent').registered, true)
+  assert.equal(probes.get('subagent').subagent, true)
+  assert.equal(listCalls, 1)
+  assert.equal(titleCalls, 0, 'receipt probing must never fold titles')
+
+  const ghost = await adapter.readTargetReceipts('ghost')
+  assert.equal(ghost.readable, false)
+  assert.equal(ghost.errorCode, 'target_unavailable')
+  assert.equal(readCalls, 0, 'a non-registered target must not be read')
+
+  const unregistered = await adapter.readTargetReceipts('missing')
+  assert.equal(unregistered.readable, false)
+  assert.equal(readCalls, 0)
+
+  const listBefore = listCalls
+  const absent = await adapter.probeReceiptTargets(['missing', 'also-missing'])
+  assert.equal(absent.get('missing').registered, false)
+  assert.equal(absent.get('also-missing').registered, false)
+  assert.equal(listCalls, listBefore, 'no registered candidate means no listSessions call')
+})
+
+test('receipt reads keep archived targets readable; registration alone still gated', async () => {
+  const host = hostWith()
+  const adapter = adapterFor(host)
+  const probe = await adapter.probeReceiptTargets(['archived', 'unregistered'])
+  assert.equal(probe.get('archived').registered, true)
+  assert.equal(probe.get('archived').archived, true)
+  assert.equal(probe.get('unregistered').registered, false)
+
+  const archived = await adapter.readTargetReceipts('archived')
+  assert.equal(archived.readable, true, 'archiving must not erase an already accepted receipt path')
+  assert.equal(archived.pendingKnown, true)
+
+  const missing = await adapter.readTargetReceipts('unregistered')
+  assert.equal(missing.readable, false)
+  assert.equal(missing.errorCode, 'target_unavailable')
+})
+
+test('a transient header probe failure is reported as probe failure, not a missing target', async () => {
+  const host = hostWith()
+  const adapter = adapterFor(host)
+  let listCalls = 0
+  let readCalls = 0
+  host.ctx.sessionQuery.listSessions = async () => {
+    listCalls += 1
+    throw new Error('temporary header failure')
+  }
+  host.ctx.sessionQuery.readSession = async (id) => {
+    readCalls += 1
+    return { events: [], inheritedEventCount: 0, session: { id } }
+  }
+  const probes = await adapter.probeReceiptTargets(['plain'])
+  assert.equal(probes.get('plain').registered, false)
+  assert.equal(probes.get('plain').probeError, 'probe_failed')
+  assert.equal(listCalls, 1)
+  const read = await adapter.readTargetReceipts('plain')
+  assert.equal(read.readable, false)
+  assert.equal(read.errorCode, 'probe_failed')
+  assert.equal(readCalls, 0)
+})

@@ -129,6 +129,7 @@ async probeReceiptTargets(targetIds) -> Map<id, {
 - `src/core/engine.js`：仅重试表、批处理/单飞、退避、tick 保护、调用点。
 - `src/core/constants.js`：仅在确需共享退避常量时改；否则保持局部常量，避免扩散。
 - `test/core-receipt.test.js`：仅修误导测试名/补语义断言；不删覆盖。
+- `test/host-discovery.test.js`：**调研负责人/Lead 已批准的最小直测扩展**（约 40 行 probe 双命中），仅此新增；不借此扩功能或削原测试。
 - 新增 `test/host-receipt-cpu.test.js`（或同义文件名）。
 - `test/helpers.js`：仅为合成 fixture/spy 扩展，保持既有 helper 语义。
 - 本蓝图文件；最终版本的 `CHANGELOG.md`/`package.json`/入口文件在放行并完成双审后另行处理。

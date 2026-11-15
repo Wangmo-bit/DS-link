@@ -67,6 +67,75 @@ export class HostAdapter {
     return sessions.find((session) => session.id === id)
   }
 
+  /**
+   * Header-only existence probe for receipt retries. It deliberately does not
+   * fold titles or read any session body: retry scheduling must never turn one
+   * unreadable target into a whole-registry title scan.
+   * @param {string[]} targetIds
+   * @returns {Promise<Map<string, Record<string, any>>>}
+   */
+  async probeReceiptTargets(targetIds) {
+    const ids = [...new Set((Array.isArray(targetIds) ? targetIds : []).filter((id) => typeof id === 'string' && id.length > 0))]
+    const result = new Map()
+    if (ids.length === 0) return result
+
+    const workspaces = await Promise.resolve(this.ctx.workspaceRegistry.list())
+    const workspaceBySession = new Map()
+    for (const workspace of workspaces) {
+      for (const sessionId of workspace.sessionIds) {
+        if (!workspaceBySession.has(sessionId)) workspaceBySession.set(sessionId, workspace)
+      }
+    }
+    const archived = new Set(this.ctx.workspaceRegistry.archivedSessionIds)
+    const queryIds = ids.filter((id) => workspaceBySession.has(id))
+    for (const id of ids) {
+      if (!workspaceBySession.has(id)) result.set(id, { id, registered: false, subagent: false, archived: false, live: false })
+    }
+    if (queryIds.length === 0) return result
+
+    let records
+    try {
+      records = await this.ctx.sessionQuery.listSessions()
+    } catch (error) {
+      this.logger.warn(`session-link: receipt target probe unavailable (${errorCode(error)})`)
+      for (const id of queryIds) {
+        result.set(id, {
+          id,
+          registered: false,
+          subagent: false,
+          archived: false,
+          live: false,
+          probeError: 'probe_failed',
+        })
+      }
+      return result
+    }
+    const recordsById = new Map()
+    for (const record of records) {
+      const id = record?.header?.id
+      if (typeof id === 'string' && !recordsById.has(id)) recordsById.set(id, record)
+    }
+    for (const id of queryIds) {
+      const record = recordsById.get(id)
+      if (record === undefined) {
+        // Registry membership alone is not registration: the old getSession
+        // path also required the query's header record, and so does this probe.
+        result.set(id, { id, registered: false, subagent: false, archived: false, live: false })
+        continue
+      }
+      const header = record.header
+      result.set(id, {
+        id,
+        registered: true,
+        subagent: header.origin === 'subagent' || (header.delegationDepth ?? 0) > 0,
+        archived: archived.has(id),
+        formatStatus: record.formatStatus ?? 'current',
+        live: record.live === true,
+      })
+    }
+    return result
+  }
+
   /** @param {boolean} fresh @returns {Promise<Array<Record<string, any>>>} */
   async #refresh(fresh) {
     if (!fresh && this.#cache !== undefined && this.clock() - this.#cache.at < this.cacheMs) {
@@ -326,8 +395,16 @@ export class HostAdapter {
    * @param {string} targetId
    * @returns {Promise<Record<string, any>>}
    */
-  async readTargetReceipts(targetId) {
-    const info = await this.getSession(targetId, { fresh: true })
+  async readTargetReceipts(targetId, targetInfo) {
+    let info = targetInfo
+    if (info === undefined) {
+      try {
+        info = (await this.probeReceiptTargets([targetId])).get(targetId)
+      } catch {
+        return { readable: false, errorCode: 'probe_failed' }
+      }
+    }
+    if (info?.probeError !== undefined) return { readable: false, errorCode: info.probeError }
     if (info === undefined || info === null || info.registered !== true || info.subagent === true) {
       return { readable: false, errorCode: 'target_unavailable' }
     }

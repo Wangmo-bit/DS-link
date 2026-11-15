@@ -521,7 +521,11 @@ export class SessionLinkEngine {
     this.#pumpScheduled = false
     this.#receiptIndex = new Map()
     this.#receiptByTarget = new Map()
-    this.#receiptRetryTargets = new Set()
+    this.#receiptRetryTargets = new Map()
+    this.#receiptRetryOrder = 0
+    this.#receiptReads = new Map()
+    this.#receiptFollowup = new Map()
+    this.#tickRunning = false
     this.#transferScheduled = false
     this.#transferRunning = false
     this.#createsInFlight = new Map()
@@ -542,6 +546,10 @@ export class SessionLinkEngine {
   #receiptIndex
   #receiptByTarget
   #receiptRetryTargets
+  #receiptRetryOrder
+  #receiptReads
+  #receiptFollowup
+  #tickRunning
   #transferScheduled
   #transferRunning
   #createsInFlight
@@ -691,8 +699,9 @@ export class SessionLinkEngine {
       flushed = false
     }
     if (this.#disposed || this.#receiptPoisoned !== undefined) return
+    this.#wakeReceiptRetry(sessionId)
     if (!flushed) {
-      this.#receiptRetryTargets.add(sessionId)
+      this.#queueReceiptRetry(sessionId)
       return
     }
     await this.#mutate((state) => {
@@ -822,27 +831,78 @@ export class SessionLinkEngine {
       }
       ids.push(message.id)
     }
+    if (groups.size === 0) return
+    const targetIds = [...groups.keys()]
+    let probes
+    if (typeof this.adapter.probeReceiptTargets === 'function') {
+      try {
+        probes = await this.adapter.probeReceiptTargets(targetIds)
+      } catch (error) {
+        this.logger.warn(`session-link: receipt target probe failed (${errorCode(error)})`)
+        for (const targetId of targetIds) this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        return
+      }
+    }
     for (const [targetId, ids] of groups) {
-      await this.#catchUpTarget(targetId, ids)
+      if (probes !== undefined && !probes.has(targetId)) {
+        this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        continue
+      }
+      await this.#catchUpTarget(targetId, ids, probes?.get(targetId))
+    }
+  }
+
+  /**
+   * Read one target once and apply its evidence. Concurrent callers share the
+   * same read; ids that arrive during it are kept for a later controlled read.
+   * @param {string} targetId
+   * @param {string[]} messageIds
+   * @param {Record<string, any> | undefined} targetInfo
+   * @returns {Promise<void>}
+   */
+  async #catchUpTarget(targetId, messageIds, targetInfo) {
+    if (typeof this.adapter.readTargetReceipts !== 'function') return
+    const inFlight = this.#receiptReads.get(targetId)
+    if (inFlight !== undefined) {
+      let pending = this.#receiptFollowup.get(targetId)
+      if (pending === undefined) {
+        pending = new Set()
+        this.#receiptFollowup.set(targetId, pending)
+      }
+      for (const id of messageIds) pending.add(id)
+      await inFlight.catch(() => undefined)
+      return
+    }
+    const promise = this.#readTargetReceipts(targetId, messageIds, targetInfo)
+    this.#receiptReads.set(targetId, promise)
+    try {
+      await promise
+    } finally {
+      this.#receiptReads.delete(targetId)
+      const pending = this.#receiptFollowup.get(targetId)
+      if (pending !== undefined && pending.size > 0) {
+        this.#receiptFollowup.delete(targetId)
+        this.#queueReceiptRetry(targetId)
+      }
     }
   }
 
   /**
    * @param {string} targetId
    * @param {string[]} messageIds
+   * @param {Record<string, any> | undefined} targetInfo
    * @returns {Promise<void>}
    */
-  async #catchUpTarget(targetId, messageIds) {
-    if (typeof this.adapter.readTargetReceipts !== 'function') return
+  async #readTargetReceipts(targetId, messageIds, targetInfo) {
     let result
     try {
-      result = await this.adapter.readTargetReceipts(targetId)
+      result = await this.adapter.readTargetReceipts(targetId, targetInfo)
     } catch (error) {
       result = { readable: false, errorCode: errorCode(error) }
     }
     if (this.#disposed) return
     if (result?.readable !== true) {
-      this.#receiptRetryTargets.add(targetId)
+      this.#scheduleReceiptFailure(targetId, result?.errorCode)
       return
     }
     const evidence = new Map()
@@ -881,31 +941,100 @@ export class SessionLinkEngine {
       }
       return changed ? true : skipMutation(undefined)
     })
+    const later = this.#receiptMessageIds(targetId).filter((id) => !messageIds.includes(id))
     this.#receiptRetryTargets.delete(targetId)
+    if (later.length > 0) this.#queueReceiptRetry(targetId)
+  }
+
+  /** @param {string} targetId @returns {string[]} */
+  #receiptMessageIds(targetId) {
+    const state = this.ledger.read()
+    return state.messages
+      .filter(
+        (message) =>
+          message.to === targetId &&
+          typeof message.durableMessageId === 'string' &&
+          message.receipt !== undefined &&
+          message.receipt.state !== 'received' &&
+          RECEIPT_STATUSES.has(message.status),
+      )
+      .map((message) => message.id)
+  }
+
+  /** @param {string} targetId */
+  #queueReceiptRetry(targetId) {
+    const existing = this.#receiptRetryTargets.get(targetId)
+    if (existing !== undefined) return
+    this.#receiptRetryTargets.set(targetId, {
+      attempts: 0,
+      nextAt: this.clock(),
+      lastCode: 'queued',
+      order: ++this.#receiptRetryOrder,
+    })
+  }
+
+  /** @param {string} targetId */
+  #wakeReceiptRetry(targetId) {
+    const existing = this.#receiptRetryTargets.get(targetId)
+    if (existing === undefined) {
+      this.#queueReceiptRetry(targetId)
+      return
+    }
+    existing.nextAt = this.clock()
+  }
+
+  /**
+   * Only an actual probe failure advances the backoff. Repeated enqueue
+   * notifications leave an existing schedule untouched.
+   * @param {string} targetId
+   * @param {string | undefined} code
+   */
+  #scheduleReceiptFailure(targetId, code) {
+    const existing = this.#receiptRetryTargets.get(targetId)
+    const attempts = (existing?.attempts ?? 0) + 1
+    const transient = code !== 'target_unavailable'
+    const delays = transient ? [15_000, 30_000, 60_000] : [15_000, 30_000, 60_000, 300_000]
+    const delay = delays[Math.min(attempts - 1, delays.length - 1)]
+    this.#receiptRetryTargets.set(targetId, {
+      attempts,
+      nextAt: this.clock() + delay,
+      lastCode: code ?? 'unreadable',
+      order: existing?.order ?? ++this.#receiptRetryOrder,
+    })
   }
 
   /** @returns {Promise<void>} */
   async #retryReceiptTargets() {
     if (this.#receiptRetryTargets.size === 0) return
-    const targets = [...this.#receiptRetryTargets].slice(0, LIMITS.RECEIPT_RETRY_TARGETS)
-    for (const targetId of targets) {
+    const now = this.clock()
+    const due = [...this.#receiptRetryTargets.entries()]
+      .filter(([, entry]) => entry.nextAt <= now)
+      .sort((a, b) => a[1].nextAt - b[1].nextAt || a[1].order - b[1].order)
+    if (due.length === 0) return
+    const batch = due.slice(0, LIMITS.RECEIPT_RETRY_TARGETS)
+    const targetIds = batch.map(([targetId]) => targetId)
+    let probes
+    if (typeof this.adapter.probeReceiptTargets === 'function') {
+      try {
+        probes = await this.adapter.probeReceiptTargets(targetIds)
+      } catch (error) {
+        this.logger.warn(`session-link: receipt target probe failed (${errorCode(error)})`)
+        for (const [targetId] of batch) this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        return
+      }
+    }
+    for (const [targetId] of batch) {
       if (this.#disposed) return
-      const state = this.ledger.read()
-      const ids = state.messages
-        .filter(
-          (message) =>
-            message.to === targetId &&
-            typeof message.durableMessageId === 'string' &&
-            message.receipt !== undefined &&
-            message.receipt.state !== 'received' &&
-            RECEIPT_STATUSES.has(message.status),
-        )
-        .map((message) => message.id)
+      if (probes !== undefined && !probes.has(targetId)) {
+        this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        continue
+      }
+      const ids = this.#receiptMessageIds(targetId)
       if (ids.length === 0) {
         this.#receiptRetryTargets.delete(targetId)
         continue
       }
-      await this.#catchUpTarget(targetId, ids)
+      await this.#catchUpTarget(targetId, ids, probes?.get(targetId))
     }
   }
 
@@ -1054,21 +1183,27 @@ export class SessionLinkEngine {
    * @returns {Promise<Record<string, any>>}
    */
   async tick() {
+    if (this.#tickRunning) return { skipped: true, reason: 'tick_in_progress' }
     if (this.#disposed) return { skipped: true }
     if (!this.ledger.writable) return { skipped: true, storageError: true }
-    return this.#trackOperation(async () => {
-      const now = this.clock()
-      const summary = await this.#mutate((state) => {
-        const changed = this.#cleanupState(state, now)
-        if (!changed) return skipMutation({ timedOut: 0, redacted: 0, prunedMessages: 0, prunedOperations: 0, prunedChains: 0, prunedCreates: 0 })
-        return { ...this.#lastCleanup }
+    this.#tickRunning = true
+    try {
+      return await this.#trackOperation(async () => {
+        const now = this.clock()
+        const summary = await this.#mutate((state) => {
+          const changed = this.#cleanupState(state, now)
+          if (!changed) return skipMutation({ timedOut: 0, redacted: 0, prunedMessages: 0, prunedOperations: 0, prunedChains: 0, prunedCreates: 0 })
+          return { ...this.#lastCleanup }
+        })
+        this.#rebuildReceiptIndex(this.ledger.read())
+        await this.#retryReceiptTargets()
+        this.#schedulePump()
+        this.#scheduleTransfer()
+        return summary
       })
-      this.#rebuildReceiptIndex(this.ledger.read())
-      await this.#retryReceiptTargets()
-      this.#schedulePump()
-      this.#scheduleTransfer()
-      return summary
-    })
+    } finally {
+      this.#tickRunning = false
+    }
   }
 
   /**
@@ -1625,6 +1760,7 @@ export class SessionLinkEngine {
 
     if (result.idempotent === true || result.held === true) return result
     await this.#dispatchBatch(created)
+    for (const target of targets) this.#wakeReceiptRetry(target)
     return {
       ...result,
       results: result.results.map((entry) => {
