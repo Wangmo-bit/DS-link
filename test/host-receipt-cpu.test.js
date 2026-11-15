@@ -511,3 +511,70 @@ test('real HostAdapter live flush failure is retried as transient without readin
   message = ledger.read().messages.find((entry) => entry.to === 'B')
   assert.equal(message.receipt.state, 'queued')
 })
+
+test('a qualified wake during the batch header probe survives the probe failure', async (t) => {
+  const clock = new FakeClock()
+  const host = makeMockHost({
+    clock,
+    sessions: [sessionFixture({ id: 'A' }), sessionFixture({ id: 'B' })],
+  })
+  const adapter = new HostAdapter({
+    ctx: host.ctx,
+    createUserMessage: host.createUserMessage,
+    clock: () => clock.read(),
+    cacheMs: 0,
+  })
+  const root = await tempRoot()
+  const { ledger, engine } = await openEngine({ root, adapter, clock })
+  t.after(async () => {
+    await engine.dispose()
+    await ledger.close()
+  })
+  await engine.send({
+    from: 'A',
+    targets: ['B'],
+    kind: 'request',
+    text: 'wake during probe',
+    operationId: engine.mintOperation().operationId,
+  })
+
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  let listCalls = 0
+  const query = host.ctx.sessionQuery
+  const originalList = query.listSessions.bind(query)
+  query.listSessions = async () => {
+    listCalls += 1
+    if (listCalls === 1) {
+      await gate
+      throw new Error('old header probe failure')
+    }
+    return originalList()
+  }
+  const originalFlush = host.ctx.sessions.flush.bind(host.ctx.sessions)
+  host.ctx.sessions.flush = async () => false
+  let reads = 0
+  const originalRead = query.readSession.bind(query)
+  query.readSession = async (id) => { reads += 1; return originalRead(id) }
+
+  const starting = engine.start()
+  while (listCalls === 0) await new Promise((resolve) => setImmediate(resolve))
+  const message = ledger.read().messages.find((entry) => entry.to === 'B')
+  host.emitEvent('B', 'user/message', {
+    id: message.durableMessageId,
+    role: 'user',
+    content: [{ type: 'text', text: 'wake during probe' }],
+    source: { kind: 'agent-message', form: 'relay', senderSessionId: 'A' },
+  })
+  await new Promise((resolve) => setImmediate(resolve))
+  release()
+  await starting
+  await engine.drain()
+
+  host.ctx.sessions.flush = originalFlush
+  query.listSessions = originalList
+  await engine.tick()
+  await engine.drain()
+  assert.ok(reads > 0, 'the wake must make the target due after the failed header probe')
+  assert.equal(ledger.read().messages.find((entry) => entry.to === 'B').receipt.state, 'received')
+})

@@ -835,6 +835,7 @@ export class SessionLinkEngine {
     }
     if (groups.size === 0) return
     const targetIds = [...groups.keys()]
+    const wakeBefore = this.#receiptWakeVersions(targetIds)
     let probes
     if (typeof this.adapter.probeReceiptTargets === 'function') {
       try {
@@ -842,15 +843,17 @@ export class SessionLinkEngine {
       } catch (error) {
         this.logger.warn(`session-link: receipt target probe failed (${errorCode(error)})`)
         for (const targetId of targetIds) this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        this.#applyReceiptWakes(targetIds, wakeBefore)
         return
       }
     }
     for (const [targetId, ids] of groups) {
       if (probes !== undefined && !probes.has(targetId)) {
         this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        this.#applyReceiptWakes([targetId], wakeBefore)
         continue
       }
-      await this.#catchUpTarget(targetId, ids, probes?.get(targetId))
+      await this.#catchUpTarget(targetId, ids, probes?.get(targetId), wakeBefore.get(targetId))
     }
   }
 
@@ -862,7 +865,7 @@ export class SessionLinkEngine {
    * @param {Record<string, any> | undefined} targetInfo
    * @returns {Promise<void>}
    */
-  async #catchUpTarget(targetId, messageIds, targetInfo) {
+  async #catchUpTarget(targetId, messageIds, targetInfo, wakeBefore) {
     if (typeof this.adapter.readTargetReceipts !== 'function') return
     const inFlight = this.#receiptReads.get(targetId)
     if (inFlight !== undefined) {
@@ -875,7 +878,7 @@ export class SessionLinkEngine {
       await inFlight.catch(() => undefined)
       return
     }
-    const wakeVersion = this.#receiptWake.get(targetId) ?? 0
+    const wakeVersion = wakeBefore ?? (this.#receiptWake.get(targetId) ?? 0)
     const promise = this.#readTargetReceipts(targetId, messageIds, targetInfo)
     this.#receiptReads.set(targetId, promise)
     try {
@@ -957,6 +960,26 @@ export class SessionLinkEngine {
     if (later.length > 0) this.#queueReceiptRetry(targetId)
   }
 
+  /** @param {string[]} targetIds @returns {Map<string, number>} */
+  #receiptWakeVersions(targetIds) {
+    return new Map(targetIds.map((targetId) => [targetId, this.#receiptWake.get(targetId) ?? 0]))
+  }
+
+  /**
+   * A wake that happened while a batch probe was in flight must survive the
+   * probe's own failure schedule. Keep the failure attempts but make it due now.
+   * @param {string[]} targetIds
+   * @param {Map<string, number>} before
+   */
+  #applyReceiptWakes(targetIds, before) {
+    for (const targetId of targetIds) {
+      if ((this.#receiptWake.get(targetId) ?? 0) === (before.get(targetId) ?? 0)) continue
+      const entry = this.#receiptRetryTargets.get(targetId)
+      if (entry === undefined) this.#queueReceiptRetry(targetId)
+      else entry.nextAt = Math.min(entry.nextAt, this.clock())
+    }
+  }
+
   /** @param {string} targetId @returns {string[]} */
   #receiptMessageIds(targetId) {
     const state = this.ledger.read()
@@ -1025,6 +1048,7 @@ export class SessionLinkEngine {
     if (due.length === 0) return
     const batch = due.slice(0, LIMITS.RECEIPT_RETRY_TARGETS)
     const targetIds = batch.map(([targetId]) => targetId)
+    const wakeBefore = this.#receiptWakeVersions(targetIds)
     let probes
     if (typeof this.adapter.probeReceiptTargets === 'function') {
       try {
@@ -1032,6 +1056,7 @@ export class SessionLinkEngine {
       } catch (error) {
         this.logger.warn(`session-link: receipt target probe failed (${errorCode(error)})`)
         for (const [targetId] of batch) this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        this.#applyReceiptWakes(targetIds, wakeBefore)
         return
       }
     }
@@ -1039,6 +1064,7 @@ export class SessionLinkEngine {
       if (this.#disposed) return
       if (probes !== undefined && !probes.has(targetId)) {
         this.#scheduleReceiptFailure(targetId, 'probe_failed')
+        this.#applyReceiptWakes([targetId], wakeBefore)
         continue
       }
       const ids = this.#receiptMessageIds(targetId)
@@ -1046,7 +1072,7 @@ export class SessionLinkEngine {
         this.#receiptRetryTargets.delete(targetId)
         continue
       }
-      await this.#catchUpTarget(targetId, ids, probes?.get(targetId))
+      await this.#catchUpTarget(targetId, ids, probes?.get(targetId), wakeBefore.get(targetId))
     }
   }
 

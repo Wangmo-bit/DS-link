@@ -160,7 +160,7 @@ async probeReceiptTargets(targetIds) -> Map<id, {
 ## 7. v4 实现后验收矩阵（最终候选）
 
 - 功能提交：`e03a6f4`；版本/计数提交之后形成最终 HEAD（以交付回报的 `git rev-parse HEAD` 为准）。
-- 最终全量隔离测试：**538 / 538 通过，0 失败，0 跳过**（`run-tests` 自动发现；不用固定数字替代发现）。
+- 最终全量隔离测试：**539 / 539 通过，0 失败，0 跳过**（`run-tests` 自动发现；不用固定数字替代发现）。
 - 新增/更新回归：
   - `test/host-receipt-cpu.test.js`：真实 HostAdapter + 300 冷会话 + 缺失目标（readTitleSnapshots=0、无关 read/body=0、`list<=1`）；真实 HostAdapter live flush 失败（不读 log，恢复后重试）；probe 初始失败批次不逐目标重 probe；tick 单飞；旧成功读与旧失败读两条 in-flight wake 分支；17 目标到期公平性；later ids 不丢。
   - `test/host-discovery.test.js`：probe `registered` 双命中（workspace AND header）、registry-only 不读、归档仍可读、probe_failed 不伪装缺失。
@@ -171,7 +171,7 @@ async probeReceiptTargets(targetIds) -> Map<id, {
   - §C 批处理/单飞：批 probe 失败短路、17 目标公平性、tick 单飞/异常后恢复、later ids。
   - §D 语义不变：归档/旧格式可读、状态保持、无 fake received/unknown 重发。
 - P1/P2 整改：
-  - P1：旧读失败后若期间发生 wake，保留 attempts 但 `nextAt=min(existing, now)`；新增“old in-flight failure cannot overwrite newer same-id wake”。
+  - P1：旧读失败后若期间发生 wake，保留 attempts 但 `nextAt=min(existing, now)`；batch header probe 期间发生的 wake 也在 probe 失败后保留到期（`#applyReceiptWakes`）；新增旧失败与 probe 期间 wake 两条回归。
   - P2：wake 对已过期目标用 `min(existing.nextAt, now)`，不再把目标推后；新增 17 目标批次回归。
 - 正式双审仍必须绑定最终 HEAD；verifier/coldreview 旧报告（f76effa/d6f9f6e）只作为整改输入，不作为最终 PASS。
 
