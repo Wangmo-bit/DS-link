@@ -16,13 +16,17 @@ function manySessions(count) {
     sessionFixture({ id: 'A', title: 'Alpha' }),
     sessionFixture({ id: 'B', title: 'Beta' }),
     sessionFixture({ id: 'C', title: 'Gamma' }),
-    ...Array.from({ length: count }, (_, index) => sessionFixture({ id: `cold-${index}`, title: `Cold ${index}` })),
+    ...Array.from({ length: count }, (_, index) => sessionFixture({ id: `cold-${index}`, title: `Cold ${index}`, live: false, agentStatus: 'cold' })),
   ]
 }
 
 test('real HostAdapter catch-up never folds titles or reads unrelated sessions for a missing target', async (t) => {
   const clock = new FakeClock()
   const host = makeMockHost({ clock, sessions: manySessions(300) })
+  for (const session of host.sessions) {
+    if (session.id.startsWith('cold-')) host.agents.delete(session.id)
+  }
+  assert.equal(host.agents.has('cold-0'), false, 'cold fixture has no live agent instance')
   const adapter = new HostAdapter({
     ctx: host.ctx,
     createUserMessage: host.createUserMessage,
@@ -254,8 +258,9 @@ test('a read already in flight keeps later un-received ids for the next controll
   const original = adapter.readTargetReceipts.bind(adapter)
   adapter.readTargetReceipts = async (...args) => {
     reads += 1
+    const result = await original(...args)
     if (reads === 1) await gate
-    return original(...args)
+    return result
   }
 
   const starting = engine.start()
@@ -279,4 +284,62 @@ test('a read already in flight keeps later un-received ids for the next controll
   const later = ledger.read().messages.filter((message) => message.to === 'B')
   assert.equal(later.length, 2)
   assert.equal(later.some((message) => message.receipt.state === 'received'), false)
+})
+
+
+test('a stale read cannot swallow a same-id wake that failed its live flush', async (t) => {
+  const clock = new FakeClock()
+  const adapter = new MemoryAdapter({
+    clock,
+    autoReceive: false,
+    sessions: [sessionFixture({ id: 'A' }), sessionFixture({ id: 'B' })],
+  })
+  const root = await tempRoot()
+  const { ledger, engine } = await openEngine({ root, adapter, clock })
+  t.after(async () => {
+    await engine.dispose()
+    await ledger.close()
+  })
+
+  await engine.send({
+    from: 'A',
+    targets: ['B'],
+    kind: 'request',
+    text: 'same-id wake',
+    operationId: engine.mintOperation().operationId,
+  })
+  adapter.receiptFlushResult = false
+
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  let reads = 0
+  const original = adapter.readTargetReceipts.bind(adapter)
+  adapter.readTargetReceipts = async (...args) => {
+    reads += 1
+    const result = await original(...args)
+    if (reads === 1) await gate
+    return result
+  }
+
+  const starting = engine.start()
+  while (reads === 0) await new Promise((resolve) => setImmediate(resolve))
+  const message = ledger.read().messages.find((entry) => entry.to === 'B')
+  await adapter.emitReceiptEvent({
+    kind: 'message',
+    sessionId: 'B',
+    messageId: message.durableMessageId,
+    senderSessionId: 'A',
+    source: { kind: 'agent-message', form: 'relay', senderSessionId: 'A' },
+    seq: 1,
+    time: clock.read(),
+  })
+  release()
+  await starting
+  await engine.drain()
+  assert.equal(reads, 1)
+
+  await engine.tick()
+  await engine.drain()
+  assert.equal(reads, 2, 'same-id wake must schedule a controlled re-read')
+  assert.equal(ledger.read().messages.find((entry) => entry.to === 'B').receipt.state, 'queued')
 })

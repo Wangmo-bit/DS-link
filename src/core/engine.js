@@ -525,6 +525,7 @@ export class SessionLinkEngine {
     this.#receiptRetryOrder = 0
     this.#receiptReads = new Map()
     this.#receiptFollowup = new Map()
+    this.#receiptWake = new Map()
     this.#tickRunning = false
     this.#transferScheduled = false
     this.#transferRunning = false
@@ -549,6 +550,7 @@ export class SessionLinkEngine {
   #receiptRetryOrder
   #receiptReads
   #receiptFollowup
+  #receiptWake
   #tickRunning
   #transferScheduled
   #transferRunning
@@ -873,6 +875,7 @@ export class SessionLinkEngine {
       await inFlight.catch(() => undefined)
       return
     }
+    const wakeVersion = this.#receiptWake.get(targetId) ?? 0
     const promise = this.#readTargetReceipts(targetId, messageIds, targetInfo)
     this.#receiptReads.set(targetId, promise)
     try {
@@ -884,6 +887,9 @@ export class SessionLinkEngine {
         this.#receiptFollowup.delete(targetId)
         this.#queueReceiptRetry(targetId)
       }
+      // A live event / new send can wake the same id while a stale read is in
+      // flight. Its successful read must not erase that newer wake.
+      if ((this.#receiptWake.get(targetId) ?? 0) !== wakeVersion) this.#queueReceiptRetry(targetId)
     }
   }
 
@@ -975,6 +981,7 @@ export class SessionLinkEngine {
 
   /** @param {string} targetId */
   #wakeReceiptRetry(targetId) {
+    this.#receiptWake.set(targetId, (this.#receiptWake.get(targetId) ?? 0) + 1)
     const existing = this.#receiptRetryTargets.get(targetId)
     if (existing === undefined) {
       this.#queueReceiptRetry(targetId)
