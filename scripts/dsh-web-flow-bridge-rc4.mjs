@@ -1,12 +1,21 @@
 // Generate an exact-version candidate for the rc.4 native ChatFlow bridge.
 // Source-only maintenance tool: never writes an installed DSH tree or starts anything.
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const HOST_SHA256 = 'eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c';
 export const HOST_VERSION = '0.2.2-rc.4';
+function assertModuleSyntax(source) {
+  try {
+    execFileSync(process.execPath, ['--input-type=module', '--check'], { input: source, stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (error) {
+    const detail = String(error.stderr ?? error.message).trim().slice(0, 500);
+    throw new Error(`Generated bridge candidate failed module syntax check: ${detail}`);
+  }
+}
 function replaceOnce(text, before, after) {
   const at = text.indexOf(before);
   if (at < 0 || text.indexOf(before, at + before.length) >= 0) throw new Error(`Host anchor missing or ambiguous: ${before.slice(0, 100)}`);
@@ -33,8 +42,9 @@ export function patchHostFlowRc4(source) {
     'children:{"conversation.chat.node":{kind:`keyed`,scope:`session`,inject:CHAT_NODE_INJECT}}',
     'children:{"conversation.chat.node":{kind:`keyed`,scope:`session`,inject:CHAT_NODE_INJECT},"conversation.chat.flow.adapter":{kind:`single`,scope:`session`}}',
   );
-  const wrapper = `const ChatFlow=(0,react.memo)(function ChatFlow(props){return props.renderSlot(\`conversation.chat.flow.adapter\`,{...props,NativeFlow:NativeChatFlow},{fallback:(0,react.createElement)(NativeChatFlow,props)})});`;
-  out = replaceOnce(out, 'ChatFlow));ctx.slots.inject(`conversation.view`', `${wrapper}ChatFlow));ctx.slots.inject(\`conversation.view\``);
+  const wrapper = `const ChatFlowWrapper=(0,react.memo)(function ChatFlowWrapper(props){return props.renderSlot(\`conversation.chat.flow.adapter\`,{...props,NativeFlow:NativeChatFlow},{fallback:(0,react.createElement)(NativeChatFlow,props)})});`;
+  out = replaceOnce(out, 'ChatFlow));ctx.slots.inject(`conversation.view`', 'ChatFlowWrapper));ctx.slots.inject(`conversation.view`');
+  out = replaceOnce(out, 'function apply(ctx){', wrapper + 'function apply(ctx){');
   out = replaceOnce(
     out,
     'ctx.slots.inject(`conversation.chat.flow`,()=>ctx.slots.register({name:`conversation.chat.flow`',
@@ -60,6 +70,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const artifacts = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'artifacts');
   if ((!destination.startsWith(`${artifacts}${sep}`) && !destination.startsWith(`/dev/shm${sep}`)) || destination === resolve(input)) throw new Error('Output must be a new file in this project’s artifacts or /dev/shm');
   if (await realpath(dirname(destination)) !== dirname(destination)) throw new Error('Refusing a symlinked output directory');
-  await writeFile(destination, patchHostFlowRc4(await readFile(resolve(input), 'utf8')), { flag: 'wx', mode: 0o600 });
+  const patched = patchHostFlowRc4(await readFile(resolve(input), 'utf8'));
+  assertModuleSyntax(patched);
+  await writeFile(destination, patched, { flag: 'wx', mode: 0o600 });
   console.log(`Created version-checked rc.4 Web Chat flow candidate: ${destination}`);
 }
