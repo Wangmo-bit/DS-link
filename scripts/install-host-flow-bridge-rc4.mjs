@@ -16,8 +16,8 @@ export const BRIDGE = Object.freeze({
   expectedVersion: '0.2.2-rc.4',
   beforeHash: 'eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c',
   beforeSize: 509182,
-  afterHash: '401b4d9010d7843c390aeaee37ee5ca5ec9d597038d2c5725be138452cae70d0',
-  afterSize: 510158,
+  afterHash: '06dd19e3fd8ae43740d2bf102354e1250a784419b09b1a659dbd6a9a61f2bf87',
+  afterSize: 510226,
   generatorCommit: '5fb197d24d03a2e49b69555da4ec00d955d46096',
 });
 

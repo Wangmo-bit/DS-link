@@ -35,8 +35,10 @@ export function patchHostFlowRc4(source) {
   let out = replaceOnce(
     source,
     'const ChatFlow=(0,react.memo)(function ChatFlow({',
-    'const NativeChatFlow=(0,react.memo)(function NativeChatFlow({',
+    'const NativeChatFlow=(0,react.memo)(function NativeChatFlow({ slSuppressRunning=false,',
   );
+  out = replaceOnce(out, 'key:group.key', 'key:group.key,slFlowTurn:this.turn');
+  out = replaceOnce(out, '...running||holding?[', '...!slSuppressRunning&&(running||holding)?[');
   out = replaceOnce(
     out,
     'children:{"conversation.chat.node":{kind:`keyed`,scope:`session`,inject:CHAT_NODE_INJECT}}',
