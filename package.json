@@ -1,6 +1,6 @@
 {
   "name": "@wangmo-bit/ds-link",
-  "version": "0.8.22",
+  "version": "0.8.23-rc.1",
   "description": "DS-link: local session collaboration with bubble and card views for DeepSeek Harness",
   "repository": {
     "type": "git",
@@ -23,11 +23,11 @@
   "license": "MIT",
   "engines": {
     "node": ">=24",
-    "dsh": "0.2.1-rc.5 || 0.2.2-rc.1"
+    "dsh": "0.2.1-rc.5 || 0.2.2-rc.1 || 0.2.2-rc.4"
   },
   "exports": {
-    ".": "./src/host/entry-0.8.22.js",
-    "./runtime-0.8.22": "./src/host/entry-0.8.22.js",
+    ".": "./src/host/entry-0.8.23-rc.1.js",
+    "./runtime-0.8.23-rc.1": "./src/host/entry-0.8.23-rc.1.js",
     "./package.json": "./package.json",
     "./client": "./dist/client.js"
   },
@@ -71,8 +71,8 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.0.5 || ~4.1.0",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.5 || 0.2.2-rc.1",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.5 || 0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.5 || 0.2.2-rc.1 || 0.2.2-rc.4",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.5 || 0.2.2-rc.1 || 0.2.2-rc.4",
     "@deepseek-ai/schemastery": "~3.18.5 || ~3.19.0",
     "react": "^18.2.0"
   },
