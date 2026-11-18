@@ -18,7 +18,7 @@ export const BRIDGE = Object.freeze({
   beforeSize: 509182,
   afterHash: '06dd19e3fd8ae43740d2bf102354e1250a784419b09b1a659dbd6a9a61f2bf87',
   afterSize: 510226,
-  generatorCommit: '5fb197d24d03a2e49b69555da4ec00d955d46096',
+  generatorCommit: '49633ae9b3772a074a3a1e950a0940e0c19f4541',
 });
 
 async function readRegularExact(path, expectedMode) {
